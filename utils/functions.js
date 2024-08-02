@@ -1,4 +1,5 @@
 import crypto from "crypto"
+import path from "path"
 
 export const arrayDiff = (arr1, ...arrays) => {
 
@@ -49,5 +50,13 @@ export const chunk = (array, size) => {
     for (let i = 0; i < array.length; i += size) chunked.push(array.slice(i, i + size))
     
     return chunked
-    
+
+}
+
+export const isVideo = file => {
+
+    const ext = path.extname(file)
+
+    return ["mp4"].includes(ext.toLowerCase().replace(".", ""))
+
 }
