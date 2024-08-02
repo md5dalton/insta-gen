@@ -4,54 +4,33 @@
 /node_modules
 /.pnp
 .pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # local env files
 .env*.local
-.env
 
-/prisma/migrations
+# vercel
+.vercel
 
-yarn-error.log
-dist
-build
-tmp
-pnpm-debug.log
-sandbox
-.DS_Store
-
-query-engine*
-migration-engine*
-schema-engine*
-libquery_engine*
-libquery-engine*
-query_engine-windows.dll.node
-
-*tmp.db
-dist/
-
+# typescript
 *.tsbuildinfo
-.prisma
-.pnpm-store
-
-.vscode/*
-!.vscode/launch.json.default
-!.vscode/extensions.json
-coverage
-
-.eslintcache
-
-.pnpm-debug.log
-
-esm
-reproductions/*
-!reproductions/basic-sqlite
-!reproductions/tracing
-!reproductions/pnpm-workspace.yaml
-
-dev.db
-junit.xml
-/output.txt
-
-.envrc.local
-
-.idea/
+next-env.d.ts
