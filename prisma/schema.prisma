@@ -12,21 +12,13 @@ datasource db {
 
 model File {
     path String @id
-}
-
-model RootCollection {
-    id String @id
-    name String
-    path String
-    collections Collection[]
+    media Media?
 }
 
 model Collection {
     id String @id
     name String
     path String
-    owner RootCollection @relation(fields: [ownerId], references: [id])
-    ownerId String
     users User[]
 }
 
@@ -38,37 +30,50 @@ model User {
     owner Collection @relation(fields: [ownerId], references: [id])
     ownerId String
     posts Post[]
-    reels Reel[]
 }
 
 model Post {
     id String @id
     path String
-    picture String
+    thumb String
     owner User @relation(fields: [ownerId], references: [id])
     ownerId String
     media Media[]
     tags PostTag[]
 }
-model Media {
-    id String @id
-    path String
-    height Int
-    width Int
-    mktime DateTime
-    portrait Boolean
-    owner Post @relation(fields: [ownerId], references: [id])
-    ownerId String
-    reel Reel?
+
+enum MediaType {
+    IMAGE
+    VIDEO
 }
 
-model Reel {
+model Media {
     id String @id
-    path String
-    owner User @relation(fields: [ownerId], references: [id])
-    media Media @relation(fields: [mediaId], references: [id])
+    type MediaType
+
+    owner Post @relation(fields: [ownerId], references: [id])
+    file File @relation(fields: [filePath], references: [path])
+
+    image Image?
+    video Video?
+
     ownerId String
-    mediaId String @unique
+    filePath String @unique
+
+    // @@index([imageId])
+    // @@index([videoId])
+}
+
+model Image {
+    id String @id
+    media Media @relation(fields: [mediaImage], references: [id])
+    mediaImage String @unique
+}
+
+model Video {
+    id String @id
+    media Media @relation(fields: [mediaVideo], references: [id])
+    mediaVideo String @unique
 }
 
 model Tag {
