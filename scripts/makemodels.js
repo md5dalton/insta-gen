@@ -60,6 +60,7 @@ collections.forEach(({ directory: collectionPath, items: collectionFiles }) => {
 
                 const media = {
                     id: encode(mediaPath),
+                    path: mediaPath,
                     ownerId: post.id,
                     filePath: mediaPath,
                     type: video ? "VIDEO" : "IMAGE"
