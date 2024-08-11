@@ -4,8 +4,22 @@ export const getUser = async user => await prisma.user.findUnique({
     where: {
         id: user
     },
-    include: {
-        owner: true
+    select: {
+        id: true,
+        name: true,
+        picture: true,
+        
+        owner: {
+            select: {
+                id: true,
+                name: true
+            }
+        },
+        posts: {
+            select: {
+                id: true
+            }
+        }
     }
 })
 
