@@ -15,7 +15,7 @@ export async function GET(req, { params: { page } }) {
         return ({
             id,
             thumb,
-            hasMany: media.length ? true : false,
+            hasMany: media.length > 1,
             hasReel: videos.length ? true : false
         })
 
