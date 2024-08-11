@@ -67,7 +67,7 @@ collections.forEach(({ directory: collectionPath, items: collectionFiles }) => {
                 }
 
 
-                if (!post.thumb) post.thumb = video ? `t:${media.videoId}` : `m:${media.imageId}`
+                if (!post.thumb) post.thumb = video ? `t:${media.id}` : `m:${media.id}`
 
                 models.media.push(media)
 
