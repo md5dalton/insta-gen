@@ -31,16 +31,27 @@ export const getPosts = async (user, page) => await prisma.post.findMany({
     take: 10,
     orderBy: {
         path: "desc"
+    },
+    select: {
+        id: true,
+        thumb: true,
+        ownerId: true,
+        media: {
+            select: {
+                type: true
+            }
+        }
     }
 })
 
-export const getReels = async (user, page) => await prisma.reel.findMany({
+export const getReels = async (user, page) => await prisma.media.findMany({
     where: {
-        ownerId: user
+        ownerId: user,
+        type: "VIDEO"
     },
     skip: page * 10,
     take: 10,
-    // orderBy: {
-    //     path: "desc"
-    // }
+    orderBy: {
+        path: "desc"
+    }
 })
