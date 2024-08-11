@@ -1,4 +1,3 @@
-import { getPosts, getVideos } from "@/actions/random"
 import { getUser } from "@/actions/user"
 
 export async function GET(req, { params: { id } }) {
