@@ -1,7 +1,7 @@
 import { getMedia } from "@/actions/media"
 import fs from "fs"
 
-export async function GET(request, { params: { slug } }) {
+export async function GET(req, { params: { slug } }) {
 
     const media = await getMedia(slug)
 
