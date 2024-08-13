@@ -3,11 +3,11 @@ import { getPosts } from "@/actions/feed"
 export async function GET(req, { params: { page } }) {
 
     const DBposts = await getPosts()
-    
+
     return Response.json({
-        media: DBposts,
+        media: [DBposts.pop()],
         page,
-        end: false
+        end: true
     })
 
 }
