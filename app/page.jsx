@@ -1,1 +1,1 @@
-export default () => <p>page</p>
+export default () => <video src="/api/stream/1" />

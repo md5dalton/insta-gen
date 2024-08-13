@@ -1,13 +1,37 @@
-import fs from "fs"
+import { getMedia } from "@/actions/media"
+import { existsSync, statSync, createReadStream } from "node:fs"
+import parseRange from "range-parser"
 
-export async function GET(req, { params: { slug } }) {
+export async function GET({ headers }, { params: { slug } }) {
 
-    // const imagePath = `${process.env.THUMB_ROOT}/${slug}.jpg`
-    const imagePath = `/media/1.jpg`
+    const media = await getMedia(slug)
     
-    return fs.existsSync(imagePath) ? new Response(fs.readFileSync(imagePath), {
-            headers: {"Content-Type": "image/jpeg"},
-            status: 200
-    }) : new Response('Image not found', { status: 404 })
+    if (!media) return new Response("Media not found", { status: 404 })
 
+    const mediaPath = media.path
+
+    if (!existsSync(mediaPath)) return new Response("File not found", { status: 404 })
+        
+    const { size } = statSync(mediaPath)
+    const range = headers.range ||"bytes=0"
+    
+    const parsedRange = parseRange(size, range, { combine: true })
+    
+    if (!parsedRange || parsedRange === -1 || parsedRange.type !== "bytes") return new Response("Invalid range", { status: 400 })
+
+    const { start, end } = parsedRange.shift()
+    const chunkSize = end - start + 1
+
+    const head = {
+        "Content-Range": `bytes ${start}-${end}/${size}`,
+        "Content-Length": chunkSize,
+        "Content-Type": "video/mp4",
+        "Accept-Ranges": "bytes",
+    }
+
+    return new Response(createReadStream(mediaPath, { start, end }), {
+        headers: head,
+        status: 206
+    })
+    
 }
