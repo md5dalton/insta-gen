@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client"
 import { find } from "../utils/finder.js"
-import { arrayDiff } from "../utils/functions.js"
+import { arrayDiff, getMediaDir } from "../utils/functions.js"
 
-const dir = "/media/images"
+const dir = getMediaDir()
 const ext = ["jpg", "jpeg", "png", "webp", "mp4"]
 
 const files = await find(dir, ext)
@@ -14,8 +14,9 @@ const DBfiles = await prisma.file.findMany()
 console.log("Existing: ",  DBfiles.length)
 
 const DBids = DBfiles.map(({ path }) => path)
+const relativeFiles = files.map(file => file.replaceAll(dir, ""))
 
-const newFiles = arrayDiff(files, DBids)
+const newFiles = arrayDiff(relativeFiles, DBids)
 console.log("New: ",  newFiles.length)
 
 if (newFiles.length) {
