@@ -50,39 +50,37 @@ enum MediaType {
 model Media {
     id String @id
 
-    path String
-    type MediaType
+    path String @unique
+    // type MediaType
 
     owner Post @relation(fields: [ownerId], references: [id])
-    file File @relation(fields: [filePath], references: [path])
+    file File @relation(fields: [path], references: [path])
 
-    image Image?
-    video Video?
+    isVideo Boolean
 
     ownerId String
-    filePath String @unique
 
     // @@index([imageId])
     // @@index([videoId])
 }
 
-model Image {
-    id String @id
+// model Image {
+//     id String @id
     
-    height Int
-    width Int
-    mktime DateTime
-    portrait Boolean
+//     height Int
+//     width Int
+//     mktime DateTime
+//     portrait Boolean
 
-    media Media @relation(fields: [mediaImage], references: [id])
-    mediaImage String @unique
-}
+//     media Media @relation(fields: [mediaImage], references: [id])
+//     mediaImage String @unique
+// }
 
-model Video {
-    id String @id
-    media Media @relation(fields: [mediaVideo], references: [id])
-    mediaVideo String @unique
-}
+// model Video {
+//     id String @id
+//     media Media @relation(fields: [mediaVideo], references: [id])
+//     mediaVideo String @unique
+// }
 
 model Tag {
     id String @id
