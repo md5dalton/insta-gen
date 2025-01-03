@@ -1,5 +1,6 @@
 import crypto from "crypto"
 import path from "path"
+import os from "node:os"
 
 export const arrayDiff = (arr1, ...arrays) => {
 
@@ -57,6 +58,8 @@ export const isVideo = file => {
 
     const ext = path.extname(file)
 
-    return ["mp4"].includes(ext.toLowerCase().replace(".", ""))
+    return ["mp4"].includes(ext.toLowerCase().replace(".", "")) ? true : false
 
 }
+
+export const getMediaDir = () => os.homedir().replaceAll(path.sep, "/") + process.env.MEDIA_DIRECTORY
