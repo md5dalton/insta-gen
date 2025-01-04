@@ -7,13 +7,13 @@ export const getPosts = async () => {
             media: {
                 select: {
                     id: true,
-                    type: true
+                    isVideo: true
                 }
             },
             owner: {
                 select: {
                     id: true,
-                    path: true,
+                    name: true,
                     picture: true
                 }
             }
