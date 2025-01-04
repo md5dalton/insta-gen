@@ -59,7 +59,6 @@ model Media {
     id String @id
 
     path String @unique
-    // type MediaType
 
     owner Post @relation(fields: [ownerId], references: [id])
     file File @relation(fields: [path], references: [path])
@@ -69,27 +68,20 @@ model Media {
     ownerId String
     tags MediaTag[]
 
-    // @@index([imageId])
-    // @@index([videoId])
+    metadata Metadata?
+
 }
 
-// model Image {
-//     id String @id
-    
-//     height Int
-//     width Int
-//     mktime DateTime
-//     portrait Boolean
+model Metadata {
+    height Int
+    width Int
+    mktime DateTime
+    portrait Boolean
 
-//     media Media @relation(fields: [mediaImage], references: [id])
-//     mediaImage String @unique
-// }
+    media Media @relation(fields: [mediaId], references: [id])
+    mediaId String @id
+}
 
-// model Video {
-//     id String @id
-//     media Media @relation(fields: [mediaVideo], references: [id])
-//     mediaVideo String @unique
-// }
 
 model Tag {
     id String @id
@@ -99,7 +91,6 @@ model Tag {
 
 model MediaTag {
     id String @id
-    // id Int @id @default(autoincrement())
     tagId String
     mediaId String
 
