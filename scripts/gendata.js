@@ -1,5 +1,28 @@
+import fs from "fs/promises"
 import { PrismaClient } from "@prisma/client"
-import { arrayColumn, arrayDiff, chunk, encode, group, isVideo } from "../utils/functions.js"
+import { arrayColumn, arrayDiff, chunk, encode, getMediaDir, group, isVideo } from "../utils/functions.js"
+import sharp from "sharp"
+import Ffmpeg from "fluent-ffmpeg"
+import ffprobe from "@ffprobe-installer/ffprobe"
+
+Ffmpeg.setFfprobePath(ffprobe.path)
+
+const getVideoData = path => new Promise((resolve, reject) => {
+    
+    Ffmpeg.ffprobe(path, (err, metadata) => {
+      
+        if (err) return reject(err)
+
+        const videoStream = metadata.streams.find(stream => stream.codec_type === "video")
+        
+        if (!videoStream) return reject(new Error("No video stream found"))
+
+        const { width, height } = videoStream
+
+        resolve({ width, height })
+    
+    })
+})
 
 class Image
 {
@@ -8,59 +31,53 @@ class Image
     #db = []
 
     #data
-    #prisma
+    prisma
+
+    metadata = []
 
     constructor () {
 
-        this.#prisma = new PrismaClient()
+        this.prisma = new PrismaClient()
 
     }
 
-    async getMetadata () {
+    async getMetadata (media) {
 
         await Promise.all(
-            this.#newItems.map(async item => {
+            media.map(async ({ path, id, isVideo }) => {
                 
-                const { path } = this.#items.filter(({ id }) => item == id)
-
-                const { birthtime } = await fs.stat(path)
+                const realPath = getMediaDir() + path
                 
-                const { height, width } = await sharp(path).metadata()
-
+                const { birthtime } = await fs.stat(realPath)
+                
+                const { height, width } = isVideo ?
+                    await getVideoData(realPath) :
+                    await sharp(realPath).metadata()
+                
                 const model = {
-                    id: item,
+                    mediaId: id,
+                    mktime: birthtime,
                     height,
                     width,
-                    mktime: birthtime,
-                    portrait: height > width,
-                    mediaImage: ownerId
+                    portrait: height > width ? true : false
                 }
 
-                this.#data.push(model)
+                this.metadata.push(model)
 
             })
 
         )
-        
-
-        return {
-            birthtime,
-            height,
-            width,
-        }
 
     }
 
     async getItems () {
 
-        this.#items = await this.#prisma.media.findMany({
-            where: {
-                type: "IMAGE"
-            },
+        return await this.prisma.media.findMany({
             select: {
                 path: true,
                 id: true,
-                ownerId: true
+                ownerId: true,
+                isVideo: true
             }
         })
         
@@ -68,20 +85,19 @@ class Image
 
     async addToDB () {
 
-        await this.getItems()
-        console.log("Existing", this.#items.length)
+        const media = await this.getItems()
+        console.log("Existing", media.length)
 
-        this.#db = await this.#prisma.image.findMany({select: {id: true}})
+        const DBmetadata = await this.prisma.metadata.findMany({select: {mediaId: true}})
+        const metadataIds = new Set(arrayColumn(DBmetadata, "mediaId"))
 
-        const ids = arrayColumn(this.#db, "id")
+        const newMedia = media.filter(({ id }) => !metadataIds.has(id))
+        console.log("New", newMedia.length)
+        
+        await this.getMetadata(newMedia)
 
-        this.#newItems = arrayDiff(this.#items, ids)
-        console.log("New", this.#newItems.length)
-
-        await this.getMetadata()
-
-        await prisma.image.createMany({
-            data: this.#data
+        await this.prisma.metadata.createMany({
+            data: this.metadata
         })
     }
 }
