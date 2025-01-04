@@ -8,22 +8,14 @@ const prisma = new PrismaClient()
 const DBfiles = await prisma.file.findMany()
 console.log("Found: ",  DBfiles.length)
 
-const models = {
-    collection: [],
-    user: [],
-    post: [],
-    media: []
-}
-
+const rootCollections = {}
 const collections = {}
 const users = {}
 const tags = {}
-const medias = {}
 
-// const getChildren = (dir, items) => group(items, ({ path }) => dir + "/" + path.replace(dir + "/", "").split("/").shift())
-
-// const collections = getChildren(rootDir, DBfiles)
-// console.log(DBfiles.pop())
+const posts = []
+const mediaTags = []
+const medias = []
 
 class Model
 {
@@ -40,7 +32,6 @@ class Model
     }
 
 }
-
 class ChildModel extends Model
 {
     ownerId
@@ -53,34 +44,73 @@ class ChildModel extends Model
 
     }
 }
-
 class RootCollection extends Model {}
 class Collection extends ChildModel {}
 class User extends ChildModel
 {
-    media = []
-}
-class Tag extends ChildModel {}
-class Media extends ChildModel
-{
-    type
+    #media = []
 
-    constructor (owner, name) {
-        super(owner, name)
-        this.type = isVideo(this.path)
+    get media () {
+        return this.#media
+    }
+    addMedia (media) {
+        return this.#media.push(media)
+    }
+}
+class Tag 
+{
+    id
+    name
+    
+    constructor (path) {
+        
+        this.id = encode(path)
+        this.name = path.split("/").pop()
+    
     }
 }
 
+class Post extends ChildModel
+{
+    thumb
+}
+class Media
+{
+    isVideo
+
+    constructor (owner, name) {
+        
+        this.path = owner.path + `/${name}`
+        this.id = encode(this.path)
+        this.isVideo = isVideo(this.path)
+    }
+}
+
+class MediaTag
+{
+    id
+    tagId
+    mediaId
+
+    constructor (tagId, mediaId) {
+
+        this.id = encode(tagId + mediaId)
+
+        this.tagId = tagId
+        this.mediaId = mediaId
+
+    }
+}
 
 DBfiles.forEach(({ path }) => {
 
-    const [space, collection1, collection2, user, ...rest] = path.split("/")
+    const [space, rootCollection, collection, user, ...rest] = path.split("/")
 
-    const modelCollection1 = new RootCollection(`/${collection1}`)
-    const modelCollection2 = new Collection(modelCollection1, collection2)
+    const modelRootCollection = new RootCollection(`/${rootCollection}`)
+    const modelCollection = new Collection(modelRootCollection, collection)
 
     const modelUser = new User(
-        modelCollection2,
+        modelCollection,
         user
     )
 
@@ -89,13 +119,11 @@ DBfiles.forEach(({ path }) => {
         rest.join("/")
     )
     
-    collections[modelCollection1.id] = modelCollection1
-    collections[modelCollection2.id] = modelCollection2
+    rootCollections[modelRootCollection.id] = modelRootCollection
+    collections[modelCollection.id] = modelCollection
 
     if (!users[modelUser.id]) users[modelUser.id] = modelUser
-    users[modelUser.id].media.push(modelMedia)
-
-    medias[modelMedia.id] = modelMedia
+    users[modelUser.id].addMedia(modelMedia)
 
     if (rest.length > 1) {
 
@@ -103,12 +131,11 @@ DBfiles.forEach(({ path }) => {
             
         rest.forEach((item, index) => {
                 
-            const modelTag = new Tag(
-                index == 0 ? modelUser : modelTag,
-                item
-            )
+            const modelTag = new Tag(modelUser.path + "/" + rest.slice(0, index + 1).join("/"))
 
             tags[modelTag.id] = modelTag
+
+            mediaTags.push(new MediaTag(modelTag.id, modelMedia.id))
 
         })
 
@@ -116,15 +143,63 @@ DBfiles.forEach(({ path }) => {
 
 })
 
-// const i = group(Object.values(users), ({ id }) => ))
+for (const userId in users) {
 
+    const user = users[userId]
+    const { id, path, media } = user
+    
+    const fileGroups = chunk(media, 10)
 
+    fileGroups.forEach((fileGroup, i) => {
+        
+        const modelPost = new Post(user, `:${i}`)
 
-Object.values(users).forEach(({ id, media }) => {
-    const fileGroups = chunk(userFiles, 10)
+        fileGroup.forEach(media => {
 
-})
-console.log(Object.values(users).pop())
+            media.ownerId = modelPost.id
+
+            if (!modelPost.thumb) modelPost.thumb = media.isVideo ? `t:${media.id}` : `m:${media.id}`
+
+            medias.push(media)
+
+        })
+
+        if (!user.picture) user.picture = modelPost.thumb
+
+        posts.push(modelPost)
+
+    })
+
+}
+
+const models = {
+    rootCollection: Object.values(rootCollections),
+    collection: Object.values(collections),
+    user: Object.values(users),
+    tag: Object.values(tags),
+
+    post: posts,
+    media: medias,
+    mediaTag: mediaTags
+}
+// console.log(medias.length)
+for (const model in models) {
+    
+    const DBmodels = await prisma[model].findMany({select: {id: true}})
+    const DBmodelsIds = arrayColumn(DBmodels, "id")
+
+    const newModels = models[model].filter(({ id }) => !DBmodelsIds.includes(id))
+    console.log(`New ${model}:`, newModels.length)
+
+    await prisma[model].createMany({
+        data: newModels 
+    })
+
+}
+// const getChildren = (dir, items) => group(items, ({ path }) => dir + "/" + path.replace(dir + "/", "").split("/").shift())
+
+// const collections = getChildren(rootDir, DBfiles)
+// console.log(DBfiles.pop())
 
 // collections.forEach(({ directory: collectionPath, items: collectionFiles }) => {
 
@@ -188,18 +263,3 @@ console.log(Object.values(users).pop())
 //     })
 
 // })
-
-
-// for (const model in models) {
-    
-//     const DBmodels = await prisma[model].findMany({select: {id: true}})
-//     const DBmodelsIds = arrayColumn(DBmodels, "id")
-
-//     const newModels = models[model].filter(({ id }) => !DBmodelsIds.includes(id))
-//     console.log(`New ${model}:`, newModels.length)
-
-//     await prisma[model].createMany({
-//         data: newModels 
-//     })
-
-// }
