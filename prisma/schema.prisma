@@ -15,10 +15,18 @@ model File {
     media Media?
 }
 
+model RootCollection {
+    id String @id
+    name String
+    path String
+    collections Collection[]
+}
 model Collection {
     id String @id
     name String
     path String
+    owner RootCollection @relation(fields: [ownerId], references: [id])
+    ownerId String
     users User[]
 }
 
@@ -34,12 +42,12 @@ model User {
 
 model Post {
     id String @id
+    name String
     path String
     thumb String
     owner User @relation(fields: [ownerId], references: [id])
     ownerId String
     media Media[]
-    tags PostTag[]
 }
 
 enum MediaType {
@@ -59,6 +67,7 @@ model Media {
     isVideo Boolean
 
     ownerId String
+    tags MediaTag[]
 
     // @@index([imageId])
     // @@index([videoId])
@@ -85,14 +94,15 @@ model Media {
 model Tag {
     id String @id
     name String
-    posts PostTag[]
+    media MediaTag[]
 }
 
-model PostTag {
-    id Int @id @default(autoincrement())
-    postId String
+model MediaTag {
+    id String @id
+    // id Int @id @default(autoincrement())
     tagId String
+    mediaId String
 
-    post Post @relation(fields: [postId], references: [id])
     tag Tag @relation(fields: [tagId], references: [id])
+    media Media @relation(fields: [mediaId], references: [id])
 }
