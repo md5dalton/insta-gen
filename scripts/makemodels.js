@@ -182,7 +182,7 @@ const models = {
     media: medias,
     mediaTag: mediaTags
 }
-// console.log(medias.length)
+// console.table(posts)
 for (const model in models) {
     
     const DBmodels = await prisma[model].findMany({select: {id: true}})
