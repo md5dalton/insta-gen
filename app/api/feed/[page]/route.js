@@ -5,9 +5,9 @@ export async function GET(req, { params: { page } }) {
     const DBposts = await getPosts()
 
     return Response.json({
-        media: [DBposts.pop()],
+        media: DBposts,
         page,
-        end: true
+        end: false
     })
 
 }
