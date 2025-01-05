@@ -1,4 +1,5 @@
 import { getMedia } from "@/actions/media"
+import { getRealpath } from "@/utils/functions"
 import { existsSync, statSync, createReadStream } from "node:fs"
 import parseRange from "range-parser"
 
@@ -8,7 +9,7 @@ export async function GET({ headers }, { params: { slug } }) {
     
     if (!media) return new Response("Media not found", { status: 404 })
 
-    const mediaPath = media.path
+    const mediaPath = getRealpath(media.path)
 
     if (!existsSync(mediaPath)) return new Response("File not found", { status: 404 })
         
