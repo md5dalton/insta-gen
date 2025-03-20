@@ -62,5 +62,7 @@ export const isVideo = file => {
 
 }
 
-export const getMediaDir = () => os.homedir().replaceAll(path.sep, "/") + process.env.MEDIA_DIRECTORY
+export const getHomeDir = () => os.homedir().replaceAll(path.sep, "/")
+export const getMediaDir = () => getHomeDir() + process.env.MEDIA_DIRECTORY
+export const getThumsDir = () => getHomeDir() + process.env.THUMB_DIRECTORY
 export const getRealpath = relativePath => getMediaDir() + relativePath
