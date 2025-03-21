@@ -3,7 +3,7 @@ import fs from "fs"
 
 export async function GET(req, { params: { slug } }) {
     
-    const imagePath = `${getThumsDir()}/1.jpg`
+    const imagePath = `${getThumsDir()}/${slug}.jpg`
     
     return fs.existsSync(imagePath) ? new Response(fs.readFileSync(imagePath), {
             headers: {"Content-Type": "image/jpeg"},
