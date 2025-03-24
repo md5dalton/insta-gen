@@ -7,7 +7,13 @@ export const getPosts = async () => {
             media: {
                 select: {
                     id: true,
-                    isVideo: true
+                    isVideo: true,
+                    metadata: {
+                        select: {
+                            height: true,
+                            width: true,
+                        }
+                    }
                 }
             },
             owner: {
@@ -16,7 +22,7 @@ export const getPosts = async () => {
                     name: true,
                     picture: true
                 }
-            }
+            },
         }
     })
 
