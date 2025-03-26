@@ -6,7 +6,7 @@ export const getPosts = async count =>  await prisma.post.findManyRandom(count, 
         thumb: true,
         media: {
             select: {
-                type: true
+                id: true
             }
         }
     }
@@ -14,7 +14,7 @@ export const getPosts = async count =>  await prisma.post.findManyRandom(count, 
 
 export const getVideos = async count =>  await prisma.media.findManyRandom(count, {
     where: {
-        type: "VIDEO"
+        isVideo: true
     },
     include: {
         id: true
