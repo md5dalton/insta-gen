@@ -53,6 +53,19 @@ export const chunk = (array, size) => {
     return chunked
 
 }
+export const sortChunk = (array, size, sortFn, size2 = 1) => {
+
+    const chunked = []
+
+    const matches = array.filter(item => sortFn(item))
+    const nonMatches = array.filter(item => !sortFn(item))
+    
+    for (let i = 0; i < matches.length; i += size2) chunked.push(matches.slice(i, i + size2))
+    for (let i = 0; i < nonMatches.length; i += size) chunked.push(nonMatches.slice(i, i + size))
+    
+    return chunked
+
+}
 
 export const isVideo = file => {
 
