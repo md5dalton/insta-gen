@@ -1,26 +1,22 @@
 import { getPosts } from "@/actions/feed"
-import { metadata } from "@/app/layout"
 
 export async function GET(req, { params: { page } }) {
 
     const DBposts = await getPosts()
 
-    const media = DBposts.map(({ media, ...rest }) => {
+    const posts = DBposts.map(({ media, ...rest }) => {
         
         const { metadata: { height, width } } = media.reduce((prev, current) => (prev.metadata.height > current.metadata.height) ? prev : current)
   
-        // const height = Math.max(...media.map(({ metadata: { height } }) => height))
-
         return ({
-            ...rest,
-            // height,
+            media,
             aspect: height/width,
-            media
+            ...rest,
         })
     })
 
     return Response.json({
-        media: media,
+        media: posts.map(item => ({...item, uid: `${page}/${item.id}`})),
         page,
         end: false
     })
