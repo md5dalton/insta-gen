@@ -15,10 +15,8 @@ export async function GET(req, { params: { page } }) {
         })
     })
 
-    return Response.json({
-        media: posts.map(item => ({...item, uid: `${page}/${item.id}`})),
-        page,
-        end: false
-    })
+    const media = posts.map(item => ({...item, uid: `${page}/${item.id}`}))
+
+    return Response.json(media)
 
 }
