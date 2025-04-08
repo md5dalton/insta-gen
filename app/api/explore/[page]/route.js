@@ -51,10 +51,6 @@ export async function GET(req, { params: { page } }) {
 
     }
     
-    return Response.json({
-        media: media,
-        page,
-        end: false
-    })
+    return Response.json(media)
 
 }
