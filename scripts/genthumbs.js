@@ -59,7 +59,7 @@ console.log("Videos to be processed", newMedia.length)
 await Promise.all(newMedia.map(({ path, id }) => generateThumbnail(mediaDir + path, id, outputDir)))
 
 console.log("Thumbs generated successfuly")
-console.table(newMedia)
+// console.table(newMedia)
 
 // const video = videos.shift()
 
