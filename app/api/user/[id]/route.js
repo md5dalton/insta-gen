@@ -11,13 +11,11 @@ export async function GET(req, { params: { id } }) {
     console.log(DBuser)
     
     return Response.json({
-        user: {
-            ...user,
-            stats: [
-                {name: "posts", value: posts.length},
-                {name: "followers", value: "347k"},
-                {name: "following", value: "143"}
-            ]
+        ...user,
+        stats: {
+            posts: posts.length,
+            followers: "347k",
+            following: 143
         }
     })
 
