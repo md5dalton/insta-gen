@@ -1,12 +1,10 @@
 import { PrismaClient } from "@prisma/client"
 import { arrayColumn, chunk, encode, getMediaDir, group, isVideo, sortChunk } from "../utils/functions.js"
 
-const rootDir = "/media"
-
 const prisma = new PrismaClient()
 
 const DBfiles = await prisma.file.findMany()
-console.log("Found: ",  DBfiles.length)
+console.log("Found in database: ",  DBfiles.length)
 
 const rootCollections = {}
 const collections = {}
@@ -197,3 +195,4 @@ for (const model in models) {
     })
 
 }
+// console.table(models.media)
