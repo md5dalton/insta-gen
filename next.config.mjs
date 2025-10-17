@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    
     // crossOrigin: "anonymous",
     async headers() {
         return [
@@ -16,6 +17,14 @@ const nextConfig = {
                 ]
             }
         ]
+    },
+    webpack: (config, { isServer }) => {
+        if (isServer) {
+            config.externals.push({
+                '@ffmpeg-installer/ffmpeg': '@ffmpeg-installer/ffmpeg',
+            })
+        }
+        return config
     }
 };
 
