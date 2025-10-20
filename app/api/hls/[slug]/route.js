@@ -12,21 +12,26 @@ import path from "node:path"
 
 Ffmpeg.setFfmpegPath(ffmpeg.path)
 // console.log(ffmpeg) 
-export async function GET({ headers }, { params: { slug } }) {
+export async function GET({ headers }, props) {
+    const params = await props.params;
+
+    const {
+        slug
+    } = params;
 
     const media = await getMedia(slug)
-    
+
     if (!media) return new Response("Media not found", { status: 404 })
 
     const mediaPath = getRealpath(media.path)
 
     if (!existsSync(mediaPath)) return new Response("File not found", { status: 404 })
 
-            
+
     const outputDir = path.join(process.cwd(), 'public', 'hls', slug)
     const masterPath = path.join(outputDir, "master.m3u8")
-  
-    
+
+
     // if already transcoded, just serve cached master playlist
     if (fs.existsSync(masterPath)) {
         const file = fs.createReadStream(masterPath)

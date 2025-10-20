@@ -1,6 +1,8 @@
 import { getPosts } from "@/actions/feed"
 
-export async function GET(req, { params: { page } }) {
+export async function GET(req, { params }) {
+
+    const { page } = await params
 
     const DBposts = await getPosts()
 
@@ -18,5 +20,4 @@ export async function GET(req, { params: { page } }) {
     const media = posts.map(item => ({...item, uid: `${page}/${item.id}`}))
 
     return Response.json(media)
-
 }

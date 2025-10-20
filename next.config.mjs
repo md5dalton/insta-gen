@@ -26,6 +26,12 @@ const nextConfig = {
             }
         ]
     },
+    // webpack: (config) => {
+    //     config.externals.push({
+    //         '@ffmpeg-installer/ffmpeg': 'commonjs @ffmpeg-installer/ffmpeg',
+    //     });
+    //     return config;
+    // },
     webpack: (config, { isServer }) => {
         if (isServer) {
             config.externals.push({
@@ -34,6 +40,6 @@ const nextConfig = {
         }
         return config
     }
-};
+}
 
 export default nextConfig;

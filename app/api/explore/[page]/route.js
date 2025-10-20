@@ -1,7 +1,12 @@
 import { getPosts, getVideos } from "@/actions/random"
 import { arrayColumn, encode } from "@/utils/functions"
 
-export async function GET(req, { params: { page } }) {
+export async function GET(req, props) {
+    const params = await props.params;
+
+    const {
+        page
+    } = params;
 
     const media = []
     const pageSize = 8
@@ -50,7 +55,6 @@ export async function GET(req, { params: { page } }) {
         )
 
     }
-    
-    return Response.json(media)
 
+    return Response.json(media)
 }

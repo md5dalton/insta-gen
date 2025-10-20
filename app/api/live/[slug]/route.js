@@ -1,27 +1,26 @@
 import { getMedia } from "@/actions/media"
 import { getRealpath } from "@/utils/functions"
-import { existsSync, statSync, createReadStream } from "node:fs"
-import parseRange from "range-parser"
-
-import Ffmpeg from "fluent-ffmpeg"
-import ffmpeg from "@ffmpeg-installer/ffmpeg"
-import { NextResponse } from "next/server"
+import { existsSync } from "node:fs"
+import ffmpeg from "fluent-ffmpeg"
+import ffmpegPath from "@ffmpeg-installer/ffmpeg"
 
 export const runtime = "nodejs"
 
-Ffmpeg.setFfmpegPath(ffmpeg.path)
-// console.log(ffmpeg) 
-export async function GET({ headers }, { params: { slug } }) {
+ffmpeg.setFfmpegPath(ffmpegPath.path)
+
+export async function GET({ headers }, { params }) {
+    
+    const { slug } = await params
 
     const media = await getMedia(slug)
-    
+
     if (!media) return new Response("Media not found", { status: 404 })
 
     const mediaPath = getRealpath(media.path)
 
     if (!existsSync(mediaPath)) return new Response("File not found", { status: 404 })
 
-    const command = Ffmpeg(mediaPath)
+    const command = ffmpeg(mediaPath)
         .videoCodec("libx264")
         .audioCodec("aac")
         .addOptions([
@@ -36,7 +35,7 @@ export async function GET({ headers }, { params: { slug } }) {
         .format("hls")
 
     // Get a readable stream
-    const stream = command.pipe();
+    const stream = command.pipe()
 
     // Return the stream to the client
     return new Response(stream, {
@@ -45,5 +44,4 @@ export async function GET({ headers }, { params: { slug } }) {
             "Access-Control-Allow-Origin": "*",
         },
     })
-        
 }

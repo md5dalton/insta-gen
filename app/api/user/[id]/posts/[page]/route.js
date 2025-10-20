@@ -1,6 +1,12 @@
 import { getPosts } from "@/actions/user"
 
-export async function GET(req, { params: { page, id } }) {
+export async function GET(req, props) {
+    const params = await props.params;
+
+    const {
+        page,
+        id
+    } = params;
 
     const DBposts = await getPosts(id, page)
 
@@ -22,5 +28,4 @@ export async function GET(req, { params: { page, id } }) {
         page,
         end: DBposts.length < 11
     })
-
 }
