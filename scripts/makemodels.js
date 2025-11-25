@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client"
-import { arrayColumn, chunk, encode, getMediaDir, group, isVideo, sortChunk } from "../utils/functions.js"
+import { arrayColumn, encode, isVideo, sortChunk } from "../utils/functions.js"
 
 const prisma = new PrismaClient()
 
