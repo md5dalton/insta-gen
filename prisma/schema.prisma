@@ -11,44 +11,45 @@ datasource db {
 }
 
 model File {
-    path String @id
-    media Media?
+    path    String @id
+    // media   Media?
 }
 
 model RootCollection {
-    id String @id
-    name String
-    path String
-    collections Collection[]
+    id              String @id
+    name            String
+    path            String
+    collections     Collection[]
 }
 model Collection {
-    id String @id
-    name String
-    path String
-    owner RootCollection @relation(fields: [ownerId], references: [id])
-    ownerId String
-    users User[]
+    id          String @id
+    name        String
+    path        String
+    owner       RootCollection @relation(fields: [ownerId], references: [id])
+    ownerId     String
+    users       User[]
 }
 
 model User {
-    id String @id
-    name String
-    path String
-    picture String?
-    owner Collection @relation(fields: [ownerId], references: [id])
-    ownerId String
-    posts Post[]
+    id          String @id
+    name        String
+    path        String
+    picture     String?
+    owner       Collection @relation(fields: [ownerId], references: [id])
+    ownerId     String
+    media       Media[]
+    // posts Post[]
 }
 
-model Post {
-    id String @id
-    name String
-    path String
-    thumb String?
-    owner User @relation(fields: [ownerId], references: [id])
-    ownerId String
-    media Media[]
-}
+// model Post {
+//     id String @id
+//     name String
+//     path String
+//     thumb String?
+//     owner User @relation(fields: [ownerId], references: [id])
+//     ownerId String
+//     media Media[]
+// }
 
 enum MediaType {
     IMAGE
@@ -56,44 +57,44 @@ enum MediaType {
 }
 
 model Media {
-    id String @id
+    id          String @id
 
-    path String @unique
+    path        String @unique
 
-    owner Post @relation(fields: [ownerId], references: [id])
-    file File @relation(fields: [path], references: [path])
+    owner       User @relation(fields: [ownerId], references: [id])
+    // file        File @relation(fields: [path], references: [path])
 
-    isVideo Boolean
+    isVideo     Boolean
 
-    ownerId String
-    tags MediaTag[]
+    ownerId     String
+    tags        MediaTag[]
 
-    metadata Metadata?
+    metadata    Metadata?
 
 }
 
 model Metadata {
-    height Int
-    width Int
-    mktime DateTime
-    portrait Boolean
+    height      Int
+    width       Int
+    mktime      DateTime
+    portrait    Boolean
 
-    media Media @relation(fields: [mediaId], references: [id])
-    mediaId String @id
+    media       Media @relation(fields: [mediaId], references: [id])
+    mediaId     String @id
 }
 
 
 model Tag {
-    id String @id
-    name String
-    media MediaTag[]
+    id      String @id
+    name    String
+    media   MediaTag[]
 }
 
 model MediaTag {
-    id String @id
-    tagId String
-    mediaId String
+    id          String @id
+    tagId       String
+    mediaId     String
 
-    tag Tag @relation(fields: [tagId], references: [id])
-    media Media @relation(fields: [mediaId], references: [id])
+    tag         Tag @relation(fields: [tagId], references: [id])
+    media       Media @relation(fields: [mediaId], references: [id])
 }
