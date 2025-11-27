@@ -260,6 +260,12 @@ export class DebouncedMediaProcessor {
                 // ownerId: { connect: { id: userRecord.id } }
             }
         })
+        if (!user.picture && !isVideo) {
+            await this.prisma.user.update({
+                where: { id: user.id },
+                data: { picture: `m:${id}` }
+            })
+        }
         
         await this.processMediaTags(media.id, user.path, tags)
         console.log(`✅ Processed media: ${path.basename(filePath)}`)
