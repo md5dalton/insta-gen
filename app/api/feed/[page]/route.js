@@ -1,23 +1,25 @@
 import { getPosts } from "@/actions/feed"
+import { getRandom } from "@/actions/media"
 
 export async function GET(req, { params }) {
 
     const { page } = await params
 
-    const DBposts = await getPosts()
+    const media = await getRandom()
+    // const DBposts = await getPosts()
 
-    const posts = DBposts.map(({ media, ...rest }) => {
+    // const posts = DBposts.map(({ media, ...rest }) => {
         
-        const { metadata: { height, width } } = media.reduce((prev, current) => (prev.metadata.height > current.metadata.height) ? prev : current)
+    //     const { metadata: { height, width } } = media.reduce((prev, current) => (prev.metadata.height > current.metadata.height) ? prev : current)
   
-        return ({
-            media,
-            aspect: height/width,
-            ...rest,
-        })
-    })
+    //     return ({
+    //         media,
+    //         aspect: height/width,
+    //         ...rest,
+    //     })
+    // })
 
-    const media = posts.map(item => ({...item, uid: `${page}/${item.id}`}))
+    // const media = posts.map(item => ({...item, uid: `${page}/${item.id}`}))
 
     return Response.json(media)
 }
