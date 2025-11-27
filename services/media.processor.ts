@@ -245,7 +245,7 @@ export class DebouncedMediaProcessor {
         // const stats = await fs.stat(filePath)
         const isVideo = this.isVideoFile(filePath)
         const id = this.generateId(filePath)
-        console.log(filePath, user)
+        // console.log(filePath, user)
         
         const media = await this.prisma.media.upsert({
             where: { id },
@@ -266,8 +266,10 @@ export class DebouncedMediaProcessor {
     }
 
     private async handleFileDelete(filePath: string): Promise<void> {
+        const id = this.generateId(filePath)
+
         await this.prisma.media.delete({
-            where: { path: filePath }
+            where: { id }
         })
         console.log(`🗑️  Deleted media: ${path.basename(filePath)}`)
     }
