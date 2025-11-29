@@ -4,7 +4,7 @@ type Media = {
     path: string
 }
 
-type RandomMedia = {
+export type MediaResponse = {
     id: string
     isVideo: boolean
     owner: {
@@ -18,7 +18,10 @@ export const getMedia = async (slug: string): Promise<Media | null> => await pri
     select: { path: true }
 })
 
-export const getRandom = async (): Promise<RandomMedia[]> => await prisma.media.findManyRandom(20, {
+export const getRandom = async (): Promise<MediaResponse[]> => await prisma.media.findManyRandom(20, {
+    where: {
+        isVideo: false
+    },
     select: {
         id: true,
         isVideo: true,
