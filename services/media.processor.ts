@@ -8,6 +8,10 @@ import prisma from "@/prisma/prisma"
 import { existsSync } from "fs"
 import { homedir } from "os"
 import { absolutePath } from "@/lib/path"
+import ffprobe from "@ffprobe-installer/ffprobe"
+import Ffmpeg from "fluent-ffmpeg"
+
+Ffmpeg.setFfprobePath(ffprobe.path)
 
 interface FileUpdate {
     event: "add" | "change" | "delete" | "addDir" | "deleteDir"
@@ -21,6 +25,10 @@ interface ProcessedMedia {
     isVideo: boolean
     userId: string
 }
+export interface Metadata {
+    width: number
+    height: number
+}
 
 export class DebouncedMediaProcessor {
     private pendingUpdates: Map<string, FileUpdate>
@@ -28,6 +36,8 @@ export class DebouncedMediaProcessor {
     private isProcessing: boolean
     private processThrottled: () => void
     private prisma: PrismaClient
+    private ffmpeg: Ffmpeg
+
 
     constructor() {
         this.pendingUpdates = new Map()
@@ -241,6 +251,25 @@ export class DebouncedMediaProcessor {
         })
     }
 
+    getVideoData = (path: string): Promise<Metadata> => new Promise((resolve, reject) => {
+        Ffmpeg.ffprobe(path, (err: Error | null, metadata: Ffmpeg.FfprobeData) => {
+            if (err) return reject(err);
+
+            const videoStream = metadata.streams.find(
+                stream => stream.codec_type === "video"
+            );
+
+            if (!videoStream || !videoStream.width || !videoStream.height) {
+                return reject(new Error("No valid video stream found"));
+            }
+
+            resolve({
+                width: videoStream.width,
+                height: videoStream.height
+            });
+        });
+    });
+};
     private async handleFileAddOrChange(filePath: string, user: User, tags: string[]): Promise<void> {
         // const stats = await fs.stat(filePath)
         const isVideo = this.isVideoFile(filePath)
