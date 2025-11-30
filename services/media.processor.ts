@@ -8,10 +8,12 @@ import prisma from "@/prisma/prisma"
 import { existsSync } from "fs"
 import { homedir } from "os"
 import { absolutePath } from "@/lib/path"
-import ffprobe from "@ffprobe-installer/ffprobe"
 import Ffmpeg from "fluent-ffmpeg"
+import staticffpeg from "ffmpeg-static"
+// console.log(staticffpeg)
 
-Ffmpeg.setFfprobePath(ffprobe.path)
+// import ffprobe from "@ffprobe-installer/ffprobe"
+Ffmpeg.setFfprobePath(staticffpeg)
 
 interface FileUpdate {
     event: "add" | "change" | "delete" | "addDir" | "deleteDir"
@@ -30,20 +32,40 @@ export interface Metadata {
     height: number
 }
 
+const getVideoData = (path: string): Promise<Metadata> => new Promise((resolve, reject) => {
+    Ffmpeg.ffprobe(path, (err: Error | null, metadata: Ffmpeg.FfprobeData) => {
+        if (err) return reject(err)
+
+        const videoStream = metadata.streams.find(
+            stream => stream.codec_type === "video"
+        )
+
+        if (!videoStream || !videoStream.width || !videoStream.height) {
+            return reject(new Error("No valid video stream found"))
+        }
+
+        resolve({
+            width: videoStream.width,
+            height: videoStream.height
+        })
+    })
+})
+
 export class DebouncedMediaProcessor {
-    private pendingUpdates: Map<string, FileUpdate>
-    private watcher: FSWatcher | null
-    private isProcessing: boolean
-    private processThrottled: () => void
+    private path: string
     private prisma: PrismaClient
-    private ffmpeg: Ffmpeg
+    private isProcessing: boolean
+    private watcher: FSWatcher | null
+    private processThrottled: () => void
+    private pendingUpdates: Map<string, FileUpdate>
 
 
-    constructor() {
-        this.pendingUpdates = new Map()
-        this.watcher = null
-        this.isProcessing = false
+    constructor(path: string) {
+        this.path = path
         this.prisma = prisma
+        this.isProcessing = false
+        this.watcher = null
+        this.pendingUpdates = new Map()
         
         this.processThrottled = throttle(() => this.processPending(), MEDIA_CONFIG.DEBOUNCE_MS, {
             leading: false,
@@ -68,12 +90,8 @@ export class DebouncedMediaProcessor {
         }
 
         // await this.initialScan()
-        // console.log(MEDIA_CONFIG.ROOT_PATH)
-        const rootPath = absolutePath(MEDIA_CONFIG.ROOT_PATH)
 
-        if (existsSync(rootPath)) console.log(`Media root path: ${rootPath}`)
-
-        this.watcher = chokidar.watch(`${rootPath}`, {
+        this.watcher = chokidar.watch(`${this.path}`, {
             ignored: MEDIA_CONFIG.IGNORED_PATTERNS,
             persistent: true,
             ignoreInitial: false,
@@ -81,9 +99,9 @@ export class DebouncedMediaProcessor {
         })
 
         this.watcher
-            .on("add", (filePath: string) => this.queueUpdate("add", filePath.replace(rootPath, "")))
-            .on("change", (filePath: string) => this.queueUpdate("change", filePath.replace(rootPath, "")))
-            .on("unlink", (filePath: string) => this.queueUpdate("delete", filePath.replace(rootPath, "")))
+            .on("add", (filePath: string) => this.queueUpdate("add", filePath))
+            .on("change", (filePath: string) => this.queueUpdate("change", filePath))
+            .on("unlink", (filePath: string) => this.queueUpdate("delete", filePath))
             // .on("addDir", (dirPath: string) => this.queueUpdate("addDir", dirPath.replace(rootPath, "")))
             // .on("unlinkDir", (dirPath: string) => this.queueUpdate("deleteDir", dirPath.replace(rootPath, "")))
 
@@ -168,28 +186,28 @@ export class DebouncedMediaProcessor {
         try {
             const relativePath = directory.replace(MEDIA_CONFIG.ROOT_PATH, "")
             const pathParts = relativePath.split(path.sep).filter(Boolean)
-            
-            if (pathParts.length >= 3) {
-                const [rootCollection, collection, user, ...tags] = pathParts
+            console.log(directory, relativePath, pathParts)
+            // if (pathParts.length >= 3) {
+            //     const [rootCollection, collection, user, ...tags] = pathParts
                 
-                const rootCollectionRecord = await this.ensureRootCollection(rootCollection)
-                const collectionRecord = await this.ensureCollection(rootCollectionRecord.id, collection)
-                const userRecord = await this.ensureUser(collectionRecord.id, user)
+            //     const rootCollectionRecord = await this.ensureRootCollection(rootCollection)
+            //     const collectionRecord = await this.ensureCollection(rootCollectionRecord.id, collection)
+            //     const userRecord = await this.ensureUser(collectionRecord.id, user)
                 
-                const fileUpdates = updates.filter(update => 
-                    update.event === "add" || update.event === "change" || update.event === "delete"
-                )
+            //     const fileUpdates = updates.filter(update => 
+            //         update.event === "add" || update.event === "change" || update.event === "delete"
+            //     )
                 
-                for (const update of fileUpdates) {
-                    if (update.event === "delete") {
-                        await this.handleFileDelete(update.filePath)
-                    } else {
-                        await this.handleFileAddOrChange(update.filePath, userRecord, tags)
-                    }
-                }
+            //     for (const update of fileUpdates) {
+            //         if (update.event === "delete") {
+            //             await this.handleFileDelete(update.filePath)
+            //         } else {
+            //             await this.handleFileAddOrChange(update.filePath, userRecord, tags)
+            //         }
+            //     }
                 
-                await this.processTagsForDirectory(directory, userRecord, tags)
-            }
+            //     await this.processTagsForDirectory(directory, userRecord, tags)
+            // }
         } catch (error) {
             console.error(`Error processing directory ${directory}:`, error)
             throw error
@@ -251,25 +269,6 @@ export class DebouncedMediaProcessor {
         })
     }
 
-    getVideoData = (path: string): Promise<Metadata> => new Promise((resolve, reject) => {
-        Ffmpeg.ffprobe(path, (err: Error | null, metadata: Ffmpeg.FfprobeData) => {
-            if (err) return reject(err);
-
-            const videoStream = metadata.streams.find(
-                stream => stream.codec_type === "video"
-            );
-
-            if (!videoStream || !videoStream.width || !videoStream.height) {
-                return reject(new Error("No valid video stream found"));
-            }
-
-            resolve({
-                width: videoStream.width,
-                height: videoStream.height
-            });
-        });
-    });
-};
     private async handleFileAddOrChange(filePath: string, user: User, tags: string[]): Promise<void> {
         // const stats = await fs.stat(filePath)
         const isVideo = this.isVideoFile(filePath)
