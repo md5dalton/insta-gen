@@ -1,18 +1,16 @@
 import { MEDIA_CONFIG } from "@/config/media"
-import { PrismaClient, User } from "@prisma/client"
+import { User } from "@prisma/client"
 import chokidar, { FSWatcher } from "chokidar"
 import { throttle } from "lodash"
 import crypto from "crypto"
 import path from "path"
-import prisma from "@/prisma/prisma"
-import { existsSync } from "fs"
-import { homedir } from "os"
-import { absolutePath } from "@/lib/path"
 import Ffmpeg from "fluent-ffmpeg"
 import staticffpeg from "ffmpeg-static"
+import prisma from "@/lib/prisma"
+import { PrismaClient } from "@/lib/generated/prisma/client"
+// import ffprobe from "@ffprobe-installer/ffprobe"
 // console.log(staticffpeg)
 
-// import ffprobe from "@ffprobe-installer/ffprobe"
 Ffmpeg.setFfprobePath(staticffpeg)
 
 interface FileUpdate {
@@ -21,35 +19,10 @@ interface FileUpdate {
     id: string
 }
 
-interface ProcessedMedia {
-    id: string
-    path: string
-    isVideo: boolean
-    userId: string
-}
 export interface Metadata {
     width: number
     height: number
 }
-
-const getVideoData = (path: string): Promise<Metadata> => new Promise((resolve, reject) => {
-    Ffmpeg.ffprobe(path, (err: Error | null, metadata: Ffmpeg.FfprobeData) => {
-        if (err) return reject(err)
-
-        const videoStream = metadata.streams.find(
-            stream => stream.codec_type === "video"
-        )
-
-        if (!videoStream || !videoStream.width || !videoStream.height) {
-            return reject(new Error("No valid video stream found"))
-        }
-
-        resolve({
-            width: videoStream.width,
-            height: videoStream.height
-        })
-    })
-})
 
 export class DebouncedMediaProcessor {
     private path: string
