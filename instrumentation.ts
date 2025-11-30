@@ -1,11 +1,26 @@
+import path from "path"
 import { DebouncedMediaProcessor } from "./services/media.processor"
+import { homedir } from "os"
+import { existsSync, mkdirSync } from "fs"
 
 export async function register(): Promise<void> {
     if (process.env.NEXT_RUNTIME === "nodejs") {
         console.log("🚀 Initializing media processor via instrumentation...")
         
+        const MEDIA_ROOT = process.env.MEDIA_ROOT
+        
+        const mediaLibraryPath = MEDIA_ROOT ? path.join(homedir(), MEDIA_ROOT) : path.join(process.cwd(), "media")
+        
+        if (!existsSync(mediaLibraryPath)) {
+
+            console.log(`Creating media library directory at: ${mediaLibraryPath}`)
+
+            mkdirSync(mediaLibraryPath, { recursive: true })
+            
+        }
+
         try {
-            global.mediaProcessor = new DebouncedMediaProcessor()
+            global.mediaProcessor = new DebouncedMediaProcessor(mediaLibraryPath)
             await global.mediaProcessor.initialize()
             
             console.log("✅ Media processor initialized via instrumentation")
