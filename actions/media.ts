@@ -12,6 +12,11 @@ export type MediaResponse = {
         name: string
         picture: string | null
     }
+    metadata: {
+        width: number
+        height: number
+        duration: string | null
+    }
 }
 export const getMedia = async (slug: string): Promise<Media | null> => await prisma.media.findUnique({
     where: { id: slug },
@@ -30,6 +35,13 @@ export const getRandom = async (): Promise<MediaResponse[]> => await prisma.medi
                 id: true,
                 name: true,
                 picture: true
+            }
+        },
+        metadata: {
+            select: {
+                height: true,
+                width: true,
+                duration: true,
             }
         }
     }
