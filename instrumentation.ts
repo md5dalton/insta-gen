@@ -1,6 +1,7 @@
 import { DebouncedMediaProcessor } from "./services/media.processor"
 import { existsSync, mkdirSync } from "fs"
 import { MEDIA_ROOT } from "./lib/constants"
+export const runtime = "nodejs"
 
 export async function register(): Promise<void> {
     if (process.env.NEXT_RUNTIME === "nodejs") {
