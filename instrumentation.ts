@@ -5,14 +5,6 @@ import { MEDIA_ROOT } from "./lib/constants"
 export async function register(): Promise<void> {
     if (process.env.NEXT_RUNTIME === "nodejs") {
         console.log("🚀 Initializing media processor via instrumentation...")
-        
-        if (!existsSync(MEDIA_ROOT)) {
-
-            console.log(`Creating media library directory at: ${MEDIA_ROOT}`)
-
-            mkdirSync(MEDIA_ROOT, { recursive: true })
-            
-        }
 
         try {
             global.mediaProcessor = new DebouncedMediaProcessor(MEDIA_ROOT)
