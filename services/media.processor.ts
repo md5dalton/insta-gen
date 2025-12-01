@@ -12,7 +12,7 @@ import { Video } from "./service.video"
 // import ffprobe from "@ffprobe-installer/ffprobe"
 // console.log(staticffpeg)
 
-Ffmpeg.setFfprobePath(staticffpeg)
+// Ffmpeg.setFfprobePath(staticffpeg)
 
 interface FileUpdate {
     event: "add" | "change" | "delete" | "addDir" | "deleteDir"
