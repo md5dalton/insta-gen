@@ -1,6 +1,7 @@
 import ffprobe from "@ffprobe-installer/ffprobe"
 import Ffmpeg from "fluent-ffmpeg"
 import staticffpeg from "ffmpeg-static"
+import staticffprobe from "ffmpeg-static"
 
 export interface VideoResolution {
     width: number
@@ -28,8 +29,9 @@ export interface ThumbnailOptions {
 }
 
 // Ffmpeg.setFfprobePath(ffprobe.path)
-Ffmpeg.setFfprobePath(staticffpeg)
 
+Ffmpeg.setFfprobePath("c:/ffmpeg/bin/ffmpeg")
+// console.log(Ffmpeg.ffprobe.toString())
 export class Video {
     private filePath: string
 
@@ -46,7 +48,25 @@ export class Video {
         })
     }
 
-    async getResolution(): Promise<VideoResolution> {
+    getResolution = () => new Promise((resolve, reject) => {
+        
+        Ffmpeg.ffprobe(this.filePath, (err, metadata) => {
+        
+            if (err) return reject(err)
+
+            console.log(metadata)
+            // const videoStream = metadata.streams.find(stream => stream.codec_type === "video")
+            
+            // if (!videoStream) return reject(new Error("No video stream found"))
+
+            // const { width, height } = videoStream
+
+            // resolve({ width, height })
+        
+        })
+    })
+
+    async getResolutions(): Promise<VideoResolution> {
         const metadata = await this.probe()
 
         const video = metadata.streams.find(s => s.codec_type === "video")
