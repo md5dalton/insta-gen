@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync } from "fs"
 import { homedir } from "os"
 import path from "path"
+export const runtime = "nodejs"
 
 export const MEDIA_ROOT = process.env.MEDIA_ROOT ?
     path.join(homedir(), process.env.MEDIA_ROOT) :
