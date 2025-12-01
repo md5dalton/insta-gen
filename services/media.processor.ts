@@ -4,16 +4,11 @@ import chokidar, { FSWatcher } from "chokidar"
 import { throttle } from "lodash"
 import crypto from "crypto"
 import path from "path"
-import Ffmpeg from "fluent-ffmpeg"
-import staticffpeg from "ffmpeg-static"
 import prisma from "@/lib/prisma"
 import { MEDIA_ROOT, THUMB_ROOT } from "@/lib/constants"
 import { Video } from "./service.video"
 import { stat } from "fs/promises"
-// import ffprobe from "@ffprobe-installer/ffprobe"
-// console.log(staticffpeg)
-
-// Ffmpeg.setFfprobePath(staticffpeg)
+import sharp from "sharp"
 
 interface FileUpdate {
     event: "add" | "change" | "delete" | "addDir" | "deleteDir"
@@ -21,9 +16,11 @@ interface FileUpdate {
     id: string
 }
 
-export interface Metadata {
+interface Metadata {
     width: number
     height: number
+    duration: string | null
+    mktime: number
 }
 
 export class DebouncedMediaProcessor {
@@ -270,13 +267,44 @@ export class DebouncedMediaProcessor {
                 data: { picture: `m:${id}` }
             })
         }
-
+        
+        let metadata: Metadata = {
+            mktime: stats.birthtimeMs,
+            height: 0,
+            width: 0,
+            duration: null
+        }
+        
         if (isVideo) {
             const video = new Video(filePath)
-            console.log(await video.getMetadata(), stats.birthtimeMs)
-            console.log(await video.extractThumbnail(id, THUMB_ROOT))
+            const videoMetadata = await video.getMetadata()
+            const thumbnail = await video.extractThumbnail(id, THUMB_ROOT)
 
+            metadata = {
+                ...metadata,
+                ...videoMetadata
+            }
+
+            if (thumbnail) {
+                if (!user.picture) {
+                    await this.prisma.user.update({
+                        where: { id: user.id },
+                        data: { picture: `t:${id}` }
+                    })
+                }
+            }
+
+        } else {
+            const imageMetadata = await sharp(filePath).metadata()
+
+            metadata.height = imageMetadata.height
+            metadata.width = imageMetadata.width
         }
+
+        console.log(metadata)
+
+                    // portrait: height > width ? true : false
+
         
         await this.processMediaTags(media.id, user.path, tags)
         console.log(`✅ Processed media: ${path.basename(filePath)}`)
