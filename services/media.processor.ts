@@ -8,6 +8,7 @@ import Ffmpeg from "fluent-ffmpeg"
 import staticffpeg from "ffmpeg-static"
 import prisma from "@/lib/prisma"
 import { MEDIA_ROOT } from "@/lib/constants"
+import { Video } from "./service.video"
 // import ffprobe from "@ffprobe-installer/ffprobe"
 // console.log(staticffpeg)
 
@@ -244,6 +245,7 @@ export class DebouncedMediaProcessor {
 
     private async handleFileAddOrChange(filePath: string, user: User, tags: string[]): Promise<void> {
         // const stats = await fs.stat(filePath)
+        const relativePath = filePath.replace(MEDIA_ROOT, "")
         const isVideo = this.isVideoFile(filePath)
         const id = this.generateId(filePath)
         // console.log(filePath, user)
@@ -255,7 +257,7 @@ export class DebouncedMediaProcessor {
             },
             create: {
                 id,
-                path: filePath,
+                path: relativePath,
                 isVideo,
                 ownerId: user.id
                 // ownerId: { connect: { id: userRecord.id } }
@@ -266,6 +268,11 @@ export class DebouncedMediaProcessor {
                 where: { id: user.id },
                 data: { picture: `m:${id}` }
             })
+        }
+
+        if (isVideo) {
+            const video = new Video(filePath)
+            console.log(await video.getResolution())
         }
         
         await this.processMediaTags(media.id, user.path, tags)
