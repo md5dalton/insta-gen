@@ -1,7 +1,5 @@
 // import ffprobe from "@ffprobe-installer/ffprobe"
-import Ffmpeg from "fluent-ffmpeg"
-import staticffpeg from "ffmpeg-static"
-import staticffprobe from "ffmpeg-static"
+import ffmpeg from "fluent-ffmpeg"
 import { ffprobe, type FfprobeData } from '@dropb/ffprobe'
 
 export interface VideoResolution {
@@ -63,7 +61,7 @@ export class Video {
 
     extractThumbnail(id: string, outputDir: string, timeInSeconds: number = 2): Promise<string> {
         return new Promise((resolve, reject) => {
-            Ffmpeg(this.filePath)
+            ffmpeg(this.filePath)
                 .on("end", () => resolve(outputDir))
                 .on("error", reject)
                 .screenshots({
