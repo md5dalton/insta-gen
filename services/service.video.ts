@@ -1,11 +1,17 @@
-import ffprobe from "@ffprobe-installer/ffprobe"
+// import ffprobe from "@ffprobe-installer/ffprobe"
 import Ffmpeg from "fluent-ffmpeg"
 import staticffpeg from "ffmpeg-static"
 import staticffprobe from "ffmpeg-static"
+import { ffprobe, type FfprobeData } from '@dropb/ffprobe'
 
 export interface VideoResolution {
     width: number
     height: number
+}
+export interface VideoMetadata {
+    width: number
+    height: number
+    duration: string
 }
 
 export interface AudioInfo {
@@ -30,7 +36,7 @@ export interface ThumbnailOptions {
 
 // Ffmpeg.setFfprobePath(ffprobe.path)
 
-Ffmpeg.setFfprobePath("c:/ffmpeg/bin/ffmpeg")
+// Ffmpeg.setFfprobePath("c:/ffmpeg/bin/ffmpeg")
 // console.log(Ffmpeg.ffprobe.toString())
 export class Video {
     private filePath: string
@@ -39,93 +45,21 @@ export class Video {
         this.filePath = filePath
     }
 
-    private probe(): Promise<Ffmpeg.FfprobeData> {
-        return new Promise((resolve, reject) => {
-            Ffmpeg.ffprobe(this.filePath, (err, data) => {
-                if (err) reject(err)
-                else resolve(data)
-            })
-        })
-    }
+    async getMetadata(): Promise<VideoMetadata> {
 
-    getResolution = () => new Promise((resolve, reject) => {
-        
-        Ffmpeg.ffprobe(this.filePath, (err, metadata) => {
-        
-            if (err) return reject(err)
+        const data: FfprobeData = await ffprobe(this.filePath)
 
-            console.log(metadata)
-            // const videoStream = metadata.streams.find(stream => stream.codec_type === "video")
-            
-            // if (!videoStream) return reject(new Error("No video stream found"))
+        const videoStream = data.streams.find(s => s.codec_type === "video")
+        const format = data.format
 
-            // const { width, height } = videoStream
-
-            // resolve({ width, height })
-        
-        })
-    })
-
-    async getResolutions(): Promise<VideoResolution> {
-        const metadata = await this.probe()
-
-        const video = metadata.streams.find(s => s.codec_type === "video")
-
-        if (!video?.width || !video?.height) throw new Error("No valid video stream found")
+        if (!videoStream) throw new Error("No video stream found")
 
         return {
-            width: video.width,
-            height: video.height
+            width: videoStream.width,
+            height: videoStream.height,
+            duration: format.duration
         }
     }
-
-    async getDuration(): Promise<number> {
-        const metadata = await this.probe()
-
-        const dur = metadata.format.duration
-        if (!dur) throw new Error("Duration not found")
-
-        return dur
-    }
-
-    // async getAudioInfo(): Promise<AudioInfo | null> {
-    //     const metadata = await this.probe()
-
-    //     const audio = metadata.streams.find(s => s.codec_type === "audio");
-    //     if (!audio) return null;
-
-    //     return {
-    //         codec: audio.codec_name ?? "unknown",
-    //         channels: audio.channels ?? 0,
-    //         sampleRate: audio.sample_rate ? parseInt(audio.sample_rate, 10) : 0
-    //     };
-    // }
-
-    // --- Combined metadata ---
-    // async getFullMetadata(): Promise<FullMetadata> {
-    //     const metadata = await this.probe();
-
-    //     const video = metadata.streams.find(s => s.codec_type === "video");
-    //     if (!video) throw new Error("Video stream not found");
-
-    //     const audio = metadata.streams.find(s => s.codec_type === "audio");
-
-    //     return {
-    //         duration: metadata.format.duration ?? 0,
-    //         width: video.width ?? 0,
-    //         height: video.height ?? 0,
-    //         hasAudio: !!audio,
-    //         audio: audio
-    //             ? {
-    //                   codec: audio.codec_name ?? "unknown",
-    //                   channels: audio.channels ?? 0,
-    //                   sampleRate: audio.sample_rate
-    //                       ? parseInt(audio.sample_rate, 10)
-    //                       : 0
-    //               }
-    //             : undefined
-    //     };
-    // }
 
     extractThumbnail(id: string, outputDir: string, timeInSeconds: number = 2): Promise<string> {
         return new Promise((resolve, reject) => {
