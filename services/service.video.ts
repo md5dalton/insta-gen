@@ -1,6 +1,6 @@
 import ffprobe from "@ffprobe-installer/ffprobe"
 import Ffmpeg from "fluent-ffmpeg"
-import path from "path"
+import staticffpeg from "ffmpeg-static"
 
 export interface VideoResolution {
     width: number
@@ -27,7 +27,8 @@ export interface ThumbnailOptions {
     outputName?: string
 }
 
-Ffmpeg.setFfprobePath(ffprobe.path)
+// Ffmpeg.setFfprobePath(ffprobe.path)
+Ffmpeg.setFfprobePath(staticffpeg)
 
 export class Video {
     private filePath: string
