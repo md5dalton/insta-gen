@@ -1,6 +1,7 @@
-// import ffprobe from "@ffprobe-installer/ffprobe"
 import ffmpeg from "fluent-ffmpeg"
 import { ffprobe, type FfprobeData } from '@dropb/ffprobe'
+import fs from "fs"
+import path from "path"
 
 export interface VideoResolution {
     width: number
@@ -32,10 +33,6 @@ export interface ThumbnailOptions {
     outputName?: string
 }
 
-// Ffmpeg.setFfprobePath(ffprobe.path)
-
-// Ffmpeg.setFfprobePath("c:/ffmpeg/bin/ffmpeg")
-// console.log(Ffmpeg.ffprobe.toString())
 export class Video {
     private filePath: string
 
@@ -61,7 +58,7 @@ export class Video {
 
     extractThumbnail(id: string, outputDir: string, timeInSeconds: number = 2): Promise<string> {
         return new Promise((resolve, reject) => {
-            ffmpeg(this.filePath)
+            if (!fs.existsSync(path.join(outputDir, `${id}.jpg`))) ffmpeg(this.filePath)
                 .on("end", () => resolve(outputDir))
                 .on("error", reject)
                 .screenshots({
