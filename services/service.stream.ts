@@ -1,21 +1,21 @@
-import fs from "fs";
-import path from "path";
-import Ffmpeg from "fluent-ffmpeg";
-import { VideoInspector, ThumbnailOptions } from "@/utils/VideoInspector";
-import prisma from "@/utils/prisma";
+import fs from "fs"
+import path from "path"
+import Ffmpeg from "fluent-ffmpeg"
+import { VideoInspector, ThumbnailOptions } from "@/utils/VideoInspector"
+import prisma from "@/utils/prisma"
 
 export interface VideoRecord {
-  id: string;
-  path: string;
+  id: string
+  path: string
 }
 
 export interface TranscodedVariant {
-  name: "1080p" | "720p";
-  filePath: string; // mp4 file
-  bitrate: string;
-  resolution: string;
-  hlsDir?: string; // directory for hls output for this variant
-  playlistPath?: string; // variant .m3u8
+  name: "1080p" | "720p"
+  filePath: string // mp4 file
+  bitrate: string
+  resolution: string
+  hlsDir?: string // directory for hls output for this variant
+  playlistPath?: string // variant .m3u8
 }
 
 export default class VideoService {
@@ -24,22 +24,22 @@ export default class VideoService {
     return prisma.media.findUnique({
       where: { id },
       select: { id: true, path: true }
-    });
+    })
   }
 
   // --- Internal helper to resolve local output paths ---
   static getOutputsBaseDir(): string {
     // choose a base location for transcoded assets
     // adapt to your environment
-    return path.join(process.cwd(), "data", "videos");
+    return path.join(process.cwd(), "data", "videos")
   }
 
   static getVariantFilePath(id: string, variant: "1080p" | "720p") {
-    return path.join(this.getOutputsBaseDir(), id, `${variant}.mp4`);
+    return path.join(this.getOutputsBaseDir(), id, `${variant}.mp4`)
   }
 
   static getVariantHlsDir(id: string, variant: "1080p" | "720p") {
-    return path.join(this.getOutputsBaseDir(), id, "hls", variant);
+    return path.join(this.getOutputsBaseDir(), id, "hls", variant)
   }
 
   static getMasterPlaylistPath(id: string) {
