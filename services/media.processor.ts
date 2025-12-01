@@ -20,7 +20,12 @@ interface Metadata {
     width: number
     height: number
     duration: string | null
-    mktime: number
+    mktime: string
+}
+
+enum PictureType {
+    Media = "m",
+    Thumb = "t"
 }
 
 export class DebouncedMediaProcessor {
@@ -240,6 +245,13 @@ export class DebouncedMediaProcessor {
             }
         })
     }
+    
+    private async assignUserPicture (mediaId: string, userId: string, type: PictureType = PictureType.Media) {
+        return await this.prisma.user.update({
+            where: { id: userId},
+            data: { picture: `${type}:${mediaId}` }
+        })
+    }
 
     private async handleFileAddOrChange(filePath: string, user: User, tags: string[]): Promise<void> {
         const stats = await stat(filePath)
@@ -261,20 +273,15 @@ export class DebouncedMediaProcessor {
                 // ownerId: { connect: { id: userRecord.id } }
             }
         })
-        if (!user.picture && !isVideo) {
-            await this.prisma.user.update({
-                where: { id: user.id },
-                data: { picture: `m:${id}` }
-            })
-        }
+
         
         let metadata: Metadata = {
-            mktime: stats.birthtimeMs,
+            mktime: String(stats.birthtimeMs),
             height: 0,
             width: 0,
             duration: null
         }
-        
+
         if (isVideo) {
             const video = new Video(filePath)
             const videoMetadata = await video.getMetadata()
@@ -285,15 +292,6 @@ export class DebouncedMediaProcessor {
                 ...videoMetadata
             }
 
-            if (thumbnail) {
-                if (!user.picture) {
-                    await this.prisma.user.update({
-                        where: { id: user.id },
-                        data: { picture: `t:${id}` }
-                    })
-                }
-            }
-
         } else {
             const imageMetadata = await sharp(filePath).metadata()
 
@@ -301,11 +299,22 @@ export class DebouncedMediaProcessor {
             metadata.width = imageMetadata.width
         }
 
-        console.log(metadata)
+        await this.prisma.metadata.upsert({
+            where: { mediaId: id },
+            update: metadata,
+            create: {
+                media: { connect: { id } },
+                ...metadata
+            }
+        })
 
-                    // portrait: height > width ? true : false
-
-        
+        if (!user.picture) {
+            this.assignUserPicture(
+                id,
+                user.id,
+                isVideo ? PictureType.Thumb : PictureType.Media
+            )
+        }
         await this.processMediaTags(media.id, user.path, tags)
         console.log(`✅ Processed media: ${path.basename(filePath)}`)
     }
