@@ -7,7 +7,7 @@ import path from "path"
 import Ffmpeg from "fluent-ffmpeg"
 import staticffpeg from "ffmpeg-static"
 import prisma from "@/lib/prisma"
-import { MEDIA_ROOT } from "@/lib/constants"
+import { MEDIA_ROOT, THUMB_ROOT } from "@/lib/constants"
 import { Video } from "./service.video"
 import { stat } from "fs/promises"
 // import ffprobe from "@ffprobe-installer/ffprobe"
@@ -274,6 +274,8 @@ export class DebouncedMediaProcessor {
         if (isVideo) {
             const video = new Video(filePath)
             console.log(await video.getMetadata(), stats.birthtimeMs)
+            console.log(await video.extractThumbnail(id, THUMB_ROOT))
+
         }
         
         await this.processMediaTags(media.id, user.path, tags)
