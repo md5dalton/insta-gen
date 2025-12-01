@@ -1,5 +1,5 @@
 import { MEDIA_CONFIG } from "@/config/media"
-import { User } from "@prisma/client"
+import { PrismaClient, User } from "@prisma/client"
 import chokidar, { FSWatcher } from "chokidar"
 import { throttle } from "lodash"
 import crypto from "crypto"
@@ -7,7 +7,7 @@ import path from "path"
 import Ffmpeg from "fluent-ffmpeg"
 import staticffpeg from "ffmpeg-static"
 import prisma from "@/lib/prisma"
-import { PrismaClient } from "@/lib/generated/prisma/client"
+import { MEDIA_ROOT } from "@/lib/constants"
 // import ffprobe from "@ffprobe-installer/ffprobe"
 // console.log(staticffpeg)
 
@@ -157,30 +157,30 @@ export class DebouncedMediaProcessor {
         console.log(`📁 Processing directory: ${directory}`)
         
         try {
-            const relativePath = directory.replace(MEDIA_CONFIG.ROOT_PATH, "")
+            const relativePath = directory.replace(MEDIA_ROOT, "")
             const pathParts = relativePath.split(path.sep).filter(Boolean)
-            console.log(directory, relativePath, pathParts)
-            // if (pathParts.length >= 3) {
-            //     const [rootCollection, collection, user, ...tags] = pathParts
+            
+            if (pathParts.length >= 3) {
+                const [rootCollection, collection, user, ...tags] = pathParts
                 
-            //     const rootCollectionRecord = await this.ensureRootCollection(rootCollection)
-            //     const collectionRecord = await this.ensureCollection(rootCollectionRecord.id, collection)
-            //     const userRecord = await this.ensureUser(collectionRecord.id, user)
+                const rootCollectionRecord = await this.ensureRootCollection(rootCollection)
+                const collectionRecord = await this.ensureCollection(rootCollectionRecord.id, collection)
+                const userRecord = await this.ensureUser(collectionRecord.id, user)
                 
-            //     const fileUpdates = updates.filter(update => 
-            //         update.event === "add" || update.event === "change" || update.event === "delete"
-            //     )
+                const fileUpdates = updates.filter(update => 
+                    update.event === "add" || update.event === "change" || update.event === "delete"
+                )
                 
-            //     for (const update of fileUpdates) {
-            //         if (update.event === "delete") {
-            //             await this.handleFileDelete(update.filePath)
-            //         } else {
-            //             await this.handleFileAddOrChange(update.filePath, userRecord, tags)
-            //         }
-            //     }
+                for (const update of fileUpdates) {
+                    if (update.event === "delete") {
+                        await this.handleFileDelete(update.filePath)
+                    } else {
+                        await this.handleFileAddOrChange(update.filePath, userRecord, tags)
+                    }
+                }
                 
-            //     await this.processTagsForDirectory(directory, userRecord, tags)
-            // }
+                await this.processTagsForDirectory(directory, userRecord, tags)
+            }
         } catch (error) {
             console.error(`Error processing directory ${directory}:`, error)
             throw error
