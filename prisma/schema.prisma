@@ -76,8 +76,8 @@ model Media {
 model Metadata {
     height      Int
     width       Int
+    duration    Float
     mktime      DateTime
-    portrait    Boolean
 
     media       Media @relation(fields: [mediaId], references: [id])
     mediaId     String @id
