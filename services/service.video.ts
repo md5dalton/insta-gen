@@ -35,9 +35,16 @@ export interface ThumbnailOptions {
 
 export class Video {
     private filePath: string
+    private thumbDir: string
 
     constructor(filePath: string) {
+
         this.filePath = filePath
+        
+        this.thumbDir = path.join(process.cwd(), "public", "images", "thumbs")
+
+        if (!fs.existsSync(this.thumbDir)) fs.mkdirSync(this.thumbDir, { recursive: true })
+
     }
 
     async getMetadata(): Promise<VideoMetadata> {
@@ -56,15 +63,15 @@ export class Video {
         }
     }
 
-    extractThumbnail(id: string, outputDir: string, timeInSeconds: number = 2): Promise<string> {
+    extractThumbnail(id: string, timeInSeconds: number = 2): Promise<string> {
         return new Promise((resolve, reject) => {
-            if (!fs.existsSync(path.join(outputDir, `${id}.jpg`))) ffmpeg(this.filePath)
-                .on("end", () => resolve(outputDir))
+            if (!fs.existsSync(path.join(this.thumbDir, `${id}.jpg`))) ffmpeg(this.filePath)
+                .on("end", () => resolve(this.thumbDir))
                 .on("error", reject)
                 .screenshots({
                     timestamps: [timeInSeconds],
                     filename: `${id}.jpg`,
-                    folder: outputDir
+                    folder: this.thumbDir
                 })
         })
     }
