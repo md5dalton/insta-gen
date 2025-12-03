@@ -5,7 +5,6 @@ import { throttle } from "lodash"
 import crypto from "crypto"
 import path from "path"
 import prisma from "@/lib/prisma"
-import { MEDIA_ROOT, THUMB_ROOT } from "@/lib/constants"
 import { Video } from "./service.video"
 import { stat } from "fs/promises"
 import sharp from "sharp"
@@ -48,6 +47,7 @@ export class DebouncedMediaProcessor {
             leading: false,
             trailing: true
         })
+
     }
     
     async initialize(): Promise<void> {
@@ -161,7 +161,7 @@ export class DebouncedMediaProcessor {
         console.log(`📁 Processing directory: ${directory}`)
         
         try {
-            const relativePath = directory.replace(MEDIA_ROOT, "")
+            const relativePath = directory.replace(this.path, "")
             const pathParts = relativePath.split(path.sep).filter(Boolean)
             
             if (pathParts.length >= 3) {
@@ -255,7 +255,7 @@ export class DebouncedMediaProcessor {
 
     private async handleFileAddOrChange(filePath: string, user: User, tags: string[]): Promise<void> {
         const stats = await stat(filePath)
-        const relativePath = filePath.replace(MEDIA_ROOT, "")
+        const relativePath = filePath.replace(this.path, "")
         const isVideo = this.isVideoFile(filePath)
         const id = this.generateId(filePath)
         // console.log(filePath, user)
@@ -285,7 +285,7 @@ export class DebouncedMediaProcessor {
         if (isVideo) {
             const video = new Video(filePath)
             const videoMetadata = await video.getMetadata()
-            const thumbnail = await video.extractThumbnail(id, THUMB_ROOT)
+            const thumbnail = await video.extractThumbnail(id)
 
             metadata = {
                 ...metadata,
