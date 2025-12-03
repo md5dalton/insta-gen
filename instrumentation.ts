@@ -1,13 +1,20 @@
 import { DebouncedMediaProcessor } from "./services/media.processor"
-import { existsSync, mkdirSync } from "fs"
-import { MEDIA_ROOT } from "./lib/constants"
-export const runtime = "nodejs"
 
 export async function register(): Promise<void> {
     if (process.env.NEXT_RUNTIME === "nodejs") {
         console.log("🚀 Initializing media processor via instrumentation...")
 
         try {
+            const fs = await import("fs")
+            const os = await import("os")
+            const path = await import("path")
+            
+            const MEDIA_ROOT = process.env.MEDIA_ROOT ?
+                path.join(os.homedir(), process.env.MEDIA_ROOT) :
+                path.join(process.cwd(), "media")
+
+            if (!fs.existsSync(MEDIA_ROOT)) fs.mkdirSync(MEDIA_ROOT, { recursive: true })
+        
             global.mediaProcessor = new DebouncedMediaProcessor(MEDIA_ROOT)
             await global.mediaProcessor.initialize()
             
@@ -34,3 +41,4 @@ export async function register(): Promise<void> {
         }
     }
 }
+export const runtime = "nodejs"
