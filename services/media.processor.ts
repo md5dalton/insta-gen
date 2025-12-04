@@ -3,12 +3,14 @@ import { PrismaClient, User } from "@prisma/client"
 import chokidar, { FSWatcher } from "chokidar"
 import { throttle } from "lodash"
 import crypto from "crypto"
-import path from "path"
 import prisma from "@/lib/prisma"
 import { Video } from "./service.video"
 import { stat } from "fs/promises"
 import sharp, {  } from "sharp"
 import { MediaType, VideoMetadata } from "@/types/type"
+import { homedir } from "os"
+import * as path from "path"
+import * as fs from "fs"
 
 interface FileUpdate {
     event: "add" | "change" | "delete" | "addDir" | "deleteDir"
@@ -28,7 +30,15 @@ enum PictureType {
     Thumb = "t"
 }
 
-export class DebouncedMediaProcessor {
+const MEDIA_ROOT = process.env.MEDIA_ROOT ?
+    path.join(homedir(), process.env.MEDIA_ROOT) :
+    path.join(process.cwd(), "media")
+
+if (!fs.existsSync(MEDIA_ROOT)) fs.mkdirSync(MEDIA_ROOT, { recursive: true })
+
+
+
+class DebouncedMediaProcessor {
     private path: string
     private prisma: PrismaClient
     private isProcessing: boolean
@@ -68,9 +78,16 @@ export class DebouncedMediaProcessor {
         }
 
         // await this.initialScan()
-
+        const extensions = new Set([
+            ...MEDIA_CONFIG.IMAGE_EXTENSIONS,
+            ...MEDIA_CONFIG.VIDEO_EXTENSIONS
+        ])
+        
         this.watcher = chokidar.watch(`${this.path}`, {
-            ignored: MEDIA_CONFIG.IGNORED_PATTERNS,
+            ignored: file => {
+                const ext = path.extname(file).toLowerCase()
+                return ext && !extensions.has(ext)
+            },
             persistent: true,
             ignoreInitial: false,
             depth: 10
@@ -188,7 +205,7 @@ export class DebouncedMediaProcessor {
             }
         } catch (error) {
             console.error(`Error processing directory ${directory}:`, error)
-            throw error
+            // throw error
         }
     }
 
@@ -261,47 +278,50 @@ export class DebouncedMediaProcessor {
         
         let metadata: any
 
-        if (type === MediaType.VIDEO) {
-            const video = new Video(filePath)
-            metadata = await video.getMetadata()
-            
-            if (metadata) await video.extractThumbnail(id)
+        const mediaExists = await this.prisma.media.count({where: {id}})
 
-        } else metadata = await sharp(filePath).metadata()
-
-        if (metadata) {
-            const stats = await stat(filePath)
-            
-            const media = await this.prisma.media.upsert({
-                where: { id },
-                update: {
-                    id,
-                },
-                create: {
-                    id,
-                    path: relativePath,
-                    type,
-                    owner: { connect: { id: user.id } },
-                    height: metadata.height,
-                    width: metadata.width,
-                    duration: type === MediaType.VIDEO ? metadata.duration : null,
-                    mktime: String(stats.birthtimeMs)
-                }
-            })
+        if (!mediaExists) {
+            if (type === MediaType.VIDEO) {
+                const video = new Video(filePath)
+                metadata = await video.getMetadata()
+                
+                if (metadata) await video.extractThumbnail(id)
     
-            if (!user.picture) {
-                this.assignUserPicture(
-                    id,
-                    user.id,
-                    type === MediaType.VIDEO ? PictureType.Thumb : PictureType.Media
-                )
+            } else {
+                metadata = await sharp(filePath).metadata()
+            } 
+    
+            if (metadata) {
+                const stats = await stat(filePath)
+                
+                await this.prisma.media.create({
+                    data: {
+                        id,
+                        path: relativePath,
+                        type,
+                        owner: { connect: { id: user.id } },
+                        height: metadata.height,
+                        width: metadata.width,
+                        duration: type === MediaType.VIDEO ? metadata.duration : null,
+                        mktime: String(stats.birthtimeMs)
+                    }
+                })
+        
+                console.log(`✅ Processed media: ${path.basename(filePath)}`)
+                
+            } else {
+                console.log(`❌ Failed to process media: ${path.basename(filePath)}`)
             }
-            await this.processMediaTags(media.id, user.path, tags)
-            console.log(`✅ Processed media: ${path.basename(filePath)}`)
-            
-        } else {
-            console.log(`❌ Failed to process media: ${path.basename(filePath)}`)
         }
+        
+        if (!user.picture) {
+            this.assignUserPicture(
+                id,
+                user.id,
+                type === MediaType.VIDEO ? PictureType.Thumb : PictureType.Media
+            )
+        }
+        await this.processMediaTags(id, user.path, tags)
     }
 
     private async handleFileDelete(filePath: string): Promise<void> {
@@ -371,3 +391,5 @@ export class DebouncedMediaProcessor {
         await this.prisma.$disconnect()
     }
 }
+
+export const mediaProcessorInstance = new DebouncedMediaProcessor(MEDIA_ROOT)
