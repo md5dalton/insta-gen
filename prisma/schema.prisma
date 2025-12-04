@@ -29,7 +29,6 @@ model Collection {
     ownerId     String
     users       User[]
 }
-
 model User {
     id          String @id
     name        String
@@ -38,18 +37,7 @@ model User {
     owner       Collection @relation(fields: [ownerId], references: [id])
     ownerId     String
     media       Media[]
-    // posts Post[]
 }
-
-// model Post {
-//     id String @id
-//     name String
-//     path String
-//     thumb String?
-//     owner User @relation(fields: [ownerId], references: [id])
-//     ownerId String
-//     media Media[]
-// }
 
 enum MediaType {
     IMAGE
@@ -58,31 +46,22 @@ enum MediaType {
 
 model Media {
     id          String @id
-
     path        String @unique
+    type        MediaType
 
     owner       User @relation(fields: [ownerId], references: [id])
-    // file        File @relation(fields: [path], references: [path])
-
-    isVideo     Boolean
-
     ownerId     String
+    
     tags        MediaTag[]
 
-    metadata    Metadata?
-
-}
-
-model Metadata {
     height      Int
     width       Int
     duration    String?
     mktime      String
 
-    media       Media @relation(fields: [mediaId], references: [id])
-    mediaId     String @id
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
 }
-
 
 model Tag {
     id      String @id
