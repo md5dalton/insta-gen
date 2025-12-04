@@ -1,4 +1,5 @@
-import { getRandom } from "@/actions/media"
+import { getRandom, MediaResponse } from "@/actions/media"
+import { MediaType } from "@/types/type"
 
 type Person = {
     id: string
@@ -27,7 +28,7 @@ export const GET = async (req, { params }) => {
 
     const media = await getRandom()
 
-    const res = media.map(m => ({
+    const res = media.map((m: MediaResponse) => ({
         id: m.id,
         uid: `${page}:${m.id}`,
         owner: m.owner,
@@ -36,8 +37,11 @@ export const GET = async (req, { params }) => {
         media: [
             {
                 id: m.id,
-                isVideo: m.isVideo,
-                metadata: m.metadata
+                isVideo: m.type === MediaType.VIDEO,
+                metadata: {
+                    height: m.height,
+                    width: m.width
+                }
             }
         ]
     }))
