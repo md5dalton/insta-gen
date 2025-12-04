@@ -1,4 +1,5 @@
-import prisma from "@/utils/prisma"
+import prisma from "@/lib/prisma"
+import { MediaType } from "@/types/type"
 
 type Media = {
     path: string
@@ -6,17 +7,15 @@ type Media = {
 
 export type MediaResponse = {
     id: string
-    isVideo: boolean
+    type: MediaType
     owner: {
         id: string
         name: string
         picture: string | null
     }
-    metadata: {
-        width: number
-        height: number
-        duration: string | null
-    }
+    width: number
+    height: number
+    duration: string | null
 }
 export const getMedia = async (slug: string): Promise<Media | null> => await prisma.media.findUnique({
     where: { id: slug },
