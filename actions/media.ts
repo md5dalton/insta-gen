@@ -24,12 +24,9 @@ export const getMedia = async (slug: string): Promise<Media | null> => await pri
 })
 
 export const getRandom = async (): Promise<MediaResponse[]> => await prisma.media.findManyRandom(20, {
-    where: {
-        isVideo: false
-    },
     select: {
         id: true,
-        isVideo: true,
+        type: true,
         owner: {
             select: {
                 id: true,
@@ -37,12 +34,8 @@ export const getRandom = async (): Promise<MediaResponse[]> => await prisma.medi
                 picture: true
             }
         },
-        metadata: {
-            select: {
-                height: true,
-                width: true,
-                duration: true,
-            }
-        }
+        height: true,
+        width: true,
+        duration: true,
     }
 })
