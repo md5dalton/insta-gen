@@ -27,12 +27,12 @@ export const GET = async (req, { params }) => {
 
     const media = await getRandom()
 
-    const res = media.map((m) => ({
+    const res = media.map(m => ({
         id: m.id,
         uid: `${page}:${m.id}`,
         owner: m.owner,
         // metadata: m.metadata,
-        aspect: m.metadata ? m.metadata.height/m.metadata.width : 0,
+        aspect: m.height/m.width,
         media: [
             {
                 id: m.id,
