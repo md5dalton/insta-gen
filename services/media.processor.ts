@@ -7,7 +7,8 @@ import path from "path"
 import prisma from "@/lib/prisma"
 import { Video } from "./service.video"
 import { stat } from "fs/promises"
-import sharp from "sharp"
+import sharp, {  } from "sharp"
+import { MediaType, VideoMetadata } from "@/types/type"
 
 interface FileUpdate {
     event: "add" | "change" | "delete" | "addDir" | "deleteDir"
@@ -254,69 +255,53 @@ export class DebouncedMediaProcessor {
     }
 
     private async handleFileAddOrChange(filePath: string, user: User, tags: string[]): Promise<void> {
-        const stats = await stat(filePath)
         const relativePath = filePath.replace(this.path, "")
-        const isVideo = this.isVideoFile(filePath)
         const id = this.generateId(filePath)
-        // console.log(filePath, user)
+        const type = this.getType(filePath)
         
-        const media = await this.prisma.media.upsert({
-            where: { id },
-            update: {
-                isVideo,
-            },
-            create: {
-                id,
-                path: relativePath,
-                isVideo,
-                ownerId: user.id
-                // ownerId: { connect: { id: userRecord.id } }
-            }
-        })
+        let metadata: any
 
-        
-        let metadata: Metadata = {
-            mktime: String(stats.birthtimeMs),
-            height: 0,
-            width: 0,
-            duration: null
-        }
-
-        if (isVideo) {
+        if (type === MediaType.VIDEO) {
             const video = new Video(filePath)
-            const videoMetadata = await video.getMetadata()
-            const thumbnail = await video.extractThumbnail(id)
+            metadata = await video.getMetadata()
+            
+            if (metadata) await video.extractThumbnail(id)
 
-            metadata = {
-                ...metadata,
-                ...videoMetadata
+        } else metadata = await sharp(filePath).metadata()
+
+        if (metadata) {
+            const stats = await stat(filePath)
+            
+            const media = await this.prisma.media.upsert({
+                where: { id },
+                update: {
+                    id,
+                },
+                create: {
+                    id,
+                    path: relativePath,
+                    type,
+                    owner: { connect: { id: user.id } },
+                    height: metadata.height,
+                    width: metadata.width,
+                    duration: type === MediaType.VIDEO ? metadata.duration : null,
+                    mktime: String(stats.birthtimeMs)
+                }
+            })
+    
+            if (!user.picture) {
+                this.assignUserPicture(
+                    id,
+                    user.id,
+                    type === MediaType.VIDEO ? PictureType.Thumb : PictureType.Media
+                )
             }
-
+            await this.processMediaTags(media.id, user.path, tags)
+            console.log(`✅ Processed media: ${path.basename(filePath)}`)
+            
         } else {
-            const imageMetadata = await sharp(filePath).metadata()
-
-            metadata.height = imageMetadata.height
-            metadata.width = imageMetadata.width
+            console.log(`❌ Failed to process media: ${path.basename(filePath)}`)
         }
-
-        await this.prisma.metadata.upsert({
-            where: { mediaId: id },
-            update: metadata,
-            create: {
-                media: { connect: { id } },
-                ...metadata
-            }
-        })
-
-        if (!user.picture) {
-            this.assignUserPicture(
-                id,
-                user.id,
-                isVideo ? PictureType.Thumb : PictureType.Media
-            )
-        }
-        await this.processMediaTags(media.id, user.path, tags)
-        console.log(`✅ Processed media: ${path.basename(filePath)}`)
     }
 
     private async handleFileDelete(filePath: string): Promise<void> {
@@ -368,10 +353,10 @@ export class DebouncedMediaProcessor {
         }
     }
 
-    private isVideoFile(filePath: string): boolean {
+    private getType(filePath: string): MediaType {
         const videoExtensions = MEDIA_CONFIG.VIDEO_EXTENSIONS
         const ext = path.extname(filePath).toLowerCase()
-        return videoExtensions.includes(ext)
+        return videoExtensions.includes(ext) ? MediaType.VIDEO : MediaType.IMAGE
     }
 
     private async initialScan(): Promise<void> {
