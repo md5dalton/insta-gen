@@ -61,7 +61,8 @@ export class Video {
 
     extractThumbnail(id: string, timeInSeconds: number = 2): Promise<string> {
         return new Promise((resolve, reject) => {
-            if (!fs.existsSync(path.join(this.thumbDir, `${id}.jpg`))) ffmpeg(this.filePath)
+            // if (!fs.existsSync(path.join(this.thumbDir, `${id}.jpg`))) 
+            ffmpeg(this.filePath)
                 .on("end", () => resolve(this.thumbDir))
                 .on("error", reject)
                 .screenshots({
