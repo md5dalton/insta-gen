@@ -2,15 +2,11 @@ import ffmpeg from "fluent-ffmpeg"
 import { ffprobe, type FfprobeData } from '@dropb/ffprobe'
 import fs from "fs"
 import path from "path"
+import { VideoMetadata } from "@/types/type"
 
 export interface VideoResolution {
     width: number
     height: number
-}
-export interface VideoMetadata {
-    width: number
-    height: number
-    duration: string
 }
 
 export interface AudioInfo {
