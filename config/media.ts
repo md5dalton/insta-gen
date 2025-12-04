@@ -11,7 +11,7 @@ export interface MediaConfig {
 export const MEDIA_CONFIG: MediaConfig = {
     ROOT_PATH: process.env.MEDIA_ROOT_PATH || "./media",
     CHUNK_SIZE: 10,
-    DEBOUNCE_MS: 0,
+    DEBOUNCE_MS: 1000,
     BATCH_SIZE: 50,
     VIDEO_EXTENSIONS: [".mp4", ".mov", ".avi", ".mkv", ".webm"],
     IMAGE_EXTENSIONS: [".jpg", ".jpeg", ".png"],
