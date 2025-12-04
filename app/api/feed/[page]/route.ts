@@ -1,6 +1,4 @@
-import { getRandom, MediaResponse } from "@/actions/media"
-import { NextResponse } from "next/server"
-export const runtime = "nodejs"
+import { getRandom } from "@/actions/media"
 
 type Person = {
     id: string
@@ -23,17 +21,18 @@ type Post = {
     aspect: number
     media: Media[]
 }
-export const GET = async (req, { params }): Promise<NextResponse<Post[]>> => {
+export const GET = async (req, { params }) => {
 
     const { page } = await params
 
     const media = await getRandom()
 
-    return NextResponse.json(media.map((m: MediaResponse) => ({
+    const res = media.map((m) => ({
         id: m.id,
         uid: `${page}:${m.id}`,
         owner: m.owner,
-        aspect: m.metadata.height/m.metadata.width,
+        // metadata: m.metadata,
+        aspect: m.metadata ? m.metadata.height/m.metadata.width : 0,
         media: [
             {
                 id: m.id,
@@ -41,5 +40,7 @@ export const GET = async (req, { params }): Promise<NextResponse<Post[]>> => {
                 metadata: m.metadata
             }
         ]
-    })))
+    }))
+
+    return Response.json(res)
 }
