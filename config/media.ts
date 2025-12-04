@@ -13,7 +13,7 @@ export const MEDIA_CONFIG: MediaConfig = {
     CHUNK_SIZE: 10,
     DEBOUNCE_MS: 1000,
     BATCH_SIZE: 50,
-    VIDEO_EXTENSIONS: [".mp4", ".mov", ".avi", ".mkv", ".webm"],
+    VIDEO_EXTENSIONS: [".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"],
     IMAGE_EXTENSIONS: [".jpg", ".jpeg", ".png"],
     IGNORED_PATTERNS: [/node_modules/, /\.git/, /Thumbs\.db/, /\.DS_Store/]
 }
