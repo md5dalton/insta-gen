@@ -111,7 +111,7 @@ class DebouncedMediaProcessor {
             id: `${event}-${filePath}-${Date.now()}`
         })
         
-        console.log(`📝 Queued ${event}: ${path.basename(filePath)}`)
+        // console.log(`📝 Queued ${event}: ${path.basename(filePath)}`)
         this.processThrottled()
     }
     
@@ -145,9 +145,7 @@ class DebouncedMediaProcessor {
             this.isProcessing = false
             global.syncState.isProcessing = false
         
-            if (this.pendingUpdates.size > 0) {
-                this.processThrottled()
-            }
+            if (this.pendingUpdates.size > 0) this.processThrottled()
         }
     }
 
@@ -176,7 +174,7 @@ class DebouncedMediaProcessor {
     }
 
     private async processDirectoryBatch(directory: string, updates: Array<FileUpdate & { filePath: string }>): Promise<void> {
-        console.log(`📁 Processing directory: ${directory}`)
+        // console.log(`📁 Processing directory: ${directory}`)
         
         try {
             const relativePath = directory.replace(this.path, "")
