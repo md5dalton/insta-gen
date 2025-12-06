@@ -32,7 +32,6 @@ export const GET = async (req, { params }) => {
         id: m.id,
         uid: `${page}:${m.id}`,
         owner: m.owner,
-        // metadata: m.metadata,
         aspect: m.height/m.width,
         media: [
             {
