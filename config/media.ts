@@ -1,3 +1,6 @@
+import { homedir } from "os"
+import path from "path"
+
 export interface MediaConfig {
     ROOT_PATH: string
     CHUNK_SIZE: number
@@ -17,3 +20,11 @@ export const MEDIA_CONFIG: MediaConfig = {
     IMAGE_EXTENSIONS: [".jpg", ".jpeg", ".png"],
     IGNORED_PATTERNS: [/node_modules/, /\.git/, /Thumbs\.db/, /\.DS_Store/]
 }
+
+
+export const getMediaRoot = (append: string = "") => process.env.MEDIA_ROOT ?
+    path.join(homedir(), process.env.MEDIA_ROOT, append) :
+    path.join(process.cwd(), "media", append)
+
+export const getThumbRoot = (thumb: string = "") => path.join(process.cwd(), "public", "images", "thumbs", thumb ? `${thumb}.jpg` : "")
+    
