@@ -1,5 +1,5 @@
 import { getMedia } from "@/actions/media"
-import { getRealpath } from "@/utils/functions"
+import { getMediaRoot } from "@/config/media"
 import fs from "fs"
 import { NextRequest } from "next/server"
 
@@ -15,9 +15,10 @@ export async function GET(
 
     const media = await getMedia(slug)
 
-    const path = getRealpath(media.path)
-
     if (!media) return new Response('Media not found', { status: 404 })
+
+    const path =  getMediaRoot(media.path)
+
     if (!fs.existsSync(path)) return new Response('File not found', { status: 404 })
 
     const buffer = fs.readFileSync(path)
@@ -25,9 +26,4 @@ export async function GET(
     return new Response(new Uint8Array(buffer), {
         headers: { "Content-Type": "image/jpeg" },
     })
-    
-    // return new Response(fs.readFileSync(path), {
-    //     headers: {"Content-Type": "image/jpeg"},
-    //     status: 200
-    // })
 }
