@@ -22,7 +22,10 @@ export const getMedia = async (slug: string): Promise<Media | null> => await pri
     select: { path: true }
 })
 
-export const getRandom = async (): Promise<MediaResponse[]> => await prisma.media.findManyRandom(20, {
+export const getRandom = async (): Promise<MediaResponse[]> => await prisma.media.findManyRandom(10, {
+    // where: {
+    //     type: MediaType.IMAGE
+    // },
     select: {
         id: true,
         type: true,
