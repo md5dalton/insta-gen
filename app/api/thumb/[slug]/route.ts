@@ -1,5 +1,5 @@
-import { getThumsDir } from "@/utils/functions"
-import fs from "fs"
+import { getThumbRoot } from "@/config/media"
+import { existsSync, readFileSync } from "fs"
 import { NextRequest } from "next/server"
 
 interface Params {
@@ -12,19 +12,14 @@ export async function GET(
 ): Promise<Response> {
     const { slug } = await props.params
 
-    const imagePath = `${getThumsDir()}/${slug}.jpg`
+    const imagePath = getThumbRoot(slug)
+    
+    if (!existsSync(imagePath)) return new Response("Image not found", { status: 404 })
+        
+    const buffer = readFileSync(imagePath)
 
-    if (fs.existsSync(imagePath)) {
-        const buffer = fs.readFileSync(imagePath)
+    return new Response(new Uint8Array(buffer), {
+        headers: { "Content-Type": "image/jpeg" },
+    })
 
-        return new Response(new Uint8Array(buffer), {
-            headers: { "Content-Type": "image/jpeg" },
-        })
-        // return new Response(buffer, {
-        //     headers: { "Content-Type": "image/jpeg" },
-        //     status: 200,
-        // })
-    }
-
-    return new Response("Image not found", { status: 404 })
 }
