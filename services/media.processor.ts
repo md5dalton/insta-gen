@@ -1,4 +1,4 @@
-import { MEDIA_CONFIG } from "@/config/media"
+import { getMediaRoot, MEDIA_CONFIG } from "@/config/media"
 import { PrismaClient, User } from "@prisma/client"
 import chokidar, { FSWatcher } from "chokidar"
 import { throttle } from "lodash"
@@ -30,9 +30,7 @@ enum PictureType {
     Thumb = "t"
 }
 
-const MEDIA_ROOT = process.env.MEDIA_ROOT ?
-    path.join(homedir(), process.env.MEDIA_ROOT) :
-    path.join(process.cwd(), "media")
+const MEDIA_ROOT = getMediaRoot()
 
 if (!fs.existsSync(MEDIA_ROOT)) fs.mkdirSync(MEDIA_ROOT, { recursive: true })
 
@@ -304,6 +302,12 @@ class DebouncedMediaProcessor {
                         mktime: String(stats.birthtimeMs)
                     }
                 })
+
+                // if (!user.picture) this.assignUserPicture(
+                //     id,
+                //     user.id,
+                //     type === MediaType.VIDEO ? PictureType.Thumb : PictureType.Media
+                // )
         
                 console.log(`✅ Processed media: ${path.basename(filePath)}`)
                 
@@ -311,14 +315,7 @@ class DebouncedMediaProcessor {
                 console.log(`❌ Failed to process media: ${path.basename(filePath)}`)
             }
         }
-        
-        if (!user.picture) {
-            this.assignUserPicture(
-                id,
-                user.id,
-                type === MediaType.VIDEO ? PictureType.Thumb : PictureType.Media
-            )
-        }
+
         await this.processMediaTags(id, user.path, tags)
     }
 
