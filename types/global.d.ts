@@ -1,4 +1,4 @@
-import { DebouncedMediaProcessor } from "@/services/media.processor"
+import { DebouncedMediaProcessor } from "@/services/scanner.service"
 
 declare global {
     namespace NodeJS {
