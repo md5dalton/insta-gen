@@ -84,9 +84,9 @@ class DebouncedMediaProcessor {
         ])
         
         this.watcher = chokidar.watch(`${this.path}`, {
-            ignored: file => {
+            ignored: (file: string) => {
                 const ext = path.extname(file).toLowerCase()
-                return ext && !extensions.has(ext)
+                return Boolean(ext && !extensions.has(ext))
             },
             persistent: true,
             ignoreInitial: false,
