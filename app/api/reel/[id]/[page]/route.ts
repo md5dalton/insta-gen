@@ -1,19 +1,22 @@
 import { getReel, getRelatedReels } from "@/actions/reel"
 
-export async function GET(req, props) {
-    const params = await props.params;
+export const GET = async (req, { params }) => {
 
-    const {
+    const { 
         page,
         id
-    } = params;
+     } = await params
 
     const reel = page == 0 ? await getReel(id) : null
     const reels = await getRelatedReels(id)
 
-    if (reel) reels.unshift(reel)
+    if (reel) {
+        reels.pop()
+        reels.unshift(reel)
+    }
 
-    const media = reels.map(({ owner, id, ...rest }) => ({...rest, id, owner: owner.owner, uid: `${page}/${id}`}))
+    const media = reels.map((reel) => ({...reel, uid: `${page}/${reel.id}`}))
 
     return Response.json(media)
+
 }
