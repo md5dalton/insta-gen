@@ -3,6 +3,8 @@ import { MediaType } from "@/types/type"
 
 type Media = {
     path: string
+    bitrate: string
+    size: number
 }
 
 export type MediaResponse = {
@@ -19,7 +21,11 @@ export type MediaResponse = {
 }
 export const getMedia = async (slug: string): Promise<Media | null> => await prisma.media.findUnique({
     where: { id: slug },
-    select: { path: true }
+    select: {
+        path: true,
+        size: true,
+        bitrate: true
+    }
 })
 
 export const getRandom = async (): Promise<MediaResponse[]> => await prisma.media.findManyRandom(10, {
