@@ -51,11 +51,12 @@ export class Video {
         const format = data.format
 
         if (!videoStream) throw new Error("No video stream found")
-
+            
         return {
             width: videoStream.width,
             height: videoStream.height,
-            duration: format.duration
+            duration: format.duration,
+            bitrate: videoStream.bit_rate ?? format.bit_rate
         }
     }
 
