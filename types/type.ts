@@ -6,4 +6,5 @@ export interface VideoMetadata {
     width: number
     height: number
     duration: string
+    bitrate: string
 }
