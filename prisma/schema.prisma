@@ -56,7 +56,9 @@ model Media {
 
     height      Int
     width       Int
+    size        Int
     duration    String?
+    bitrate     String?
     mktime      String
 
     createdAt  DateTime @default(now())
