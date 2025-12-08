@@ -1,4 +1,5 @@
-import prisma from "@/utils/prisma"
+import prisma from "@/lib/prisma"
+import { MediaType } from "@/types/type"
 
 type Reel = {
     id: string
@@ -12,7 +13,7 @@ type Reel = {
 
 const fromReel = (options: any) => ({
     where: {
-        isVideo: true,
+        type: MediaType.VIDEO,
         ...options
     },
     select: {
