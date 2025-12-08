@@ -293,6 +293,7 @@ class DebouncedMediaProcessor {
                         owner: { connect: { id: user.id } },
                         height: metadata.height,
                         width: metadata.width,
+                        size: stats.size,
                         duration: type === MediaType.VIDEO ? metadata.duration : null,
                         mktime: String(stats.birthtimeMs)
                     }
