@@ -1,5 +1,6 @@
 import { getRandom, MediaResponse } from "@/actions/media"
 import { MediaType } from "@/types/type"
+export const runtime = "nodejs"
 
 type Person = {
     id: string
