@@ -1,8 +1,9 @@
 import { getMedia } from "@/actions/media"
-import { existsSync } from "node:fs"
+import { createReadStream, existsSync } from "node:fs"
 import ffmpeg from "fluent-ffmpeg"
 import { getMediaRoot } from "@/config/media"
 import { Readable } from "stream"
+import { PassThrough } from "node:stream"
 
 export const runtime = "nodejs"
 
@@ -18,6 +19,19 @@ function nodeStreamToWeb(stream: Readable): ReadableStream {
         }
     })
 }
+
+function parseRange(range: string | null, fileSize: number) {
+    if (!range) return null
+    
+    const match = range.match(/bytes=(\d+)-(\d*)/)
+    if (!match) return null
+    
+    const start = parseInt(match[1], 10)
+    const end = match[2] ? parseInt(match[2], 10) : fileSize - 1
+    
+    return { start, end }
+}
+
 export async function GET({ headers }, { params }) {
     
     const { slug } = await params
@@ -32,30 +46,42 @@ export async function GET({ headers }, { params }) {
 
     if (!existsSync(path)) return new Response("File not found", { status: 404 })
 
-    const command = ffmpeg(path)
-        .videoCodec("libx264")
-        .audioCodec("aac")
-        .addOptions([
-            "-preset fast",
-            "-movflags frag_keyframe+empty_moov", // required to stream MP4
-            "-frag_duration 2000000", // ~2s fragments (recommended)
-            "-b:v 4500k",
-        ])
-        .format("mp4")
-
-    // Get a readable stream
-    // const stream = command.pipe()
-
-    const nodeStream = command.pipe()
-    const webStream = nodeStreamToWeb(nodeStream)
-    // return Response.json(media)
-    // Return the stream to the client
-    return new Response(webStream, {
+    const range = headers.get('range')
+    const fileSize = media.size
+    if (range) {
+        const rangeInfo = parseRange(range, fileSize)
+        if (!rangeInfo) return new Response("Invalid range header", { status: 416 })
+        
+        // For direct file serving with range support
+        const stream = createReadStream(path, {
+            start: rangeInfo.start,
+            end: rangeInfo.end
+        })
+        
+        const webStream = nodeStreamToWeb(stream)
+        
+        return new Response(webStream, {
+            status: 206,
+            headers: {
+                "Content-Type": "video/mp4",
+                "Content-Range": `bytes ${rangeInfo.start}-${rangeInfo.end}/${fileSize}`,
+                "Content-Length": (rangeInfo.end - rangeInfo.start + 1).toString(),
+                "Accept-Ranges": "bytes",
+                "Access-Control-Allow-Origin": "*",
+                "Cache-Control": "public, max-age=31536000"
+            },
+        })
+    }
+    
+    // Full file response
+    const stream = createReadStream(path)
+    
+    return new Response(nodeStreamToWeb(stream), {
         headers: {
             "Content-Type": "video/mp4",
-            "Access-Control-Allow-Origin": "*",
-            // "Content-Length": media.size.toString()
-
-        },
+            "Content-Length": fileSize.toString(),
+            "Accept-Ranges": "bytes",
+            "Access-Control-Allow-Origin": "*"
+        }
     })
 }
