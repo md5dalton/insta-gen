@@ -1,29 +1,17 @@
-import prisma from "@/utils/prisma"
+import prisma from "@/lib/prisma"
 
-export const getUser = async user => await prisma.user.findUnique({
+export const getUser = async (id: string) => await prisma.user.findUnique({
     where: {
-        id: user
+        id
     },
     select: {
         id: true,
         name: true,
-        picture: true,
-        
-        owner: {
-            select: {
-                id: true,
-                name: true
-            }
-        },
-        posts: {
-            select: {
-                id: true
-            }
-        }
+        picture: true
     }
 })
 
-export const getPosts = async (user, page) => await prisma.post.findMany({
+export const getPosts = async (user: string, page: number) => await prisma.post.findMany({
     where: {
         ownerId: user
     },
