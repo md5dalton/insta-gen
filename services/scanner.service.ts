@@ -193,6 +193,7 @@ class DebouncedMediaProcessor {
                 }
                 
                 await this.processTagsForDirectory(directory, userRecord, tags)
+                await this.setUserPicture(userRecord.id)
             }
         } catch (error) {
             console.error(`Error processing directory ${directory}:`, error)
@@ -255,11 +256,27 @@ class DebouncedMediaProcessor {
         })
     }
     
-    private async assignUserPicture (mediaId: string, userId: string, type: PictureType = PictureType.Media) {
-        return await this.prisma.user.update({
-            where: { id: userId},
-            data: { picture: `${type}:${mediaId}` }
-        })
+    private async setUserPicture (id: string) {
+
+        const user = await this.prisma.user.findUnique({where: { id }})
+
+        if (user && !user.picture) {
+            
+            const media = await this.prisma.media.findFirst({
+                where: {
+                    ownerId: user.id
+                }
+            })
+
+            if (media) await this.prisma.user.update({
+                where: { id },
+                data: {
+                    picture: `${media.type === MediaType.VIDEO ? PictureType.Thumb : PictureType.Media}:${media.id}`
+                }
+            })
+
+        }
+
     }
 
     private async handleFileAddOrChange(filePath: string, user: User, tags: string[]): Promise<void> {
