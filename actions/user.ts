@@ -1,14 +1,23 @@
 import prisma from "@/lib/prisma"
 
 export const getUser = async (id: string) => await prisma.user.findUnique({
-    where: {
-        id
-    },
+    where: { id },
     select: {
         id: true,
         name: true,
-        picture: true
+        picture: true,
+        _count: {
+            select: {
+                media: true
+            }
+        }
     }
+})
+
+export const getUserStats = async (id: string) => await prisma.media.groupBy({
+    by: ["type"],
+    where: { ownerId: id },
+    _count: { _all: true }
 })
 
 export const getPosts = async (user: string, page: number) => await prisma.post.findMany({
