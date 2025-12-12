@@ -1,24 +1,20 @@
-import { getUser } from "@/actions/user"
+import { getUser, getUserStats } from "@/actions/user"
 
-export async function GET(req, props) {
-    const params = await props.params;
+export const GET = async (req, { params }) => {
 
-    const {
-        id
-    } = params;
+    const { id } = await params
 
-    const DBuser = await getUser(id)
+    const user = await getUser(id)
+    // const stats = await getUserStats(id)
 
-    if (!DBuser) return new Response("User not found", { status: 404 })
-
-    const { posts, ...user } = DBuser
-
-    console.log(DBuser)
+    if (!user) return new Response("User not found", { status: 404 })
 
     return Response.json({
-        ...user,
+        id: user.id,
+        name: user.name,
+        picture: user.picture,
         stats: {
-            posts: posts.length,
+            posts: user._count.media,
             followers: "347k",
             following: 143
         }
