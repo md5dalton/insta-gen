@@ -37,6 +37,7 @@ export const GET = async (req, { params }) => {
     return Response.json({
         page,
         hasMore: posts.length < count ? false : true,
+        endReached: posts.length < count,
         media: res,
     })
 
