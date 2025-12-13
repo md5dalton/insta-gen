@@ -1,31 +1,23 @@
 import { getPosts } from "@/actions/user"
 
-export async function GET(req, props) {
-    const params = await props.params;
+export const GET = async (req, { params }) => {
 
-    const {
+    const { 
         page,
         id
-    } = params;
+    } = await params
 
-    const DBposts = await getPosts(id, page)
-
-    const posts = DBposts.map(({ media, ownerId, ...post }) => {
-
-        const videos = media.filter(({ type }) => type == "VIDEO")
-
-        return ({
-            ...post,
-            user: ownerId,
-            hasMany: media.length > 1,
-            hasReel: videos.length ? true : false
-        })
-
-    })
+    const count = 10
+    
+    const posts = await getPosts(id, count, page == 0 ? 0 : count * page)
 
     return Response.json({
-        media: posts,
         page,
-        end: DBposts.length < 11
+        hasMore: posts.length < count ? false : true,
+        endReached: posts.length < count,
+        media: posts.map(({ id }) => ({
+            id,
+            uid: `${page}:${id}` ,
+        }))
     })
 }
