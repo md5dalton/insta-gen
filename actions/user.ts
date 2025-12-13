@@ -1,4 +1,9 @@
 import prisma from "@/lib/prisma"
+import { MediaType } from "@/types/type"
+
+type Post = {
+    id: string
+}
 
 export const getUser = async (id: string) => await prisma.user.findUnique({
     where: { id },
@@ -20,24 +25,19 @@ export const getUserStats = async (id: string) => await prisma.media.groupBy({
     _count: { _all: true }
 })
 
-export const getPosts = async (user: string, page: number) => await prisma.post.findMany({
+
+export const getPosts = async (id: string, count: number, skip: number): Promise<Post[]> => await prisma.media.findMany({
     where: {
-        ownerId: user
+        ownerId: id,
+        type: MediaType.IMAGE
     },
-    skip: page * 10,
-    take: 10,
+    skip,
+    take: count,
     orderBy: {
-        path: "desc"
+        createdAt: "asc",
     },
     select: {
         id: true,
-        thumb: true,
-        ownerId: true,
-        media: {
-            select: {
-                type: true
-            }
-        }
     }
 })
 
