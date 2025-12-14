@@ -26,10 +26,10 @@ export const getUserStats = async (id: string) => await prisma.media.groupBy({
 })
 
 
-export const getPosts = async (id: string, count: number, skip: number): Promise<Post[]> => await prisma.media.findMany({
+export const getPosts = async (id: string, type: MediaType, count: number, skip: number): Promise<Post[]> => await prisma.media.findMany({
     where: {
         ownerId: id,
-        type: MediaType.IMAGE
+        type
     },
     skip,
     take: count,
@@ -38,17 +38,5 @@ export const getPosts = async (id: string, count: number, skip: number): Promise
     },
     select: {
         id: true,
-    }
-})
-
-export const getReels = async (user, page) => await prisma.media.findMany({
-    where: {
-        ownerId: user,
-        type: "VIDEO"
-    },
-    skip: page * 10,
-    take: 10,
-    orderBy: {
-        path: "desc"
     }
 })
