@@ -29,7 +29,7 @@ enum PictureType {
     Thumb = "t"
 }
 
-class DebouncedMediaProcessor {
+export default class DebouncedMediaProcessor {
     private path: string
     private prisma: PrismaClient
     private isProcessing: boolean
@@ -399,5 +399,3 @@ class DebouncedMediaProcessor {
         await this.prisma.$disconnect()
     }
 }
-
-export const mediaProcessorInstance = new DebouncedMediaProcessor(getMediaRoot())
