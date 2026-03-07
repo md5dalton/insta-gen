@@ -34,8 +34,7 @@ export const GET = async (req: NextRequest, { params }: Params) => {
 
         reels = await getRandomReels(count)
 
-        if (page === 0) reels.splice(0, 1, reel)
-            console.log(reels.length, reels[0].id)
+        if (page == 0) reels.splice(0, 1, reel)
 
     }
      
