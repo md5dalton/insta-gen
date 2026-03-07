@@ -36,5 +36,6 @@ yarn-error.log*
 next-env.d.ts
 
 /prisma/migrations
+/prisma/generated
+
 /public/images/thumbs
-/lib/generated/prisma

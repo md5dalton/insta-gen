@@ -1,10 +1,10 @@
+import { PrismaClient } from "@/prisma/generated/client"
 import { PrismaPg } from "@prisma/adapter-pg"
-import { PrismaClient } from "@prisma/client"
 import prismaRandom from "prisma-extension-random"
 
-const connectionString = `${process.env.DATABASE_URL}`
+const globalThis = global as unknown as { prisma: PrismaClient }
 
-const adapter = new PrismaPg({ connectionString })
+const adapter = new PrismaPg({ connectionString: `${process.env.DATABASE_URL}` })
 const prisma = globalThis.prisma || new PrismaClient({ adapter }).$extends(prismaRandom())
 
 if (process.env.NODE_ENV !== "production") globalThis.prisma = prisma
