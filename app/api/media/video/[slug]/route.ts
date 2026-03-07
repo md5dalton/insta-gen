@@ -1,7 +1,8 @@
 import { getMedia } from "@/actions/media"
 import { createReadStream, existsSync } from "node:fs"
-import { getMediaRoot } from "@/config/media"
+import { DIR_MEDIA, getMediaRoot } from "@/config/media"
 import { Readable } from "stream"
+import path from "path"
 
 export const runtime = "nodejs"
 
@@ -38,11 +39,9 @@ export async function GET({ headers }, { params }) {
 
     if (!media) return new Response("Media not found", { status: 404 })
     
-    const path =  getMediaRoot(media.path)
-
-    // const mediaPath = getRealpath(media.path)
-
-    if (!existsSync(path)) return new Response("File not found", { status: 404 })
+    const mediaPath = path.join(DIR_MEDIA, media.path)
+        
+    if (!existsSync(mediaPath)) return new Response("File not found", { status: 404 })
 
     const range = headers.get('range')
     const fileSize = media.size
@@ -51,7 +50,7 @@ export async function GET({ headers }, { params }) {
         if (!rangeInfo) return new Response("Invalid range header", { status: 416 })
         
         // For direct file serving with range support
-        const stream = createReadStream(path, {
+        const stream = createReadStream(mediaPath, {
             start: rangeInfo.start,
             end: rangeInfo.end
         })
@@ -72,7 +71,7 @@ export async function GET({ headers }, { params }) {
     }
     
     // Full file response
-    const stream = createReadStream(path)
+    const stream = createReadStream(mediaPath)
     
     return new Response(nodeStreamToWeb(stream), {
         headers: {
