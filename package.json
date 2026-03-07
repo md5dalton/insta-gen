@@ -6,16 +6,20 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "worker": "node workers/media.worker.ts"
   },
   "dependencies": {
     "@dropb/ffprobe": "^3.0.1",
     "@prisma/adapter-pg": "^6.17.1",
     "@prisma/client": "^7.4.2",
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.70.4",
     "chokidar": "^4.0.3",
+    "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.21",
+    "lodash.debounce": "^4.0.8",
     "next": "16.1.6",
     "prisma-extension-random": "^0.2.2",
     "range-parser": "^1.2.1",

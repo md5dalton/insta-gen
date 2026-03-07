@@ -1,7 +1,9 @@
 import { DebouncedMediaProcessor } from "@/services/scanner.service"
+import { FSWatcher } from "chokidar"
 
 declare global {
     var mediaProcessor: DebouncedMediaProcessor | null
+    var fileWatcher: FSWatcher | null
 
     var syncState: {
         isInitialized: boolean
