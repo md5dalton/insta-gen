@@ -23,7 +23,7 @@ export const MEDIA_CONFIG: MediaConfig = {
 }
 
 export const DIR_THUMB = path.join(process.cwd(), "public", "images", "thumbs")
-export const DIR_MEDIA = "C:\\Users\\mplus\\Downloads\\img"
+export const DIR_MEDIA = process.env.MEDIA_ROOT_PATH
 
 mkdirSync(DIR_THUMB, { recursive: true })
 
