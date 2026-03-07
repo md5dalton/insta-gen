@@ -6,9 +6,8 @@ export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     if (
-        pathname.startsWith("/api/reel") ||
         pathname.startsWith("/api/auth") ||
-        pathname.startsWith("/api/sync") ||
+        // pathname.startsWith("/api/sync") ||
         pathname.startsWith("/api/media")
     ) return NextResponse.next()
 
