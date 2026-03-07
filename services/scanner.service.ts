@@ -1,5 +1,5 @@
-import { getMediaRoot, MEDIA_CONFIG } from "@/config/media"
-import { basename, dirname, extname, sep } from "path"
+import { DIR_THUMB, getMediaRoot, MEDIA_CONFIG } from "@/config/media"
+import { basename, dirname, extname, sep, join } from "path"
 import { PrismaClient, User } from "@prisma/client"
 import chokidar, { FSWatcher } from "chokidar"
 import { existsSync, mkdirSync } from "fs"
@@ -296,7 +296,11 @@ export default class DebouncedMediaProcessor {
                 if (metadata) await video.extractThumbnail(id)
     
             } else {
-                metadata = await sharp(filePath).metadata()
+                const image = sharp(filePath)
+
+                image.resize(320)
+                    .toFile(join(DIR_THUMB, `${id}.jpg`))
+                metadata = await image.metadata()
             } 
     
             if (metadata) {
