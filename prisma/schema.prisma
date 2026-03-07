@@ -79,3 +79,12 @@ model MediaTag {
     tag         Tag @relation(fields: [tagId], references: [id])
     media       Media @relation(fields: [mediaId], references: [id])
 }
+
+
+model ProfileUser {
+    id        String   @id @default(uuid())
+    email     String   @unique
+    password  String
+    name      String
+    createdAt DateTime @default(now())
+}

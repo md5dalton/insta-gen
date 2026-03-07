@@ -1,4 +1,4 @@
-import { homedir } from "os"
+import { mkdirSync } from "fs"
 import path from "path"
 
 export interface MediaConfig {
@@ -11,8 +11,13 @@ export interface MediaConfig {
     IGNORED_PATTERNS: RegExp[]
 }
 
+export const DIR_THUMB = path.join(process.cwd(), "public", "images", "thumbs")
+export const DIR_MEDIA = process.env.MEDIA_ROOT_PATH!
+
+mkdirSync(DIR_THUMB, { recursive: true })
+
 export const MEDIA_CONFIG: MediaConfig = {
-    ROOT_PATH: process.env.MEDIA_ROOT_PATH || "./media",
+    ROOT_PATH: DIR_MEDIA,
     CHUNK_SIZE: 10,
     DEBOUNCE_MS: 1000,
     BATCH_SIZE: 50,
@@ -20,11 +25,3 @@ export const MEDIA_CONFIG: MediaConfig = {
     IMAGE_EXTENSIONS: [".jpg", ".jpeg", ".png"],
     IGNORED_PATTERNS: [/node_modules/, /\.git/, /Thumbs\.db/, /\.DS_Store/]
 }
-
-
-export const getMediaRoot = (append: string = "") => process.env.MEDIA_ROOT ?
-    path.join(homedir(), process.env.MEDIA_ROOT, append) :
-    path.join(process.cwd(), "media", append)
-
-export const getThumbRoot = (thumb: string = "") => path.join(process.cwd(), "public", "images", "thumbs", thumb ? `${thumb}.jpg` : "")
-    
