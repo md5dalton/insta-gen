@@ -8,3 +8,11 @@ export interface VideoMetadata {
     duration: string
     bitrate: string
 }
+
+export type ParamsPage = {
+    params: Promise<{ page: number }>
+}
+
+export type ParamsSlug = {
+    params: Promise<{ slug: string }>
+}

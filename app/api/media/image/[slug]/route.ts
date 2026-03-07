@@ -1,5 +1,5 @@
 import { getMedia } from "@/actions/media"
-import { DIR_MEDIA, DIR_THUMB, getMediaRoot } from "@/config/media"
+import { DIR_MEDIA } from "@/config/media"
 import fs from "fs"
 import { NextRequest } from "next/server"
 import path from "path"

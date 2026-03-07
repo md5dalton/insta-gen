@@ -1,12 +1,12 @@
-import { DIR_MEDIA } from "./config/media"
 import DebouncedMediaProcessor from "./services/scanner.service"
+export const runtime = "nodejs"
 
 export async function register(): Promise<void> {
 
     if (process.env.NEXT_RUNTIME === "nodejs") {
         console.log("🚀 Initializing media processor via instrumentation...")
 
-        global.mediaProcessor = new DebouncedMediaProcessor(DIR_MEDIA)
+        global.mediaProcessor = new DebouncedMediaProcessor()
 
         try {
             

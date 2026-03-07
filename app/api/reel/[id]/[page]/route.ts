@@ -1,42 +1,45 @@
-import { getPosts } from "@/actions/feed"
-import { getReel, getRelatedReels, getUserReels, Reel } from "@/actions/reel"
+import { getRandomReels, getReel, getUserReels } from "@/actions/reel"
 import { NextRequest } from "next/server"
 
-export const GET = async (req: NextRequest, { params }) => {
+type Params = {
+    params: Promise<{ id: string, page: number }>
+}
+
+export const GET = async (req: NextRequest, { params }: Params) => {
 
     const { 
         page,
         id
     } = await params
 
-    // let media: Reel[] = []
-
     const count = 10
 
-    // const searchParams = req.nextUrl.searchParams
+    const reel = await getReel(id)
 
-    // const user = searchParams.get("u")
+    if (!reel) return new Response("Reel not found", { status: 404 })
+
+    const searchParams = req.nextUrl.searchParams
+
+    const user = searchParams.get("u")
     
-    // if (user) {
+    let reels = []
+
+    if (user) {
         
-    //     const skip = page == 0 ? 0 : count * page
+        const skip = count * page
 
-    //     media = await getUserReels(user, id, skip, count)
+        reels = await getUserReels(reel.owner.id, reel.id, skip, count)
+        
+    } else {
 
-    // }
-     
-     
-         
-    const reel = page == 0 ? await getReel(id) : null
-    const reels = await getRelatedReels(id, count)
+        reels = await getRandomReels(count)
 
-    if (reel) {
-        reels.pop()
-        reels.unshift(reel)
+        if (page === 0) reels.splice(0, 1, reel)
+            console.log(reels.length, reels[0].id)
+
     }
-
+     
     const media = reels.map((reel) => ({...reel, uid: `${page}/${reel.id}`}))
-
 
     return Response.json(media)
 

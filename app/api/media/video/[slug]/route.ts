@@ -1,8 +1,10 @@
 import { getMedia } from "@/actions/media"
 import { createReadStream, existsSync } from "node:fs"
-import { DIR_MEDIA, getMediaRoot } from "@/config/media"
+import { DIR_MEDIA } from "@/config/media"
 import { Readable } from "stream"
 import path from "path"
+import { NextRequest } from "next/server"
+import { ParamsSlug } from "@/types/type"
 
 export const runtime = "nodejs"
 
@@ -31,7 +33,7 @@ function parseRange(range: string | null, fileSize: number) {
     return { start, end }
 }
 
-export async function GET({ headers }, { params }) {
+export async function GET({ headers }: NextRequest, { params }: ParamsSlug) {
     
     const { slug } = await params
 

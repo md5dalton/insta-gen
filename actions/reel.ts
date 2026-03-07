@@ -1,14 +1,10 @@
 import prisma from "@/lib/prisma"
 import { MediaType } from "@/types/type"
+import { Media, User } from "@/prisma/generated/client"
 
-export type Reel = {
-    id: string
-    isVideo: boolean
-    owner: {
-        id: string
-        name: string
-        picture: string | null
-    }
+type Owner = Pick<User, "id" | "name" | "picture">
+type Reel = Pick<Media, "id"> & {
+    owner: Owner
 }
 
 const fromReel = (options: any) => ({
@@ -46,12 +42,21 @@ export const getUserReels = async (user: string, cursor: string, skip: number, c
     })
 })
 
+export const getRandomReels = async (limit: number = 10): Promise<Reel[]> => await prisma.$queryRaw`
+    SELECT 
+        m.id,
+        json_build_object(
+            'id', u.id,
+            'name', u.name,
+            'picture', u.picture
+        ) as owner
+    FROM "Media" m
+    JOIN "User" u ON u.id = m."ownerId"
+    WHERE m.type = ${MediaType.VIDEO}::"MediaType"
+    ORDER BY RANDOM()
+    LIMIT ${limit}
+`
+
 export const getReels = async (user: string): Promise<Reel[]> => await prisma.media.findMany(fromReel({
     ownerId: user,
-}))
-
-export const getRelatedReels = async (reel: string, count: number): Promise<Reel[]> => await prisma.media.findManyRandom(count, fromReel({
-    id: {
-        not: reel
-    }
 }))

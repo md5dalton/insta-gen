@@ -1,17 +1,15 @@
-import { DIR_THUMB, getThumbRoot } from "@/config/media"
+import { DIR_THUMB } from "@/config/media"
+import { ParamsSlug } from "@/types/type"
 import { existsSync, readFileSync } from "fs"
 import { NextRequest } from "next/server"
 import path from "path"
 
-interface Params {
-    slug: string
-}
-
 export async function GET(
     req: NextRequest,
-    props: { params: Promise<Params> }
+    { params }: ParamsSlug
 ): Promise<Response> {
-    const { slug } = await props.params
+
+    const { slug } = await params
 
     const imagePath = path.join(DIR_THUMB, `${slug}.jpg`)
     

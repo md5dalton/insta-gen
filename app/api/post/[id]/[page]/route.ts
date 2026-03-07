@@ -10,7 +10,6 @@ export const GET = async (req, { params }) => {
 
     const count = 10
     
-
     const post = await getPost(id)
 
     if (!post) return new Response("Post not found", { status: 404 })

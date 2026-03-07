@@ -1,11 +1,8 @@
 import prisma from "@/lib/prisma"
+import { Media } from "@/prisma/generated/client"
 import { MediaType } from "@/types/type"
 
-type Media = {
-    path: string
-    bitrate: string
-    size: number
-}
+type MediaProps = Pick<Media, "path" | "size" | "bitrate">
 
 export type MediaResponse = {
     id: string
@@ -19,7 +16,7 @@ export type MediaResponse = {
     height: number
     duration: string | null
 }
-export const getMedia = async (slug: string): Promise<Media | null> => await prisma.media.findUnique({
+export const getMedia = async (slug: string): Promise<MediaProps | null> => await prisma.media.findUnique({
     where: { id: slug },
     select: {
         path: true,
@@ -28,22 +25,20 @@ export const getMedia = async (slug: string): Promise<Media | null> => await pri
     }
 })
 
-export const getRandom = async (): Promise<MediaResponse[]> => await prisma.media.findManyRandom(10, {
-    // where: {
-    //     type: MediaType.IMAGE
-    // },
-    select: {
-        id: true,
-        type: true,
-        owner: {
-            select: {
-                id: true,
-                name: true,
-                picture: true
-            }
-        },
-        height: true,
-        width: true,
-        duration: true,
-    }
-})
+export const getRandom = async (limit: number = 10): Promise<MediaResponse[]> => await prisma.$queryRaw`
+    SELECT 
+        m.id,
+        m.type,
+        m.height,
+        m.width,
+        m.duration,
+        json_build_object(
+            'id', u.id,
+            'name', u.name,
+            'picture', u.picture
+        ) as owner
+    FROM "Media" m
+    JOIN "User" u ON u.id = m."ownerId"
+    ORDER BY RANDOM()
+    LIMIT ${limit}
+`

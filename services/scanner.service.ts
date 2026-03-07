@@ -1,8 +1,6 @@
-import { DIR_THUMB, getMediaRoot, MEDIA_CONFIG } from "@/config/media"
+import { DIR_THUMB, MEDIA_CONFIG } from "@/config/media"
 import { basename, dirname, extname, sep, join } from "path"
-import { PrismaClient, User } from "@prisma/client"
 import chokidar, { FSWatcher } from "chokidar"
-import { existsSync, mkdirSync } from "fs"
 import { MediaType } from "@/types/type"
 import { Video } from "./video.service"
 import { stat } from "fs/promises"
@@ -10,6 +8,7 @@ import { throttle } from "lodash"
 import prisma from "@/lib/prisma"
 import crypto from "crypto"
 import sharp from "sharp"
+import { PrismaClient, User } from "@/prisma/generated/client"
 
 interface FileUpdate {
     event: "add" | "change" | "delete" | "addDir" | "deleteDir"
@@ -30,7 +29,7 @@ enum PictureType {
 }
 
 export default class DebouncedMediaProcessor {
-    private path: string
+    private root: string
     private prisma: PrismaClient
     private isProcessing: boolean
     private watcher: FSWatcher | null
@@ -38,15 +37,13 @@ export default class DebouncedMediaProcessor {
     private pendingUpdates: Map<string, FileUpdate>
     
     
-    constructor(path: string) {
-        this.path = path
+    constructor() {
+        this.root = MEDIA_CONFIG.ROOT_PATH
         this.prisma = prisma
         this.isProcessing = false
         this.watcher = null
         this.pendingUpdates = new Map()
         
-        if (!existsSync(path)) mkdirSync(path, { recursive: true })
-
         this.processThrottled = throttle(() => this.processPending(), MEDIA_CONFIG.DEBOUNCE_MS, {
             leading: false,
             trailing: true
@@ -76,7 +73,7 @@ export default class DebouncedMediaProcessor {
             ...MEDIA_CONFIG.VIDEO_EXTENSIONS
         ])
         
-        this.watcher = chokidar.watch(`${this.path}`, {
+        this.watcher = chokidar.watch(`${this.root}`, {
             ignored: (file: string) => {
                 const ext = extname(file).toLowerCase()
                 return Boolean(ext && !extensions.has(ext))
@@ -170,7 +167,7 @@ export default class DebouncedMediaProcessor {
         // console.log(`📁 Processing directory: ${directory}`)
         
         try {
-            const relativePath = directory.replace(this.path, "")
+            const relativePath = directory.replace(this.root, "")
             const pathParts = relativePath.split(sep).filter(Boolean)
             
             if (pathParts.length >= 3) {
@@ -280,7 +277,7 @@ export default class DebouncedMediaProcessor {
     }
 
     private async handleFileAddOrChange(filePath: string, user: User, tags: string[]): Promise<void> {
-        const relativePath = filePath.replace(this.path, "")
+        const relativePath = filePath.replace(this.root, "")
         const id = this.generateId(filePath)
         const type = this.getType(filePath)
         

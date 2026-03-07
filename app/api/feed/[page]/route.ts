@@ -1,5 +1,5 @@
 import { getRandom, MediaResponse } from "@/actions/media"
-import { MediaType } from "@/types/type"
+import { MediaType, ParamsPage } from "@/types/type"
 import { NextRequest } from "next/server"
 export const runtime = "nodejs"
 
@@ -24,7 +24,7 @@ type Post = {
     aspect: number
     media: Media[]
 }
-export const GET = async (req: NextRequest, { params }) => {
+export const GET = async (req: NextRequest, { params }: ParamsPage) => {
 
     const { page } = await params
 
