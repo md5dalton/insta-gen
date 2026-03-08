@@ -1,20 +1,21 @@
-import { Worker } from "bullmq"
-import IORedis from "ioredis"
+import DebouncedMediaProcessor from "../services/scanner.service"
 
-const connection = new IORedis({
-    maxRetriesPerRequest: 2
-})
+export let mediaProcessor: DebouncedMediaProcessor | null = null
 
-new Worker(
-    "media-processing",
-    async (job) => {
+export async function startMediaProcessor() {
+    if (mediaProcessor) return
 
-        const { fileId, path } = job.data
+    mediaProcessor = new DebouncedMediaProcessor()
+    await mediaProcessor.initialize()
 
-        console.log("Processing media:", fileId)
+    console.log("✅ Media processor started")
+}
 
-        // await processMedia(path)
+export async function stopMediaProcessor() {
+    if (!mediaProcessor) return
 
-    },
-    { connection: connection as any }
-)
+    await mediaProcessor.dispose()
+    mediaProcessor = null
+
+    console.log("🛑 Media processor stopped")
+}

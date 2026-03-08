@@ -36,7 +36,8 @@
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx",
-    "instrumentation.ts"
+    "instrumentation1.ts",
+    "server.ts"
   ],
   "exclude": [
     "node_modules"
