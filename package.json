@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "node --loader ts-node/esm server.ts",
+    "dev": "next dev",
+    "dev2": "node --loader ts-node/esm server.ts",
     "build": "next build",
     "start": "next start",
     "worker": "node workers/media.worker.ts"
