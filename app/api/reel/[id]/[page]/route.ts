@@ -23,12 +23,15 @@ export const GET = async (req: NextRequest, { params }: Params) => {
     const user = searchParams.get("u")
     
     let reels = []
+    let hasMore = true
 
     if (user) {
         
         const skip = count * page
 
         reels = await getUserReels(reel.owner.id, reel.id, skip, count)
+
+        hasMore = reels.length < count ? false : true
         
     } else {
 
@@ -37,9 +40,11 @@ export const GET = async (req: NextRequest, { params }: Params) => {
         if (page == 0) reels.splice(0, 1, reel)
 
     }
-     
-    const media = reels.map((reel) => ({...reel, uid: `${page}/${reel.id}`}))
-
-    return Response.json(media)
+    
+    return Response.json({
+        page,
+        hasMore,
+        media: reels.map((reel) => ({...reel, uid: `${page}/${reel.id}`}))
+    })
 
 }
