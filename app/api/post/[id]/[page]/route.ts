@@ -1,7 +1,8 @@
 import { getPost, getUserPosts, Post } from "@/actions/post"
-import { MediaType } from "@/types/type"
+import { MediaType, ParamsIdPage } from "@/types/type"
+import { NextRequest } from "next/server"
 
-export const GET = async (req, { params }) => {
+export const GET = async (req: NextRequest, { params }: ParamsIdPage) => {
 
     const { 
         page,
@@ -16,27 +17,15 @@ export const GET = async (req, { params }) => {
     
     const posts = await getUserPosts(post.owner.id, id, count, page == 0 ? 0 : count * page)
 
-    const res = posts.map(({ id, type, owner, height, width }: Post) => ({
-        id,
-        owner,
-        uid: `${page}:${id}`,
-        aspect: height/width,
-        media: [
-            {
-                id,
-                isVideo: type === MediaType.VIDEO ? true : false,
-                metadata: {
-                    height,
-                    width
-                }
-            }
-        ]
+    const res = posts.map(({ type, ...rest }: Post) => ({
+        ...rest,
+        uid: `${page}:${rest.id}`,
+        mediaType: type
     }))
-
+        
     return Response.json({
         page,
         hasMore: posts.length < count ? false : true,
-        endReached: posts.length < count,
         media: res,
     })
 
