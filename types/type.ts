@@ -16,3 +16,6 @@ export type ParamsPage = {
 export type ParamsSlug = {
     params: Promise<{ slug: string }>
 }
+export interface ParamsIdPage {
+    params: Promise<{ id: string, page: number }>
+}
