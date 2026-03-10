@@ -2,7 +2,11 @@ import { getPosts } from "@/actions/user"
 import { MediaType } from "@/types/type"
 import { NextRequest } from "next/server"
 
-export const GET = async (req: NextRequest, { params }) => {
+type Params = {
+    params: Promise<{ id: string, page: number }>
+}
+
+export const GET = async (req: NextRequest, { params }: Params) => {
 
     const { 
         page,
@@ -13,20 +17,18 @@ export const GET = async (req: NextRequest, { params }) => {
 
     const mediaType = searchParams.get("t")
 
-    if (!mediaType || !["reel", "post"].includes(mediaType)) {
+    if (!mediaType || ![MediaType.IMAGE, MediaType.VIDEO].includes(mediaType as MediaType)) {
         return new Response("Invalid parameters", { status: 400 })
     }
 
     const count = 10
-    const type = mediaType === "reel" ? MediaType.VIDEO : MediaType.IMAGE
     const skip = page == 0 ? 0 : count * page
     
-    const posts = await getPosts(id, type, count, skip)
+    const posts = await getPosts(id, mediaType as MediaType, count, skip)
 
     return Response.json({
         page,
         hasMore: posts.length < count ? false : true,
-        endReached: posts.length < count,
         media: posts.map(({ id }) => ({
             id,
             uid: `${page}:${id}` ,
