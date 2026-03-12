@@ -54,7 +54,7 @@ model Media {
 
     height      Int
     width       Int
-    size        Int
+    size        BigInt
     duration    String?
     bitrate     String?
     mktime      String
