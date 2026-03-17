@@ -46,7 +46,8 @@ export async function GET({ headers }: NextRequest, { params }: ParamsSlug) {
     if (!existsSync(mediaPath)) return new Response("File not found", { status: 404 })
 
     const range = headers.get('range')
-    const fileSize = media.size
+    const fileSize = Number(media.size)
+    
     if (range) {
         const rangeInfo = parseRange(range, fileSize)
         if (!rangeInfo) return new Response("Invalid range header", { status: 416 })
