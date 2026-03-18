@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma"
-import { MediaType } from "@/types/type"
+import { MediaType } from "@/prisma/generated/enums"
 
 export type Post = {
     id: string

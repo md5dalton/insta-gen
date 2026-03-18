@@ -5,9 +5,11 @@ import { NextRequest } from "next/server"
 export const GET = async (req: NextRequest, { params }: ParamsIdPage) => {
 
     const { 
-        page,
+        page: PageString,
         id
     } = await params
+
+    const page = Number(PageString)
 
     const count = 10
     

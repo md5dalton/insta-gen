@@ -10,7 +10,7 @@ declare interface VideoMetadata {
 }
 
 declare interface ParamsPage {
-    params: Promise<{ page: number }>
+    params: Promise<{ page: string }>
 }
 
 declare interface ParamsSlug {
@@ -18,6 +18,9 @@ declare interface ParamsSlug {
 }
 
 export declare interface ParamsIdPage {
-    params: Promise<{ id: string, page: number }>
+    params: Promise<{ id: string, page: string }>
+}
+export declare interface ParamsId {
+    params: Promise<{ id: string }>
 }
 

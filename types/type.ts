@@ -10,12 +10,15 @@ export interface VideoMetadata {
 }
 
 export type ParamsPage = {
-    params: Promise<{ page: number }>
+    params: Promise<{ page: string }>
 }
 
 export type ParamsSlug = {
     params: Promise<{ slug: string }>
 }
 export interface ParamsIdPage {
-    params: Promise<{ id: string, page: number }>
+    params: Promise<{ id: string, page: string }>
+}
+export interface ParamsId {
+    params: Promise<{ id: string }>
 }
