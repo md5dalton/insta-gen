@@ -12,6 +12,8 @@ declare global {
         stats: {
             processed: number
             errors: number
+            queued: number
+
         }
     }
 }

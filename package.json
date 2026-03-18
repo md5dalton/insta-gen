@@ -8,7 +8,11 @@
     "dev2": "node --loader ts-node/esm server.ts",
     "build": "next build",
     "start": "next start",
-    "worker": "node workers/media.worker.ts"
+
+    "watcher": "tsx -r dotenv/config services/runWatcher.ts",
+    "worker": "tsx -r dotenv/config services/runWorker.ts",
+
+    "dev:all": "concurrently \"npm run watcher\" \"npm run worker\" \"npm run dev\""
   },
   "dependencies": {
     "@dropb/ffprobe": "^3.0.1",
@@ -17,6 +21,7 @@
     "bcrypt": "^6.0.0",
     "bullmq": "^5.70.4",
     "chokidar": "^4.0.3",
+    "concurrently": "^9.2.1",
     "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.21",
@@ -25,7 +30,8 @@
     "prisma-extension-random": "^0.2.2",
     "range-parser": "^1.2.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
