@@ -13,6 +13,7 @@ const MAX_VIDEO_CONCURRENCY = 2
 
 export class MediaService {
     private userCache = new Map<string, any>()
+    private tagCache = new Map<string, any>()
 
     constructor(private prisma: PrismaClient) {}
 
@@ -43,6 +44,7 @@ export class MediaService {
 
         const ext = extname(filePath).toLowerCase()
         const isVideo = VIDEO_EXTENSIONS.includes(ext)
+        const relativePath = filePath.replace(MEDIA_CONFIG.ROOT_PATH, "")
 
         try {
             let metadata: any
@@ -72,7 +74,7 @@ export class MediaService {
                 const media = await this.prisma.media.create({
                     data: {
                         id,
-                        path: filePath.replace(MEDIA_CONFIG.ROOT_PATH, ""),
+                        path: relativePath,
                         type: isVideo ? "VIDEO" : "IMAGE",
                         ownerId: userId,
                         height: metadata.height,
@@ -83,21 +85,23 @@ export class MediaService {
                     }
                 })
                 
-                if (media) this.setUserPicture(userId, media.id)
+                if (media) {
+                    this.setUserPicture(userId, media.id)
+                    await this.processTags(id, userId, tags)
+                }
 
-                console.log(`✅ Processed: ${basename(filePath)}`)
+                console.log(`✅ Processed: ${relativePath}`)
 
             } else {
-                console.log(`❌ Failed to process media: ${basename(filePath)}`)
+                console.log(`❌ Failed to process media: ${relativePath}`)
             }
 
 
         } catch (err) {
-            console.error(`❌ Failed: ${filePath}`, err)
+            console.error(`❌ Failed: ${relativePath}`, err)
             throw err
         }
 
-        await this.processTags(id, userId, tags)
     }
 
     async handleDelete(filePath: string) {
@@ -133,6 +137,27 @@ export class MediaService {
         }
     }
     private async processTags(mediaId: string, userId: string, tags: string[]) {
-        // simplified tagging
+        
+        for (let i = 0; i < tags.length; i++) {
+            const tagPath = join(userId, ...tags.slice(0, i + 1))
+            const tagName = tags[i]
+            const id = this.generateId(tagPath)
+
+            const tag = await this.prisma.tag.upsert({
+                where: { id },
+                update: { name: tagName },
+                create: { name: tagName, id }
+            })
+
+            const mt = await this.prisma.mediaTag.create({
+                data: {
+                    id: this.generateId(`media-${mediaId}-tag-${tag.id}`),
+                    mediaId,
+                    tagId: tag.id
+                }
+            })
+
+        }
     }
+
 }
