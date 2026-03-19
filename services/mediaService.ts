@@ -149,7 +149,7 @@ export class MediaService {
                 create: { name: tagName, id }
             })
 
-            const mt = await this.prisma.mediaTag.create({
+            await this.prisma.mediaTag.create({
                 data: {
                     id: this.generateId(`media-${mediaId}-tag-${tag.id}`),
                     mediaId,
