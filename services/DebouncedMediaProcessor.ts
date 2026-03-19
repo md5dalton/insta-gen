@@ -1,7 +1,7 @@
 import { MEDIA_CONFIG } from "@/config/media"
 import { dirname, extname, sep, join } from "path"
 import chokidar, { FSWatcher } from "chokidar"
-import { readdir } from "fs/promises"
+import { readdir, realpath, stat } from "fs/promises"
 import throttle from "lodash/throttle"
 // import { throttle } from "lodash"
 import prisma from "@/lib/prisma"
@@ -99,8 +99,15 @@ export default class DebouncedMediaProcessor {
             ...MEDIA_CONFIG.IMAGE_EXTENSIONS,
             ...MEDIA_CONFIG.VIDEO_EXTENSIONS
         ])
+        
+        const seen = new Set<string>()
 
         const walk = async (dir: string) => {
+
+            const real = await realpath(dir)
+            if (seen.has(real)) return
+            seen.add(real)
+
             const entries = await readdir(dir, { withFileTypes: true })
 
             for (const entry of entries) {
@@ -108,6 +115,23 @@ export default class DebouncedMediaProcessor {
 
                 if (entry.isDirectory()) {
                     await walk(fullPath)
+                } else if (entry.isSymbolicLink()) {
+                    try {
+                        const resolved = await stat(fullPath)
+
+                        if (resolved.isDirectory()) {
+                            await walk(fullPath)
+                        } else if (resolved.isFile()) {
+                            const ext = extname(entry.name).toLowerCase()
+                            if (extensions.has(ext)) {
+                                files.push(fullPath)
+                            }
+                        }
+                    } catch (err) {
+                        // broken symlink or permission issue
+                        console.warn("Skipping symlink:", fullPath)
+                    }
+
                 } else {
                     const ext = extname(entry.name).toLowerCase()
                     if (extensions.has(ext)) {
