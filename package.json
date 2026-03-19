@@ -11,7 +11,8 @@
     "watcher": "tsx -r dotenv/config services/runWatcher.ts",
     "worker": "tsx -r dotenv/config services/runWorker.ts",
 
-    "dev:all": "concurrently \"npm run watcher\" \"npm run worker\" \"npm run dev\""
+    "dev:all": "concurrently \"npm run watcher\" \"npm run worker\" \"npm run dev\"",
+    "start:all": "concurrently \"npm run watcher\" \"npm run worker\" \"npm run start\""
   },
   "dependencies": {
     "@dropb/ffprobe": "^3.0.1",
