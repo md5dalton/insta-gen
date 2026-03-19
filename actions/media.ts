@@ -25,20 +25,46 @@ export const getMedia = async (slug: string): Promise<MediaProps | null> => awai
     }
 })
 
-export const getRandom = async (limit: number = 10): Promise<MediaResponse[]> => await prisma.$queryRaw`
-    SELECT 
-        m.id,
-        m.type,
-        m.height,
-        m.width,
-        m.duration,
-        json_build_object(
-            'id', u.id,
-            'name', u.name,
-            'picture', u.picture
-        ) as owner
-    FROM "Media" m
-    JOIN "User" u ON u.id = m."ownerId"
-    ORDER BY RANDOM()
-    LIMIT ${limit}
-`
+export const getRandom = async (
+  limit: number = 10
+): Promise<MediaResponse[]> => {
+    
+    const count = await prisma.media.count()
+    const offset = Math.floor(Math.random() * count)
+    
+    return await prisma.$queryRaw`
+        SELECT 
+            m.id,
+            m.type,
+            m.height,
+            m.width,
+            m.duration,
+
+            json_build_object(
+                'id', u.id,
+                'name', u.name,
+                'picture', u.picture
+            ) as owner,
+
+            COALESCE(
+                json_agg(
+                    DISTINCT jsonb_build_object(
+                        'id', t.id,
+                        'name', t.name
+                    )
+                ) FILTER (WHERE t.id IS NOT NULL),
+                '[]'
+            ) as tags
+
+        FROM "Media" m
+        JOIN "User" u ON u.id = m."ownerId"
+
+        LEFT JOIN "MediaTag" mt ON mt."mediaId" = m.id
+        LEFT JOIN "Tag" t ON t.id = mt."tagId"
+
+        GROUP BY m.id, u.id
+
+        OFFSET ${offset}
+        LIMIT ${limit}
+    `
+}
