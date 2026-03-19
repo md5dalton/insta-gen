@@ -3,6 +3,7 @@ import { Media, Tag, User } from "@/prisma/generated/client"
 
 export type TagMedia = Pick<Media, "id" | "type" | "height" | "width"> & {
     owner:  Pick<User, "id" | "name" | "picture">
+    tags: {tag: Pick<Tag, "id" | "name">}[]
 }
 
 type PostMedia = Pick<Media, "id" | "mktime">
@@ -56,5 +57,15 @@ export const getTagPosts = async (
                 picture: true,
             },
         },
+        tags: {
+            select: {
+                tag: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+        }
     },
 })
