@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma"
 import { MediaType } from "@/types/type"
-import { Media, Prisma, User } from "@/prisma/generated/client"
+import { Prisma } from "@/prisma/generated/client"
 
 
 export type Reel = Prisma.MediaGetPayload<{
@@ -47,24 +47,6 @@ export const getUserReels = async (
     select: reelSelect,
 })
 
-
-const fromReel = (options: any) => ({
-    where: {
-        type: MediaType.VIDEO,
-        ...options
-    },
-    select: {
-        id: true,
-        owner: {
-            select: {
-                id: true,
-                name: true,
-                picture: true,
-            }
-        }
-    }
-})
-
 export const getRandom = async (
     limit: number = 10
 ): Promise<Reel[]> => {
@@ -89,7 +71,3 @@ export const getRandom = async (
         LIMIT ${limit}
     `
 }
-
-export const getReels = async (user: string): Promise<Reel[]> => await prisma.media.findMany(fromReel({
-    ownerId: user,
-}))
