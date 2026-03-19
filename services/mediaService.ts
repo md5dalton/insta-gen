@@ -12,6 +12,8 @@ let activeVideos = 0
 const MAX_VIDEO_CONCURRENCY = 2
 
 export class MediaService {
+    private userCache = new Map<string, any>()
+
     constructor(private prisma: PrismaClient) {}
 
     private generateId(path: string) {
@@ -67,10 +69,10 @@ export class MediaService {
             }
 
             if (metadata) {
-                await this.prisma.media.create({
+                const media = await this.prisma.media.create({
                     data: {
                         id,
-                        path: filePath,
+                        path: filePath.replace(MEDIA_CONFIG.ROOT_PATH, ""),
                         type: isVideo ? "VIDEO" : "IMAGE",
                         ownerId: userId,
                         height: metadata.height,
@@ -80,7 +82,9 @@ export class MediaService {
                         mktime: String(stats.birthtimeMs)
                     }
                 })
-    
+                
+                if (media) this.setUserPicture(userId, media.id)
+
                 console.log(`✅ Processed: ${basename(filePath)}`)
 
             } else {
@@ -106,6 +110,28 @@ export class MediaService {
         console.log(`🗑️ Deleted: ${basename(filePath)}`)
     }
 
+    private async setUserPicture(userId: string, mediaId: string) {
+
+        if (this.userCache.has(userId)) return
+
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                picture: true
+            }
+        })
+
+        if (user && !user.picture) {
+
+            await this.prisma.user.update({
+                where: { id: userId },
+                data: { picture: mediaId }
+            })
+
+            this.userCache.set(userId, user)
+
+        }
+    }
     private async processTags(mediaId: string, userId: string, tags: string[]) {
         // simplified tagging
     }
