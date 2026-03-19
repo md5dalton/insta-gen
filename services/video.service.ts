@@ -3,6 +3,7 @@ import { ffprobe, type FfprobeData } from '@dropb/ffprobe'
 import fs from "fs"
 import path from "path"
 import { VideoMetadata } from "@/types/type"
+import { DIR_THUMB } from "@/config/media"
 
 export interface VideoResolution {
     width: number
@@ -37,9 +38,7 @@ export class Video {
 
         this.filePath = filePath
         
-        this.thumbDir = path.join(process.cwd(), "public", "images", "thumbs")
-
-        if (!fs.existsSync(this.thumbDir)) fs.mkdirSync(this.thumbDir, { recursive: true })
+        this.thumbDir = DIR_THUMB
 
     }
 
@@ -59,16 +58,37 @@ export class Video {
             bitrate: videoStream.bit_rate ?? format.bit_rate
         }
     }
-
+    
     extractThumbnail(id: string, timeInSeconds: number = 2): Promise<string> {
         return new Promise((resolve, reject) => {
-            // if (!fs.existsSync(path.join(this.thumbDir, `${id}.jpg`))) 
+            const outputPath = path.join(this.thumbDir, `${id}.jpg`)
+            const tempPath = path.join(this.thumbDir, `${id}.tmp.jpg`)
+
+            // Fast path: already exists
+            if (fs.existsSync(outputPath)) {
+                return resolve(outputPath)
+            }
+
             ffmpeg(this.filePath)
-                .on("end", () => resolve(this.thumbDir))
-                .on("error", reject)
+                .on("end", () => {
+                    try {
+                        // Atomic rename (safe replace)
+                        fs.renameSync(tempPath, outputPath)
+                        resolve(outputPath)
+                    } catch (err) {
+                        reject(err)
+                    }
+                })
+                .on("error", (err) => {
+                    // Cleanup temp file if something failed
+                    if (fs.existsSync(tempPath)) {
+                        fs.unlinkSync(tempPath)
+                    }
+                    reject(err)
+                })
                 .screenshots({
                     timestamps: [timeInSeconds],
-                    filename: `${id}.jpg`,
+                    filename: path.basename(tempPath),
                     folder: this.thumbDir
                 })
         })
