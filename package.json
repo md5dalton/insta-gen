@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 4000",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 4000",
 
     "watcher": "tsx -r dotenv/config services/runWatcher.ts",
     "worker": "tsx -r dotenv/config services/runWorker.ts",
