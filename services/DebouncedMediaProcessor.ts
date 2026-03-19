@@ -6,7 +6,7 @@ import throttle from "lodash/throttle"
 // import { throttle } from "lodash"
 import prisma from "@/lib/prisma"
 import crypto from "crypto"
-import { PrismaClient, User } from "@/prisma/generated/client"
+import { Collection, PrismaClient, RootCollection, User } from "@/prisma/generated/client"
 import { enqueueMediaJob } from "@/lib/enqueue"
 
 type FileUpdate = {
@@ -251,8 +251,8 @@ export default class DebouncedMediaProcessor {
         const [rootCollection, collection, user, ...tags] = parts
 
         const root = await this.ensureRootCollection(rootCollection)
-        const col = await this.ensureCollection(root.id, collection)
-        const usr = await this.ensureUser(col.id, user)
+        const col = await this.ensureCollection(root, collection)
+        const usr = await this.ensureUser(col, user)
 
         return { userId: usr.id, tags }
     }
@@ -321,11 +321,9 @@ export default class DebouncedMediaProcessor {
         return record
     }
 
-    private async ensureCollection(rootId: string, name: string) {
-        const key = `${rootId}:${name}`
+    private async ensureCollection(root: RootCollection, name: string) {
+        const key = `${root.id}:${name}`
         if (this.collectionCache.has(key)) return this.collectionCache.get(key)
-
-        const root = await this.ensureRootCollection(name) // safe via cache
 
         const path = `${root.path}/${name}`
         const id = this.generateId(path)
@@ -333,22 +331,16 @@ export default class DebouncedMediaProcessor {
         const record = await this.prisma.collection.upsert({
             where: { id },
             update: { name },
-            create: { id, name, path, ownerId: rootId }
+            create: { id, name, path, ownerId: root.id }
         })
 
         this.collectionCache.set(key, record)
         return record
     }
 
-    private async ensureUser(collectionId: string, name: string) {
-        const key = `${collectionId}:${name}`
+    private async ensureUser(collection: Collection, name: string) {
+        const key = `${collection.id}:${name}`
         if (this.userCache.has(key)) return this.userCache.get(key)
-
-        const collection = await this.prisma.collection.findUnique({
-            where: { id: collectionId }
-        })
-
-        if (!collection) throw new Error("Collection not found")
 
         const path = `${collection.path}/${name}`
         const id = this.generateId(path)
@@ -356,7 +348,7 @@ export default class DebouncedMediaProcessor {
         const record = await this.prisma.user.upsert({
             where: { id },
             update: { name },
-            create: { id, name, path, ownerId: collectionId }
+            create: { id, name, path, ownerId: collection.id }
         })
 
         this.userCache.set(key, record)
