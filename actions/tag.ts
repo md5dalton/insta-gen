@@ -49,7 +49,6 @@ export const getTagPosts = async (
         type: true,
         height: true,
         width: true,
-        mktime: true,
         owner: {
             select: {
                 id: true,
@@ -67,5 +66,5 @@ export const getTagPosts = async (
                 },
             },
         }
-    },
+    }
 })
