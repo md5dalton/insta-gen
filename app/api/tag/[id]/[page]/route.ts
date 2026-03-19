@@ -35,9 +35,10 @@ export const GET = async (req: NextRequest, { params }: ParamsIdPage) => {
         
     }
 
-    const res = posts.map(({ type, ...rest }) => ({
+    const res = posts.map(({ type, tags, ...rest }) => ({
         ...rest,
         uid: `${page}:${rest.id}`,
+        tags: tags.map(t => t.tag),
         mediaType: type
     }))
         
