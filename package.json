@@ -5,7 +5,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "dev2": "node --loader ts-node/esm server.ts",
     "build": "next build",
     "start": "next start",
 
