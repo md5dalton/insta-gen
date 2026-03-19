@@ -1,18 +1,12 @@
 import prisma from "@/lib/prisma"
-import { Media, Tag, User } from "@/prisma/generated/client"
-
-export type TagMedia = Pick<Media, "id" | "type" | "height" | "width"> & {
-    owner:  Pick<User, "id" | "name" | "picture">
-    tags: {tag: Pick<Tag, "id" | "name">}[]
-}
-
-type PostMedia = Pick<Media, "id" | "mktime">
+import { Tag } from "@/prisma/generated/client"
+import { Post, postSelect } from "./post"
 
 export const getTag = async (id: string): Promise<Tag | null> => await prisma.tag.findUnique({
     where: { id }
 })
 
-export const getMedia = async (id: string): Promise<PostMedia | null> => await prisma.media.findUnique({
+export const getMedia = async (id: string): Promise<{ id: string, mktime: string } | null> => await prisma.media.findUnique({
     where: { id },
     select: {
         id: true,
@@ -22,10 +16,9 @@ export const getMedia = async (id: string): Promise<PostMedia | null> => await p
 
 export const getTagPosts = async (
     tagId: string,
-    count: number = 10,
-    page: number = 0,
-    cursor?: { mktime: string; id: string }
-): Promise<TagMedia[] | null> => await prisma.media.findMany({
+    cursor?: { mktime: string; id: string },
+    count: number = 10
+): Promise<Post[] | null> => await prisma.media.findMany({
     where: {
         tags: {
             some: {
@@ -41,30 +34,8 @@ export const getTagPosts = async (
         cursor: {
             mktime_id: cursor, // requires composite unique/index
         },
-        skip: page === 0 ? 0 : 1,
+        skip: 1,
     }),
     take: count,
-    select: {
-        id: true,
-        type: true,
-        height: true,
-        width: true,
-        owner: {
-            select: {
-                id: true,
-                name: true,
-                picture: true,
-            },
-        },
-        tags: {
-            select: {
-                tag: {
-                    select: {
-                        id: true,
-                        name: true,
-                    },
-                },
-            },
-        }
-    }
+    select: postSelect
 })
