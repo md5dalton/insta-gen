@@ -1,5 +1,5 @@
 import { getPost, getUserPosts, Post } from "@/actions/post"
-import { MediaType, ParamsIdPage } from "@/types/type"
+import { ParamsIdPage } from "@/types/type"
 import { NextRequest } from "next/server"
 
 export const GET = async (req: NextRequest, { params }: ParamsIdPage) => {
