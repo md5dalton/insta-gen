@@ -27,7 +27,6 @@ export const GET = async (req: NextRequest, { params }: ParamsId) => {
         id: user.id,
         name: user.name,
         picture: user.picture,
-        user,
         stats: counts
     })
 }
