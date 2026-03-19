@@ -7,7 +7,6 @@ export function proxy(request: NextRequest) {
 
     if (
         pathname.startsWith("/api/auth") ||
-        // pathname.startsWith("/api/sync") ||
         pathname.startsWith("/api/media")
     ) return NextResponse.next()
 
