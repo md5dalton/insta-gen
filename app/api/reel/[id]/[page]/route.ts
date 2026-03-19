@@ -2,15 +2,17 @@ import { getRandomReels, getReel, getUserReels } from "@/actions/reel"
 import { NextRequest } from "next/server"
 
 type Params = {
-    params: Promise<{ id: string, page: number }>
+    params: Promise<{ id: string, page: string }>
 }
 
 export const GET = async (req: NextRequest, { params }: Params) => {
 
     const { 
-        page,
+        page: PageString,
         id
     } = await params
+
+    const page = Number(PageString)
 
     const count = 10
 

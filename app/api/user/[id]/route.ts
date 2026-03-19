@@ -1,22 +1,18 @@
-import { getUser, getUserStats } from "@/actions/user"
+import { getUser } from "@/actions/user"
+import { ParamsId } from "@/types/type"
+import { NextRequest } from "next/server"
 
-export const GET = async (req, { params }) => {
+export const GET = async (req: NextRequest, { params }: ParamsId) => {
 
     const { id } = await params
 
     const user = await getUser(id)
-    // const stats = await getUserStats(id)
 
     if (!user) return new Response("User not found", { status: 404 })
 
     return Response.json({
         id: user.id,
         name: user.name,
-        picture: user.picture,
-        stats: {
-            posts: user._count.media,
-            followers: "347k",
-            following: 143
-        }
+        picture: user.picture
     })
 }

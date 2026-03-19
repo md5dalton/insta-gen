@@ -86,3 +86,23 @@ model ProfileUser {
     name      String
     createdAt DateTime @default(now())
 }
+
+model Job {
+    id          String   @id @default(uuid())
+    type        String   // "media"
+    payload     Json
+
+    status      String   @default("pending") // pending | processing | done | failed
+    attempts    Int      @default(0)
+
+    priority    Int      @default(0) // videos > images
+    dedupeKey   String?  @unique
+
+    lockedAt    DateTime?
+    availableAt DateTime @default(now())
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([status, availableAt])
+}

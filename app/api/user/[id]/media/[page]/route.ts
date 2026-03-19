@@ -1,17 +1,15 @@
 import { getPosts } from "@/actions/user"
-import { MediaType } from "@/types/type"
+import { MediaType, ParamsIdPage } from "@/types/type"
 import { NextRequest } from "next/server"
 
-type Params = {
-    params: Promise<{ id: string, page: number }>
-}
-
-export const GET = async (req: NextRequest, { params }: Params) => {
+export const GET = async (req: NextRequest, { params }: ParamsIdPage) => {
 
     const { 
-        page,
+        page: PageString,
         id
     } = await params
+
+    const page = Number(PageString)
 
     const searchParams = req.nextUrl.searchParams
 
