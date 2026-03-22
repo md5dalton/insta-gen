@@ -82,8 +82,11 @@ export const getRandom = async (
             COALESCE(
                 json_agg(
                     DISTINCT jsonb_build_object(
-                        'id', t.id,
-                        'name', t.name
+                        'tag',
+                        jsonb_build_object(
+                            'id', t.id,
+                            'name', t.name
+                        )
                     )
                 ) FILTER (WHERE t.id IS NOT NULL),
                 '[]'
