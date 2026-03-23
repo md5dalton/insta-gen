@@ -9,7 +9,7 @@ import { generateThumbnail, getMetadata } from "@/lib/image"
 const VIDEO_EXTENSIONS = MEDIA_CONFIG.VIDEO_EXTENSIONS
 
 let activeVideos = 0
-const MAX_VIDEO_CONCURRENCY = 2
+const MAX_VIDEO_CONCURRENCY = 1
 
 export class MediaService {
     private userCache = new Map<string, any>()
