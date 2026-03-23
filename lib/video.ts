@@ -87,7 +87,7 @@ export class Video {
                     reject(err)
                 })
                 .screenshots({
-                    timestamps: [timeInSeconds],
+                    count: 1,
                     filename: path.basename(tempPath),
                     folder: this.thumbDir
                 })
