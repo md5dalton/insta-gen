@@ -1,5 +1,10 @@
-import { homedir } from "os"
-import path from "path"
+import crypto from "crypto"
 
-export const relativePath = (absolutePath: string): string => absolutePath.replace(homedir(), "")
-export const absolutePath = (relativePath: string): string => path.join(homedir(), relativePath)
+export const generateId = (path: string): string => {
+    const hash = crypto.createHash("sha256").update(path).digest("hex")
+    
+    return Buffer.from(hash, "hex")
+            .toString("base64")
+            .replace(/[^a-zA-Z0-9]/g, "")
+            .substring(0, 8)
+}
