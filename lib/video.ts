@@ -59,7 +59,7 @@ export class Video {
         }
     }
     
-    extractThumbnail(id: string, timeInSeconds: number = 2): Promise<string> {
+    extractThumbnail(id: string, timeInSeconds: number = 1): Promise<string> {
         return new Promise((resolve, reject) => {
             const outputPath = path.join(this.thumbDir, `${id}.jpg`)
             const tempPath = path.join(this.thumbDir, `${id}.tmp.jpg`)
