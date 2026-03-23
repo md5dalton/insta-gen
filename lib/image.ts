@@ -46,6 +46,7 @@ export const generateThumbnail = async (filePath: string) => {
     await image
         .rotate()
         .resize(320)
+        .jpeg({ quality: 80, mozjpeg: true })
         .toFile(output)
 
 }
