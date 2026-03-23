@@ -1,10 +1,10 @@
 import { extname, basename, join } from "path"
-import sharp from "sharp"
 import { stat } from "fs/promises"
-import crypto from "crypto"
 import { PrismaClient } from "@/prisma/generated/client"
-import { DIR_THUMB, MEDIA_CONFIG } from "@/config/media"
-import { Video } from "./video.service"
+import { MEDIA_CONFIG } from "@/config/media"
+import { Video } from "@/lib/video"
+import { generateId } from "@/lib/path"
+import { generateThumbnail, getMetadata } from "@/lib/image"
 
 const VIDEO_EXTENSIONS = MEDIA_CONFIG.VIDEO_EXTENSIONS
 
@@ -16,13 +16,6 @@ export class MediaService {
     private tagCache = new Map<string, any>()
 
     constructor(private prisma: PrismaClient) {}
-
-    private generateId(path: string) {
-        const hash = crypto.createHash("sha256").update(path).digest("hex")
-        return Buffer.from(hash, "hex").toString("base64")
-            .replace(/[^a-zA-Z0-9]/g, "")
-            .substring(0, 8)
-    }
 
     private async waitForVideoSlot() {
         while (activeVideos >= MAX_VIDEO_CONCURRENCY) {
@@ -36,7 +29,7 @@ export class MediaService {
     }
 
     async handleAddOrChange(filePath: string, userId: string, tags: string[]) {
-        const id = this.generateId(filePath)
+        const id = generateId(filePath)
 
         // ✅ DEDUPE: skip if exists
         const exists = await this.prisma.media.findUnique({ where: { id } })
@@ -65,9 +58,11 @@ export class MediaService {
                 }
 
             } else {
-                const image = sharp(filePath)
-                await image.resize(320).toFile(join(DIR_THUMB, `${id}.jpg`))
-                metadata = await image.metadata()
+
+                await generateThumbnail(filePath)
+
+                metadata = await getMetadata(filePath)
+
             }
 
             if (metadata) {
@@ -105,7 +100,7 @@ export class MediaService {
     }
 
     async handleDelete(filePath: string) {
-        const id = this.generateId(filePath)
+        const id = generateId(filePath)
 
         await this.prisma.media.deleteMany({
             where: { id }
@@ -141,7 +136,7 @@ export class MediaService {
         for (let i = 0; i < tags.length; i++) {
             const tagPath = join(userId, ...tags.slice(0, i + 1))
             const tagName = tags[i]
-            const id = this.generateId(tagPath)
+            const id = generateId(tagPath)
 
             const tag = await this.prisma.tag.upsert({
                 where: { id },
@@ -151,7 +146,7 @@ export class MediaService {
 
             await this.prisma.mediaTag.create({
                 data: {
-                    id: this.generateId(`media-${mediaId}-tag-${tag.id}`),
+                    id: generateId(`media-${mediaId}-tag-${tag.id}`),
                     mediaId,
                     tagId: tag.id
                 }
