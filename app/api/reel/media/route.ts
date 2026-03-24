@@ -9,24 +9,23 @@ export const GET = async (req: NextRequest) => {
     const user = searchParams.get("user")
     
     let reels: Reel[] = []
-    let nextCursor: string | null = null
 
     if (user && cursor) {
         
         reels = await getUserReels(user, cursor)
-
-        if (reels.length === 10) nextCursor = reels[reels.length - 1].id
         
     } else {
 
         reels = await getRandom()
 
-        nextCursor = reels[reels.length - 1].id
     }
 
     return Response.json({
         items: reels,
-        nextCursor
+        nextCursor:
+            reels.length === 10
+                ? reels[reels.length - 1].id
+                : null,
     })
 
 }

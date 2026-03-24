@@ -48,26 +48,24 @@ export const getUserReels = async (
 })
 
 export const getRandom = async (
-    limit: number = 10
+  limit: number = 10
 ): Promise<Reel[]> => {
-    
-    const count = await prisma.media.count()
-    const offset = Math.floor(Math.random() * count)
-    
-    return await prisma.$queryRaw`
-        SELECT 
-        m.id,
-        json_build_object(
-            'id', u.id,
-            'name', u.name,
-            'picture', u.picture
-        ) as owner
+    const r = Math.random()
 
+    return await prisma.$queryRaw<Reel[]>`
+        SELECT 
+            m.id,
+            json_build_object(
+                'id', u.id,
+                'name', u.name,
+                'picture', u.picture
+            ) as owner
         FROM "Media" m
         JOIN "User" u ON u.id = m."ownerId"
         WHERE m.type = ${MediaType.VIDEO}::"MediaType"
-        
-        OFFSET ${offset}
+        ORDER BY 
+            (m.random < ${r}),
+            m.random
         LIMIT ${limit}
-    `
+        `
 }

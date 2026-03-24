@@ -61,9 +61,7 @@ export const getUserPosts = async (
 export const getRandom = async (
     limit: number = 10
 ): Promise<Post[]> => {
-    
-    const count = await prisma.media.count()
-    const offset = Math.floor(Math.random() * count)
+    const r = Math.random()
     
     return await prisma.$queryRaw`
         SELECT 
@@ -100,7 +98,9 @@ export const getRandom = async (
 
         GROUP BY m.id, u.id
 
-        OFFSET ${offset}
+        ORDER BY 
+            (m.random < ${r}),
+            m.random
         LIMIT ${limit}
     `
 }

@@ -62,7 +62,10 @@ model Media {
     createdAt  DateTime @default(now())
     updatedAt  DateTime @updatedAt
 
+    random Float @default(dbgenerated("random()"))
+
     @@unique([mktime, id])
+    @@index([type, random])
 }
 
 model Tag {
