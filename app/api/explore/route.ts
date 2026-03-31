@@ -5,7 +5,7 @@ export const GET = async () => {
 
     const images = await getRandom(8, MediaType.IMAGE)
     const videos = await getRandom(2, MediaType.VIDEO)
-
+    
     const media: MediaResponse[] = []
     let imageIndex = 0
     let videoIndex = 0
