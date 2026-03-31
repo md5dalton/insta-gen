@@ -7,13 +7,19 @@ export type MediaResponse = {
     type: MediaType
 }
 
-export const getRandom = async (count: number, type: MediaType): Promise<MediaResponse[]> => await prisma.$queryRaw`
-    SELECT 
-        m.id,
-        m.type,
-        m."ownerId"
-    FROM "Media" m
-    WHERE m.type = ${type}
-    ORDER BY RANDOM()
-    LIMIT ${count}
-`
+export const getRandom = async (count: number, type: MediaType): Promise<MediaResponse[]> => {
+    const r = Math.random()
+    
+    return await prisma.$queryRaw`
+        SELECT 
+            m.id,
+            m.type,
+            m."ownerId"
+        FROM "Media" m
+        WHERE m.type = ${type}
+        ORDER BY 
+            (m.random < ${r}),
+            m.random
+        LIMIT ${count}
+    `
+}
