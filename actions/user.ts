@@ -1,7 +1,6 @@
 import prisma from "@/lib/prisma"
-import { Media, User } from "@/prisma/generated/client"
+import { Media, Tag, User } from "@/prisma/generated/client"
 import { MediaType } from "@/types/type"
-
 
 export const getUser = async (id: string): Promise<Pick<User, "id" | "name" | "picture"> | null> => await prisma.user.findUnique({
     where: { id },
@@ -40,4 +39,46 @@ export const getPosts = async (
         id: true,
         ownerId: true
     },
+})
+
+export const getTagCount = async (
+    userId: string
+): Promise<number> => await prisma.tag.count({
+    where: {
+        media: {
+            some: {
+                media: {
+                    ownerId: userId,
+                }
+            }
+        }
+    }
+})
+
+export const getTags = async (
+    userId: string,
+    cursorId?: string,
+    take: number = 10
+): Promise<Pick<Tag, "id" | "name">[]> => await prisma.tag.findMany({
+    where: {
+        media: {
+            some: {
+                media: {
+                    ownerId: userId,
+                }
+            }
+        }
+    },
+    ...(cursorId && {
+        cursor: { id: cursorId },
+        skip: 1,
+    }),
+    take,
+    orderBy: {
+        name: "asc",
+    },
+    select: {
+        id: true,
+        name: true
+    }
 })
