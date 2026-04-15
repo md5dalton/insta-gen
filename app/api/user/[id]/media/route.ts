@@ -1,6 +1,14 @@
-import { getPosts } from "@/actions/user"
+import { getPosts, getTags } from "@/actions/user"
+import { Tag } from "@/prisma/generated/client"
 import { MediaType, ParamsId } from "@/types/type"
 import { NextRequest } from "next/server"
+
+interface Media {
+    id: string
+    ownerId: string
+    isMedia: boolean
+    isVideo: boolean
+}
 
 export const GET = async (req: NextRequest, { params }: ParamsId) => {
 
@@ -11,19 +19,30 @@ export const GET = async (req: NextRequest, { params }: ParamsId) => {
     const searchParams = req.nextUrl.searchParams
 
     const cursor = searchParams.get("cursor")
-    const mediaType = searchParams.get("type")
+    const name = searchParams.get("name")
     
-    if (!mediaType || ![MediaType.IMAGE, MediaType.VIDEO].includes(mediaType as MediaType)) {
-        return new Response("Invalid media type", { status: 400 })
-    }
+    let items: Media[] | Pick<Tag, "id" | "name">[] = []
 
-    const posts = await getPosts(id, mediaType as MediaType, cursor as string)
+    if (!name || !["posts", "reels", "tags"].includes(name)) return new Response("Invalid media type", { status: 400 })
+
+    if (name === "tags") {
+        items = await getTags(id, cursor as string)
+    } else {
+        const mediaType = name === "posts" ? MediaType.IMAGE : MediaType.VIDEO
+        const media = await getPosts(id, mediaType, cursor as string)
+
+        items = media.map((i) => ({
+            ...i,
+            isMedia: true,
+            isVideo: mediaType === MediaType.VIDEO
+        }))
+    }
     
     return Response.json({
-        items: posts,
+        items,
         nextCursor:
-            posts.length === 10
-                ? posts[posts.length - 1].id
+            items.length === 10
+                ? items[items.length - 1].id
                 : null,
     })
 
