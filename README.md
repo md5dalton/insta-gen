@@ -14,7 +14,7 @@ JWT_SECRET=
 ```
 
 
-First, run the development server:
+Second, run the server:
 
 ```bash
 npm run dev
