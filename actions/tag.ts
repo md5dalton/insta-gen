@@ -6,7 +6,7 @@ export const getTag = async (id: string): Promise<Tag | null> => await prisma.ta
     where: { id }
 })
 
-export const getMedia = async (id: string): Promise<{ id: string, mktime: string } | null> => await prisma.media.findUnique({
+export const getCursor = async (id: string): Promise<{ id: string, mktime: string } | null> => await prisma.media.findUnique({
     where: { id },
     select: {
         id: true,
