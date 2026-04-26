@@ -20,10 +20,13 @@ async function workerLoop() {
             const payload = job.payload as any
 
             if (payload.event === "delete") {
-                await mediaService.handleDelete(payload.filePath)
+                await mediaService.handleDelete(payload.id)
             } else {
                 await mediaService.handleAddOrChange(
-                    payload.filePath,
+                    {
+                        id: payload.id,
+                        path: payload.path
+                    },
                     payload.userId,
                     payload.tags
                 )

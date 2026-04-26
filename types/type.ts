@@ -22,3 +22,15 @@ export interface ParamsIdPage {
 export interface ParamsId {
     params: Promise<{ id: string }>
 }
+
+export interface File {
+    path: string
+    id: string
+}
+
+export interface Payload {
+    file: File
+    event: "add" | "change" | "delete"
+    userId: string
+    tags: string[]
+}

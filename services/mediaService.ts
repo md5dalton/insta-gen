@@ -5,6 +5,7 @@ import { MEDIA_CONFIG } from "@/config/media"
 import { Video } from "@/lib/video"
 import { generateId } from "@/lib/path"
 import { generateThumbnail, getMetadata } from "@/lib/image"
+import { File } from "@/types/type"
 
 const VIDEO_EXTENSIONS = MEDIA_CONFIG.VIDEO_EXTENSIONS
 
@@ -28,26 +29,27 @@ export class MediaService {
         activeVideos--
     }
 
-    async handleAddOrChange(filePath: string, userId: string, tags: string[]) {
-        const id = generateId(filePath)
+    async handleAddOrChange(file: File, userId: string, tags: string[]) {
+
+        const { id, path } = file
 
         // ✅ DEDUPE: skip if exists
         const exists = await this.prisma.media.findUnique({ where: { id } })
         if (exists) return
 
-        const ext = extname(filePath).toLowerCase()
+        const ext = extname(path).toLowerCase()
         const isVideo = VIDEO_EXTENSIONS.includes(ext)
-        const relativePath = filePath.replace(MEDIA_CONFIG.ROOT_PATH, "")
+        const relativePath = path.replace(MEDIA_CONFIG.ROOT_PATH, "")
 
         try {
             let metadata: any
-            const stats = await stat(filePath)
+            const stats = await stat(path)
 
             if (isVideo) {
                 await this.waitForVideoSlot()
 
                 try {
-                    const video = new Video(filePath)
+                    const video = new Video(path)
                     metadata = await video.getMetadata()
 
                     if (metadata) {
@@ -59,9 +61,9 @@ export class MediaService {
 
             } else {
 
-                await generateThumbnail(filePath)
+                await generateThumbnail(path)
 
-                metadata = await getMetadata(filePath)
+                metadata = await getMetadata(path)
 
             }
 
@@ -99,14 +101,13 @@ export class MediaService {
 
     }
 
-    async handleDelete(filePath: string) {
-        const id = generateId(filePath)
+    async handleDelete(id: string) {
 
-        await this.prisma.media.deleteMany({
+        const media = await this.prisma.media.deleteMany({
             where: { id }
         })
 
-        console.log(`🗑️ Deleted: ${basename(filePath)}`)
+        console.log(`🗑️ Deleted: ${id} x${media.count}`)
     }
 
     private async setUserPicture(userId: string, mediaId: string) {

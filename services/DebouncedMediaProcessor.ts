@@ -8,11 +8,13 @@ import prisma from "@/lib/prisma"
 import crypto from "crypto"
 import { Collection, PrismaClient, RootCollection, User } from "@/prisma/generated/client"
 import { enqueueMediaJob } from "@/lib/enqueue"
+import { generateId } from "@/lib/path"
+import { File } from "@/types/type"
 
 type FileUpdate = {
     event: "add" | "change" | "delete"
     timestamp: number
-    id: string
+    file: File
 }
 
 export default class DebouncedMediaProcessor {
@@ -77,9 +79,9 @@ export default class DebouncedMediaProcessor {
         })
 
         this.watcher
-            .on("add", (filePath) => this.queueUpdate("add", filePath))
-            .on("change", (filePath) => this.queueUpdate("change", filePath))
-            .on("unlink", (filePath) => this.queueUpdate("delete", filePath))
+            .on("add", (filePath) => this.queueUpdate("add", {path: filePath, id: this.generateId(filePath)}))
+            .on("change", (filePath) => this.queueUpdate("change", {path: filePath, id: this.generateId(filePath)}))
+            .on("unlink", (filePath) => this.queueUpdate("delete", {path: filePath, id: this.generateId(filePath)}))
 
         global.syncState.isInitialized = true
 
@@ -145,20 +147,35 @@ export default class DebouncedMediaProcessor {
 
         console.log(`📂 Found ${files.length} media files`)
 
-        const BATCH_SIZE = 500
+        const existing = await this.prisma.media.findMany({
+            select: {id: true}
+        })
 
-        for (let i = 0; i < files.length; i += BATCH_SIZE) {
-            const batch = files.slice(i, i + BATCH_SIZE)
+        const existingIds = new Set(existing.map(e => e.id))
+
+        const newFiles: File[] = []
+
+        for (const path of files) {
+            const id = this.generateId(path)
+            if (!existingIds.has(id)) newFiles.push({ path, id })
+        }
+
+        console.log(`📂 ${newFiles.length} new media files to be processed`)
+
+        const BATCH_SIZE = 5000
+
+        for (let i = 0; i < newFiles.length; i += BATCH_SIZE) {
+            const batch = newFiles.slice(i, i + BATCH_SIZE)
 
             await this.processInitialBatch(batch)
 
-            console.log(`📦 Scanned ${i + batch.length}/${files.length}`)
+            console.log(`📦 Scanned ${i + batch.length}/${newFiles.length}`)
         }
 
         console.log("✅ Initial scan completed")
     }
 
-    private async processInitialBatch(files: string[]): Promise<void> {
+    private async processInitialBatch(files: File[]): Promise<void> {
         const grouped = this.groupFilesByDirectory(files)
 
         for (const [directory, filePaths] of grouped) {
@@ -166,7 +183,7 @@ export default class DebouncedMediaProcessor {
         }
     }
 
-    private async processInitialDirectory(directory: string, filePaths: string[]) {
+    private async processInitialDirectory(directory: string, files: File[]) {
         try {
             const context = await this.resolveContext(directory)
             if (!context) return
@@ -174,21 +191,16 @@ export default class DebouncedMediaProcessor {
             const { userId, tags } = context
 
             // 🚀 Batch DB lookup
-            const ids = filePaths.map(fp => this.generateId(fp))
+            // const ids = filePaths.map(fp => this.generateId(fp))
 
-            const existing = await this.prisma.media.findMany({
-                where: { id: { in: ids } },
-                select: { id: true }
-            })
+            // const existing = await this.prisma.media.findMany({
+            //     where: { id: { in: ids } },
+            //     select: { id: true }
+            // })
 
-            const existingSet = new Set(existing.map(e => e.id))
+            // const existingSet = new Set(existing.map(e => e.id))
 
-            for (const filePath of filePaths) {
-                const id = this.generateId(filePath)
-                if (existingSet.has(id)) continue
-
-                await this.enqueue(filePath, "add", userId, tags)
-            }
+            for (const file of files) await this.enqueue(file, "add", userId, tags)
 
         } catch (err) {
             console.error(`❌ Initial scan error in ${directory}`, err)
@@ -199,11 +211,11 @@ export default class DebouncedMediaProcessor {
     // ⚡ LIVE UPDATES (DEBOUNCED)
     // =========================================================
 
-    private queueUpdate(event: FileUpdate["event"], filePath: string): void {
-        this.pendingUpdates.set(filePath, {
+    private queueUpdate(event: FileUpdate["event"], file: File): void {
+        this.pendingUpdates.set(file.path, {
             event,
-            timestamp: Date.now(),
-            id: `${event}-${filePath}`
+            file,
+            timestamp: Date.now()
         })
 
         this.processThrottled()
@@ -245,7 +257,7 @@ export default class DebouncedMediaProcessor {
 
     private async processDirectoryBatch(
         directory: string,
-        updates: Array<FileUpdate & { filePath: string }>
+        updates: Array<FileUpdate>
     ): Promise<void> {
         try {
             const context = await this.resolveContext(directory)
@@ -254,7 +266,7 @@ export default class DebouncedMediaProcessor {
             const { userId, tags } = context
 
             for (const update of updates) {
-                await this.enqueue(update.filePath, update.event, userId, tags)
+                await this.enqueue(update.file, update.event, userId, tags)
             }
 
         } catch (error) {
@@ -282,20 +294,20 @@ export default class DebouncedMediaProcessor {
     }
 
     private async enqueue(
-        filePath: string,
+        file: File,
         event: FileUpdate["event"],
         userId: string,
         tags: string[]
     ) {
-        await enqueueMediaJob({ filePath, event, userId, tags })
+        await enqueueMediaJob({ file, event, userId, tags })
         global.syncState.stats.queued++
     }
 
-    private groupFilesByDirectory(files: string[]) {
-        const map = new Map<string, string[]>()
+    private groupFilesByDirectory(files: File[]) {
+        const map = new Map<string, File[]>()
 
         for (const file of files) {
-            const dir = dirname(file)
+            const dir = dirname(file.path)
             if (!map.has(dir)) map.set(dir, [])
             map.get(dir)!.push(file)
         }
@@ -306,23 +318,19 @@ export default class DebouncedMediaProcessor {
     private groupUpdatesByDirectory(
         updates: [string, FileUpdate][]
     ) {
-        const map = new Map<string, Array<FileUpdate & { filePath: string }>>()
+        const map = new Map<string, Array<FileUpdate>>()
 
         for (const [filePath, update] of updates) {
             const dir = dirname(filePath)
             if (!map.has(dir)) map.set(dir, [])
-            map.get(dir)!.push({ filePath, ...update })
+            map.get(dir)!.push(update)
         }
 
         return map
     }
 
     private generateId(path: string) {
-        const hash = crypto.createHash("sha256").update(path).digest("hex")
-        return Buffer.from(hash, "hex")
-            .toString("base64")
-            .replace(/[^a-zA-Z0-9]/g, "")
-            .substring(0, 8)
+        return generateId(path)
     }
 
     // =========================================================
