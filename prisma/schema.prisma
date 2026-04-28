@@ -51,6 +51,10 @@ model Media {
     ownerId     String
     
     tags        MediaTag[]
+    
+    likes        Like[]
+    saves        Save[]
+    reports      Report[]
 
     height      Int
     width       Int
@@ -82,13 +86,46 @@ model MediaTag {
     tag         Tag @relation(fields: [tagId], references: [id])
     media       Media @relation(fields: [mediaId], references: [id])
 }
+model Like {
+    mediaId String
+    userId  String
 
+    user    ProfileUser @relation(fields: [userId], references: [id])
+    media   Media       @relation(fields: [mediaId], references: [id])
+
+    @@id([userId, mediaId])
+}
+model Save {
+    mediaId String
+    userId  String
+
+    user    ProfileUser @relation(fields: [userId], references: [id])
+    media   Media       @relation(fields: [mediaId], references: [id])
+
+    @@id([userId, mediaId])
+}
+
+model Report {
+    mediaId String
+    userId  String
+
+    user    ProfileUser @relation(fields: [userId], references: [id])
+    media   Media       @relation(fields: [mediaId], references: [id])
+
+    @@id([userId, mediaId])
+}
 
 model ProfileUser {
     id        String   @id @default(uuid())
     email     String   @unique
     password  String
     name      String
+
+
+    likes        Like[]
+    saves        Save[]
+    reports      Report[]
+
     createdAt DateTime @default(now())
 }
 
