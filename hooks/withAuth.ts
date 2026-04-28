@@ -5,28 +5,40 @@ type AuthPayload = {
     userId: string
 }
 
-type AuthedHandler = (
+type RouteContext<TParams = any> = {
+    params: TParams
+}
+
+type AuthedHandler<TParams = any> = (
     req: NextRequest,
-    ctx: { user: AuthPayload }
+    ctx: RouteContext<TParams> & { user: AuthPayload }
 ) => Promise<Response>
 
-export const withAuth = (handler: AuthedHandler) => async (req: NextRequest): Promise<Response> => {
-    const authHeader = req.headers.get("authorization")
+export function withAuth<TParams = any>(handler: AuthedHandler<TParams>) {
+    return async (
+        req: NextRequest,
+        ctx: RouteContext<TParams>
+    ): Promise<Response> => {
+        const authHeader = req.headers.get("authorization")
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+        if (!authHeader?.startsWith("Bearer ")) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
 
-    const token = authHeader.split(" ")[1]
+        const token = authHeader.split(" ")[1]
 
-    try {
-        const decoded = jwt.verify(
-            token,
-            process.env.JWT_SECRET!
-        ) as AuthPayload
+        try {
+            const decoded = jwt.verify(
+                token,
+                process.env.JWT_SECRET!
+            ) as AuthPayload
 
-        return handler(req, { user: decoded })
-    } catch {
-        return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+            return handler(req, {
+                ...ctx,
+                user: decoded
+            })
+        } catch {
+            return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+        }
     }
 }
