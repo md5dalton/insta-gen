@@ -1,25 +1,35 @@
 import prisma from "@/lib/prisma"
+import { Prisma } from "@/prisma/generated/client"
 
-export const likePost = async (userId: string, mediaId: string) => await prisma.like.upsert({
-    where: { userId_mediaId: { userId, mediaId } },
-    update: {},
-    create: { userId, mediaId },
-})
-export const unLikePost = async (userId: string, mediaId: string) => await prisma.like.delete({
-    where: { userId_mediaId: { userId, mediaId } }
-})
-export async function toggleLike(userId: string, mediaId: string) {
+type ToggleDelegate = {
+    create: (args: { data: { userId: string; mediaId: string } }) => Promise<any>
+    delete: (args: { where: { userId_mediaId: { userId: string; mediaId: string } } }) => Promise<any>
+}
+
+export const toggleLike = (userId: string, mediaId: string) =>
+    toggle(prisma.like, userId, mediaId)
+
+export const toggleSave = (userId: string, mediaId: string) =>
+    toggle(prisma.save, userId, mediaId)
+
+
+const toggle = async (
+    table: ToggleDelegate,
+    userId: string,
+    mediaId: string
+): Promise<boolean> => {
     try {
-        // Try to create (like)
-        await prisma.like.create({
+        await table.create({
             data: { userId, mediaId },
         })
 
         return true
-    } catch (error: any) {
-        // If it already exists → unlike
-        if (error.code === "P2002") {
-            await prisma.like.delete({
+    } catch (error: unknown) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2002"
+        ) {
+            await table.delete({
                 where: {
                     userId_mediaId: { userId, mediaId },
                 },

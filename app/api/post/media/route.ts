@@ -1,25 +1,28 @@
 import { getPost, getRandom, getUserPosts, Post } from "@/actions/post"
+import { withAuth } from "@/hooks/withAuth"
 import { NextRequest } from "next/server"
 
-export const GET = async (req: NextRequest) => {
+export const GET = withAuth(async (req: NextRequest, { user }) => {
 
     const searchParams = req.nextUrl.searchParams
 
     const cursor = searchParams.get("cursor")
-    const user = searchParams.get("user")
-    
+    const ownerId = searchParams.get("user")
+
+    const userId = user.id
+
     let posts: Post[] = []
 
-    if (user && cursor) {
+    if (ownerId && cursor) {
 
-        const post = await getPost(cursor)
+        const post = await getPost(cursor, userId)
 
         if (!post) return new Response("Provide Post not found", { status: 400 })
 
-        posts = await getUserPosts(post.owner.id, post.id)
+        posts = await getUserPosts(userId, post.owner.id, post.id)
     
     } else {
-        posts = await getRandom()
+        posts = await getRandom(userId)
     }
 
     return Response.json({
@@ -33,4 +36,4 @@ export const GET = async (req: NextRequest) => {
                 : null,
     })
 
-}
+})
