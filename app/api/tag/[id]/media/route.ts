@@ -1,13 +1,10 @@
 import { Post } from "@/actions/post"
 import { getCursor, getTagPosts } from "@/actions/tag"
-import { ParamsId } from "@/types/type"
-import { NextRequest } from "next/server"
+import { withAuth } from "@/hooks/withAuth"
 
-export const GET = async (req: NextRequest, { params }: ParamsId) => {
+export const GET = withAuth<{ id: string }>(async (req, { params, user }) => {
 
-    const { 
-        id
-    } = await params
+    const { id } = params
 
     const searchParams = req.nextUrl.searchParams
 
@@ -21,10 +18,10 @@ export const GET = async (req: NextRequest, { params }: ParamsId) => {
         
         if (!cursorProps) return new Response("cursor is invalid", { status: 400 })
         
-        posts = await getTagPosts(id, cursorProps) || []
+        posts = await getTagPosts(user.id, id, cursorProps) || []
 
     } else {
-        posts = await getTagPosts(id) || []
+        posts = await getTagPosts(user.id, id) || []
     }
     
     return Response.json({
@@ -38,4 +35,4 @@ export const GET = async (req: NextRequest, { params }: ParamsId) => {
                 : null
     })
 
-}
+})

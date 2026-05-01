@@ -8,7 +8,10 @@ export function proxy(request: NextRequest) {
     if (
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/api/media") ||
+
+        // use withAuth
         pathname.startsWith("/api/post") ||
+        pathname.startsWith("/api/tag") ||
         pathname.startsWith("/api/activity")
     ) return NextResponse.next()
 

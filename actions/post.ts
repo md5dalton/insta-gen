@@ -11,7 +11,7 @@ export type Post = Omit<PostBase, "likes" | "saves"> & {
     saved: boolean
 }
 
-const mapPost = (post: PostBase): Post => {
+export const mapPost = (post: PostBase): Post => {
     const { likes, saves, ...rest } = post
 
     return {
