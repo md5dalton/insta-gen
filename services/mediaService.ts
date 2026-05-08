@@ -84,7 +84,7 @@ export class MediaService {
                 
                 if (media) {
                     this.setUserPicture(userId, media.id)
-                    await this.processTags(id, userId, tags)
+                    await this.processTags(id, tags)
                 }
 
                 console.log(`✅ Processed: ${relativePath}`)
@@ -132,28 +132,16 @@ export class MediaService {
 
         }
     }
-    private async processTags(mediaId: string, userId: string, tags: string[]) {
-        
-        for (let i = 0; i < tags.length; i++) {
-            const tagPath = join(userId, ...tags.slice(0, i + 1))
-            const tagName = tags[i]
-            const id = generateId(tagPath)
-
-            const tag = await this.prisma.tag.upsert({
-                where: { id },
-                update: { name: tagName },
-                create: { name: tagName, id }
-            })
-
+    private async processTags(mediaId: string, tags: string[]) {
+        tags.forEach(async (tagId) => {
             await this.prisma.mediaTag.create({
                 data: {
-                    id: generateId(`media-${mediaId}-tag-${tag.id}`),
+                    id: generateId(`media-${mediaId}-tag-${tagId}`),
                     mediaId,
-                    tagId: tag.id
+                    tagId
                 }
             })
-
-        }
+        })
     }
 
 }

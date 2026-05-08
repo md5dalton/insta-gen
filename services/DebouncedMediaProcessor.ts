@@ -29,6 +29,7 @@ export default class DebouncedMediaProcessor {
     private rootCache = new Map<string, any>()
     private collectionCache = new Map<string, any>()
     private userCache = new Map<string, any>()
+    private tagCache = new Map<string, any>()
 
     constructor() {
         this.root = MEDIA_CONFIG.ROOT_PATH
@@ -190,17 +191,9 @@ export default class DebouncedMediaProcessor {
 
             const { userId, tags } = context
 
-            // 🚀 Batch DB lookup
-            // const ids = filePaths.map(fp => this.generateId(fp))
+            console.log("processInitialDirectory", directory, userId, tags)
 
-            // const existing = await this.prisma.media.findMany({
-            //     where: { id: { in: ids } },
-            //     select: { id: true }
-            // })
-
-            // const existingSet = new Set(existing.map(e => e.id))
-
-            for (const file of files) await this.enqueue(file, "add", userId, tags)
+            // for (const file of files) await this.enqueue(file, "add", userId, tags)
 
         } catch (err) {
             console.error(`❌ Initial scan error in ${directory}`, err)
@@ -284,7 +277,20 @@ export default class DebouncedMediaProcessor {
 
         if (parts.length < 3) return null
 
-        const [rootCollection, collection, user, ...tags] = parts
+        const tags = []
+
+        const [rootCollection, collection, user] = parts
+
+        const userPath = join(rootCollection, collection, user)
+
+        for (let i = 0; i < parts.length; i++) {
+            const tagPath = join(...parts.slice(0, i + 1))
+
+            if (userPath !== tagPath) {
+                const tag = await this.ensureTag(tagPath)
+                tags.push(tag.id)
+            }
+        }
 
         const root = await this.ensureRootCollection(rootCollection)
         const col = await this.ensureCollection(root, collection)
@@ -385,6 +391,21 @@ export default class DebouncedMediaProcessor {
 
         this.userCache.set(key, record)
         return record
+    }
+    private async ensureTag(path: string) {
+        if (this.tagCache.has(path)) return this.tagCache.get(path)
+
+        const id = this.generateId(path)
+        const name = path.split(sep).pop() || path
+
+        const tag = await this.prisma.tag.upsert({
+            where: { id },
+            update: { name },
+            create: { name, id }
+        })
+
+        this.tagCache.set(path, tag)
+        return tag
     }
 
     async dispose(): Promise<void> {
