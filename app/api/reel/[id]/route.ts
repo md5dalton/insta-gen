@@ -1,14 +1,14 @@
 import { getReel } from "@/actions/reel"
-import { ParamsId } from "@/types/type"
-import { NextRequest } from "next/server"
+import { withAuth } from "@/hooks/withAuth"
 
-export const GET = async (req: NextRequest, { params }: ParamsId) => {
+export const GET = withAuth<{ id: string }>(async (req, { params, user }) => {
 
-    const { id } = await params
+    const { id } = params
 
-    const reel = await getReel(id)
+    const reel = await getReel(id, user.id)
 
     if (!reel) return new Response("Post not found", { status: 404 })
 
     return Response.json(reel)
-}
+
+})

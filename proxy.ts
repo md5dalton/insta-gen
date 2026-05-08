@@ -10,6 +10,7 @@ export function proxy(request: NextRequest) {
         pathname.startsWith("/api/media") ||
 
         // use withAuth
+        pathname.startsWith("/api/reel") ||
         pathname.startsWith("/api/post") ||
         pathname.startsWith("/api/tag") ||
         pathname.startsWith("/api/activity")
