@@ -5,8 +5,7 @@ import { readdir, realpath, stat } from "fs/promises"
 import throttle from "lodash/throttle"
 // import { throttle } from "lodash"
 import prisma from "@/lib/prisma"
-import crypto from "crypto"
-import { Collection, PrismaClient, RootCollection, User } from "@/prisma/generated/client"
+import { Collection, PrismaClient, RootCollection } from "@/prisma/generated/client"
 import { enqueueMediaJob } from "@/lib/enqueue"
 import { generateId } from "@/lib/path"
 import { File } from "@/types/type"
@@ -191,9 +190,7 @@ export default class DebouncedMediaProcessor {
 
             const { userId, tags } = context
 
-            console.log("processInitialDirectory", directory, userId, tags)
-
-            // for (const file of files) await this.enqueue(file, "add", userId, tags)
+            for (const file of files) await this.enqueue(file, "add", userId, tags)
 
         } catch (err) {
             console.error(`❌ Initial scan error in ${directory}`, err)
