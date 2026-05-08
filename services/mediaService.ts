@@ -14,7 +14,6 @@ const MAX_VIDEO_CONCURRENCY = 1
 
 export class MediaService {
     private userCache = new Map<string, any>()
-    private tagCache = new Map<string, any>()
 
     constructor(private prisma: PrismaClient) {}
 
