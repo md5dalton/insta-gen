@@ -8,7 +8,12 @@ export const GET = withAuth<{ id: string }>(async (req, { params, user }) => {
     const post = await getPost(id, user.id)
 
     if (!post) return new Response("Post not found", { status: 404 })
-        
-    return Response.json(post)
+    
+    const { type, ...rest } = post
+    
+    return Response.json({
+        mediaType: type,
+        ...rest
+    })
 
 })

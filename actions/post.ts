@@ -1,6 +1,5 @@
 import prisma from "@/lib/prisma"
 import { Prisma } from "@/prisma/generated/client"
-import { MediaType } from "@/prisma/generated/enums"
 
 type PostBase = Prisma.MediaGetPayload<{
     select: ReturnType<typeof postSelect>
@@ -68,8 +67,7 @@ export const getPost = async (
 ): Promise<Post | null> => {
     const post = await prisma.media.findFirst({
         where: {
-            id,
-            type: MediaType.IMAGE,
+            id
         },
         select: postSelect(userId),
     })
@@ -85,8 +83,7 @@ export const getUserPosts = async (
 ): Promise<Post[]> => {
     const posts = await prisma.media.findMany({
         where: {
-            ownerId,
-            type: MediaType.IMAGE,
+            ownerId
         },
 
         ...(cursorId && {
@@ -159,8 +156,6 @@ export const getRandom = async (
 
         LEFT JOIN "Tag" t
             ON t.id = mt."tagId"
-
-        WHERE m.type = ${MediaType.IMAGE}
 
         GROUP BY m.id, u.id
 
