@@ -1,4 +1,4 @@
-import { getPosts } from "@/actions/user"
+import { getPosts } from "@/actions/owner"
 import { MediaType, ParamsId } from "@/types/type"
 import { NextRequest } from "next/server"
 

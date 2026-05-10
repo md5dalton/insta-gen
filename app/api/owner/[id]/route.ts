@@ -1,4 +1,4 @@
-import { getTagCount, getUser, getUserStats } from "@/actions/user"
+import { getTagCount, getUser, getUserStats } from "@/actions/owner"
 import { MediaType } from "@/prisma/generated/enums"
 import { ParamsId } from "@/types/type"
 import { NextRequest } from "next/server"

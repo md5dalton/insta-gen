@@ -1,4 +1,4 @@
-import { getTags } from "@/actions/user"
+import { getTags } from "@/actions/owner"
 import { Tag } from "@/prisma/generated/client"
 import { ParamsId } from "@/types/type"
 import { NextRequest } from "next/server"
