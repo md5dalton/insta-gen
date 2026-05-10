@@ -1,4 +1,4 @@
-import { getLike, getLikedPosts, Post } from "@/actions/user"
+import { getSave, getSavedPosts, Post } from "@/actions/user"
 import withAuth from "@/hooks/withAuth"
 
 export const GET = withAuth(async (req, { user }) => {
@@ -12,13 +12,13 @@ export const GET = withAuth(async (req, { user }) => {
     let media: Post[] = []
 
     if (cursor) {
-        const like = await getLike(userId, cursor)
-        if (!like) return new Response("Cursor not found", { status: 404 })
+        const save = await getSave(userId, cursor)
+        if (!save) return new Response("Cursor not found", { status: 404 })
 
-        media = await getLikedPosts(userId, like)
+        media = await getSavedPosts(userId, save)
         
     } else {
-        media = await getLikedPosts(userId)
+        media = await getSavedPosts(userId)
     }
 
     return Response.json({
