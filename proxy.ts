@@ -12,6 +12,7 @@ export function proxy(request: NextRequest) {
         // use withAuth
         pathname.startsWith("/api/reel") ||
         pathname.startsWith("/api/post") ||
+        pathname.startsWith("/api/user") ||
         pathname.startsWith("/api/tag") ||
         pathname.startsWith("/api/activity")
     ) return NextResponse.next()
