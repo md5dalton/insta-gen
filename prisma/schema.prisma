@@ -54,7 +54,6 @@ model Media {
     
     likes        Like[]
     saves        Save[]
-    reports      Report[]
 
     height      Int
     width       Int
@@ -87,32 +86,34 @@ model MediaTag {
     media       Media @relation(fields: [mediaId], references: [id])
 }
 model Like {
-    mediaId String
-    userId  String
+    id        String   @id @default(cuid())
 
-    user    ProfileUser @relation(fields: [userId], references: [id])
-    media   Media       @relation(fields: [mediaId], references: [id])
+    mediaId   String
+    userId    String
 
-    @@id([userId, mediaId])
+    createdAt DateTime @default(now())
+
+    user  ProfileUser @relation(fields: [userId], references: [id])
+    media Media       @relation(fields: [mediaId], references: [id])
+
+    @@unique([userId, mediaId])
+
+    @@index([userId, createdAt, id])
 }
 model Save {
-    mediaId String
-    userId  String
+    id        String   @id @default(cuid())
 
-    user    ProfileUser @relation(fields: [userId], references: [id])
-    media   Media       @relation(fields: [mediaId], references: [id])
+    mediaId   String
+    userId    String
 
-    @@id([userId, mediaId])
-}
+    createdAt DateTime @default(now())
 
-model Report {
-    mediaId String
-    userId  String
+    user  ProfileUser @relation(fields: [userId], references: [id])
+    media Media       @relation(fields: [mediaId], references: [id])
 
-    user    ProfileUser @relation(fields: [userId], references: [id])
-    media   Media       @relation(fields: [mediaId], references: [id])
+    @@unique([userId, mediaId])
 
-    @@id([userId, mediaId])
+    @@index([userId, createdAt, id])
 }
 
 model ProfileUser {
@@ -124,7 +125,6 @@ model ProfileUser {
 
     likes        Like[]
     saves        Save[]
-    reports      Report[]
 
     createdAt DateTime @default(now())
 }
