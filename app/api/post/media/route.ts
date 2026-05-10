@@ -1,8 +1,8 @@
 import { getPost, getRandom, getUserPosts, Post } from "@/actions/post"
-import { withAuth } from "@/hooks/withAuth"
 import { NextRequest } from "next/server"
+import withAuthParams from "@/hooks/withAuthParams"
 
-export const GET = withAuth(async (req: NextRequest, { user }) => {
+export const GET = withAuthParams(async (req: NextRequest, { user }) => {
 
     const searchParams = req.nextUrl.searchParams
 

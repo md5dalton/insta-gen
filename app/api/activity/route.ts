@@ -1,5 +1,5 @@
 import { toggleLike, toggleSave } from "@/actions/activity"
-import { withAuth } from "@/hooks/withAuth"
+import withAuth from "@/hooks/withAuth"
 import { NextRequest, NextResponse } from "next/server"
 
 export const POST = withAuth(async (req: NextRequest, { user }) => {

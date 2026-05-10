@@ -5,29 +5,17 @@ type User = {
     id: string
 }
 
-type RouteContext<TParams = any> = {
-    params: Promise<TParams> | TParams
-}
-
-type AuthedHandler<TParams = any> = (
+type Handler = (
     req: NextRequest,
-    ctx: { params: TParams; user: User }
+    ctx: { user: User }
 ) => Promise<Response>
 
-export function withAuth<TParams = any>(handler: AuthedHandler<TParams>) {
-    return async (
-        req: NextRequest,
-        ctx: RouteContext<TParams>
-    ): Promise<Response> => {
+export default function withAuth (handler: Handler) {
+    return async (req: NextRequest): Promise<Response> => {
         try {
             const user = await resolveUserFromRequest(req)
 
-            const params = await ctx.params
-
-            return handler(req, {
-                params,
-                user
-            })
+            return handler(req, { user })
         } catch (err: any) {
             return NextResponse.json(
                 { error: err?.message || "Unauthorized" },

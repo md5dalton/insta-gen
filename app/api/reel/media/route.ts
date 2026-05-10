@@ -1,8 +1,8 @@
 import { getRandom, getUserReels, Reel } from "@/actions/reel"
-import { withAuth } from "@/hooks/withAuth"
+import withAuthParams from "@/hooks/withAuthParams"
 import { NextRequest } from "next/server"
 
-export const GET = withAuth(async (req: NextRequest, { user }) => {
+export const GET = withAuthParams(async (req: NextRequest, { user }) => {
 
     const searchParams = req.nextUrl.searchParams
 

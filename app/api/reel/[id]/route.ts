@@ -1,7 +1,7 @@
 import { getReel } from "@/actions/reel"
-import { withAuth } from "@/hooks/withAuth"
+import withAuthParams from "@/hooks/withAuthParams"
 
-export const GET = withAuth<{ id: string }>(async (req, { params, user }) => {
+export const GET = withAuthParams<{ id: string }>(async (req, { params, user }) => {
 
     const { id } = params
 

@@ -1,7 +1,7 @@
 import { getLike, getLikedPosts, LikedPost } from "@/actions/user"
-import { withAuth } from "@/hooks/withAuth"
+import withAuth from "@/hooks/withAuth"
 
-export const GET = withAuth<{ id: string }>(async (req, { user }) => {
+export const GET = withAuth(async (req, { user }) => {
 
     const searchParams = req.nextUrl.searchParams
 
