@@ -3,9 +3,12 @@ import prisma from "@/lib/prisma"
 const MAX_ATTEMPTS = 3
 
 export async function markDone(id: string) {
-    await prisma.job.update({
-        where: { id },
-        data: { status: "done" },
+    // await prisma.job.update({
+    //     where: { id },
+    //     data: { status: "done" },
+    // })
+    await prisma.job.delete({
+        where: { id }
     })
 }
 
