@@ -1,4 +1,4 @@
-import { extname, basename, join } from "path"
+import { extname } from "path"
 import { stat } from "fs/promises"
 import { PrismaClient } from "@/prisma/generated/client"
 import { MEDIA_CONFIG } from "@/config/media"
@@ -9,32 +9,13 @@ import { File } from "@/types/type"
 
 const VIDEO_EXTENSIONS = MEDIA_CONFIG.VIDEO_EXTENSIONS
 
-let activeVideos = 0
-const MAX_VIDEO_CONCURRENCY = 1
-
 export class MediaService {
     private userCache = new Map<string, any>()
 
     constructor(private prisma: PrismaClient) {}
 
-    private async waitForVideoSlot() {
-        while (activeVideos >= MAX_VIDEO_CONCURRENCY) {
-            await new Promise(r => setTimeout(r, 500))
-        }
-        activeVideos++
-    }
-
-    private releaseVideoSlot() {
-        activeVideos--
-    }
-
     async handleAddOrChange(file: File, userId: string, tags: string[]) {
-
         const { id, path } = file
-
-        // ✅ DEDUPE: skip if exists
-        const exists = await this.prisma.media.findUnique({ where: { id } })
-        if (exists) return
 
         const ext = extname(path).toLowerCase()
         const isVideo = VIDEO_EXTENSIONS.includes(ext)
@@ -45,18 +26,10 @@ export class MediaService {
             const stats = await stat(path)
 
             if (isVideo) {
-                await this.waitForVideoSlot()
+                const video = new Video(path)
+                metadata = await video.getMetadata()
 
-                try {
-                    const video = new Video(path)
-                    metadata = await video.getMetadata()
-
-                    if (metadata) {
-                        await video.extractThumbnail(id) // heavy
-                    }
-                } finally {
-                    this.releaseVideoSlot()
-                }
+                if (metadata) await video.extractThumbnail(id)
 
             } else {
 
@@ -131,6 +104,7 @@ export class MediaService {
 
         }
     }
+    
     private async processTags(mediaId: string, tags: string[]) {
         tags.forEach(async (tagId) => {
             await this.prisma.mediaTag.create({
