@@ -23,7 +23,7 @@ model Collection {
     id          String @id
     name        String
     path        String
-    owner       RootCollection @relation(fields: [ownerId], references: [id])
+    owner       RootCollection @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     ownerId     String
     users       User[]
 }
@@ -32,7 +32,7 @@ model User {
     name        String
     path        String
     picture     String?
-    owner       Collection @relation(fields: [ownerId], references: [id])
+    owner       Collection @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     ownerId     String
     media       Media[]
 }
@@ -47,7 +47,7 @@ model Media {
     path        String @unique
     type        MediaType
 
-    owner       User @relation(fields: [ownerId], references: [id])
+    owner       User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     ownerId     String
     
     tags        MediaTag[]
@@ -82,8 +82,8 @@ model MediaTag {
     tagId       String
     mediaId     String
 
-    tag         Tag @relation(fields: [tagId], references: [id])
-    media       Media @relation(fields: [mediaId], references: [id])
+    tag         Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+    media       Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 }
 model Like {
     id        String   @id @default(cuid())
@@ -93,8 +93,8 @@ model Like {
 
     createdAt DateTime @default(now())
 
-    user  ProfileUser @relation(fields: [userId], references: [id])
-    media Media       @relation(fields: [mediaId], references: [id])
+    user  ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    media Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
     @@unique([userId, mediaId])
 
@@ -108,8 +108,8 @@ model Save {
 
     createdAt DateTime @default(now())
 
-    user  ProfileUser @relation(fields: [userId], references: [id])
-    media Media       @relation(fields: [mediaId], references: [id])
+    user  ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    media Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
     @@unique([userId, mediaId])
 
