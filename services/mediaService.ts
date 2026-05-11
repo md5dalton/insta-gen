@@ -102,11 +102,11 @@ export class MediaService {
 
     async handleDelete(id: string) {
 
-        const media = await this.prisma.media.deleteMany({
+        const media = await this.prisma.media.delete({
             where: { id }
         })
 
-        console.log(`🗑️ Deleted: ${id} x${media.count}`)
+        console.log(`🗑️ Deleted: ${id} -> ${media.path}`)
     }
 
     private async setUserPicture(userId: string, mediaId: string) {

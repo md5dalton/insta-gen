@@ -3,12 +3,12 @@ import { dirname, extname, sep, join } from "path"
 import chokidar, { FSWatcher } from "chokidar"
 import { readdir, realpath, stat } from "fs/promises"
 import throttle from "lodash/throttle"
-// import { throttle } from "lodash"
 import prisma from "@/lib/prisma"
 import { Collection, PrismaClient, RootCollection } from "@/prisma/generated/client"
 import { enqueueMediaJob } from "@/lib/enqueue"
 import { generateId } from "@/lib/path"
 import { File } from "@/types/type"
+import { MediaService } from "./mediaService"
 
 type FileUpdate = {
     event: "add" | "change" | "delete"
@@ -19,6 +19,7 @@ type FileUpdate = {
 export default class DebouncedMediaProcessor {
     private root: string
     private prisma: PrismaClient
+    private mediaService: MediaService
     private isProcessing: boolean
     private watcher: FSWatcher | null
     private processThrottled: () => void
@@ -36,6 +37,7 @@ export default class DebouncedMediaProcessor {
         this.isProcessing = false
         this.watcher = null
         this.pendingUpdates = new Map()
+        this.mediaService = new MediaService(prisma)
 
         this.processThrottled = throttle(
             () => this.processPending(),
@@ -297,12 +299,25 @@ export default class DebouncedMediaProcessor {
     }
 
     private async enqueue(
-        file: File,
+        { id, path }: File,
         event: FileUpdate["event"],
         userId: string,
         tags: string[]
     ) {
-        await enqueueMediaJob({ file, event, userId, tags })
+        // await enqueueMediaJob({ file, event, userId, tags })
+
+        if (event === "delete") {
+            await this.mediaService.handleDelete(id)
+        } else {
+            await this.mediaService.handleAddOrChange(
+                {
+                    id,
+                    path
+                },
+                userId,
+                tags
+            )
+        }
         global.syncState.stats.queued++
     }
 
