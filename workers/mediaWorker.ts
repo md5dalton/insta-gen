@@ -42,5 +42,5 @@ async function workerLoop() {
 
 // 🔥 run multiple workers in same process
 // for (let i = 0; i < WORKER_CONCURRENCY; i++) {
-    workerLoop()
+    // workerLoop()
 // }
