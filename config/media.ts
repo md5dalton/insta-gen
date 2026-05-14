@@ -11,7 +11,7 @@ export interface MediaConfig {
     IGNORED_PATTERNS: RegExp[]
 }
 
-export const DIR_THUMB = path.join(process.cwd(), "public", "images", "thumbs")
+export const DIR_THUMB = path.join(process.cwd(), ".cache", "thumbs")
 export const DIR_MEDIA = process.env.MEDIA_ROOT_PATH!
 
 mkdirSync(DIR_THUMB, { recursive: true })
