@@ -23,6 +23,7 @@ export default class DebouncedMediaProcessor {
     private watcher: FSWatcher | null
     private processThrottled: () => void
     private pendingUpdates: Map<string, FileUpdate>
+    private exts = new Set<string>()
 
     // 🚀 CACHES
     private rootCache = new Map<string, any>()
@@ -37,6 +38,11 @@ export default class DebouncedMediaProcessor {
         this.watcher = null
         this.pendingUpdates = new Map()
         this.mediaService = new MediaService(prisma)
+
+        this.exts = new Set([
+            ...MEDIA_CONFIG.IMAGE_EXTENSIONS,
+            ...MEDIA_CONFIG.VIDEO_EXTENSIONS
+        ])
 
         this.processThrottled = throttle(
             () => this.processPending(),
@@ -64,25 +70,17 @@ export default class DebouncedMediaProcessor {
         // ✅ Initial scan (batched, controlled)
         await this.initialScan()
 
-        const extensions = new Set([
-            ...MEDIA_CONFIG.IMAGE_EXTENSIONS,
-            ...MEDIA_CONFIG.VIDEO_EXTENSIONS
-        ])
-
         this.watcher = chokidar.watch(this.root, {
-            ignored: (file: string) => {
-                const ext = extname(file).toLowerCase()
-                return Boolean(ext && !extensions.has(ext))
-            },
+            ignored: /(^|[\/\\])\../,
             persistent: true,
             ignoreInitial: true,
             depth: 10
         })
 
         this.watcher
-            .on("add", (filePath) => this.queueUpdate("add", {path: filePath, id: this.generateId(filePath)}))
-            .on("change", (filePath) => this.queueUpdate("change", {path: filePath, id: this.generateId(filePath)}))
-            .on("unlink", (filePath) => this.queueUpdate("delete", {path: filePath, id: this.generateId(filePath)}))
+            .on("add", (filePath) => this.queueUpdate("add", filePath))
+            .on("change", (filePath) => this.queueUpdate("change", filePath))
+            .on("unlink", (filePath) => this.queueUpdate("delete", filePath))
 
         global.syncState.isInitialized = true
 
@@ -202,10 +200,14 @@ export default class DebouncedMediaProcessor {
     // ⚡ LIVE UPDATES (DEBOUNCED)
     // =========================================================
 
-    private queueUpdate(event: FileUpdate["event"], file: File): void {
-        this.pendingUpdates.set(file.path, {
+    private queueUpdate(event: FileUpdate["event"], filepath: string): void {
+        const ext = extname(filepath).toLowerCase()
+
+        if (!this.exts.has(ext)) return
+
+        this.pendingUpdates.set(filepath, {
             event,
-            file,
+            file: { path: filepath, id: this.generateId(filepath) },
             timestamp: Date.now()
         })
 
