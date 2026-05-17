@@ -2,8 +2,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache ffmpeg
+
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 
@@ -17,4 +19,4 @@ ENV NODE_ENV=production
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start:all"]
