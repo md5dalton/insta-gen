@@ -12,7 +12,7 @@ export interface MediaConfig {
 }
 
 export const DIR_THUMB = path.join(process.cwd(), ".cache", "thumbs")
-export const DIR_MEDIA = process.env.MEDIA_ROOT_PATH!
+export const DIR_MEDIA = process.env.MEDIA_ROOT!
 
 mkdirSync(DIR_THUMB, { recursive: true })
 
