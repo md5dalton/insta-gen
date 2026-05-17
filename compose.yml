@@ -31,6 +31,8 @@ services:
       PORT: 4000
       MEDIA_ROOT: ${MEDIA_ROOT}
       JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - /home/mjr/media:/media
     depends_on:
       postgres:
         condition: service_healthy
