@@ -23,8 +23,8 @@ COPY . .
 
 ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
 
-RUN npx prisma generate
 RUN npm run build
+RUN npx prisma generate
 
 # ======================
 # Runner
