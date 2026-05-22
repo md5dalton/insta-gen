@@ -21,10 +21,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Needed only so Prisma can generate during build
 ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
 
-RUN npm run build
 RUN npx prisma generate
+
+RUN npm run build
 
 # ======================
 # Runner
