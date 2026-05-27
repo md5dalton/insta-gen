@@ -44,10 +44,6 @@ export default class DebouncedMediaProcessor {
             ...MEDIA_CONFIG.IMAGE_EXTENSIONS,
             ...MEDIA_CONFIG.VIDEO_EXTENSIONS
         ])
-        
-        console.log("this.root", this.root)
-        console.log("exists", existsSync(this.root))
-        readdir(this.root).then((v) => console.log(v))
 
         this.processThrottled = throttle(
             () => this.processPending(),
