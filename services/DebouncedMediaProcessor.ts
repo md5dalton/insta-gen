@@ -8,6 +8,7 @@ import { Collection, PrismaClient, RootCollection } from "@/prisma/generated/cli
 import { generateId } from "@/lib/path"
 import { File } from "@/types/type"
 import { MediaService } from "./mediaService"
+import { existsSync } from "fs"
 
 type FileUpdate = {
     event: "add" | "change" | "delete"
@@ -43,6 +44,9 @@ export default class DebouncedMediaProcessor {
             ...MEDIA_CONFIG.IMAGE_EXTENSIONS,
             ...MEDIA_CONFIG.VIDEO_EXTENSIONS
         ])
+        
+        console.log("this.root", this.root)
+        console.log("exists", existsSync(this.root))
 
         this.processThrottled = throttle(
             () => this.processPending(),
