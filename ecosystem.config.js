@@ -2,7 +2,7 @@ module.exports = {
     apps: [
         {
             name: "nextjs",
-            cwd: "/home/app/apps/insta-gen",
+            cwd: "/home/app/app",
 
             script: "npm",
             args: "start",
@@ -29,7 +29,7 @@ module.exports = {
 
         {
             name: "watcher",
-            cwd: "/home/app/apps/insta-gen",
+            cwd: "/home/app/app",
 
             script: "npm",
             args: "run watcher",
