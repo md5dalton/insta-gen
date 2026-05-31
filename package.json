@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start --port 4000",
+    "start": "next start --port 80",
     "watcher": "tsx -r dotenv/config services/runWatcher.ts",
     "syncthumbs": "tsx -r dotenv/config services/syncThumbs.ts",
     "dev:all": "concurrently \"npm run watcher\" \"npm run dev\"",
