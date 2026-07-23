@@ -1,30 +1,50 @@
 import { getMedia } from "@/actions/media"
-import { DIR_MEDIA } from "@/config/media"
+import { DIR_FEED_IMAGES, DIR_MEDIA } from "@/config/media"
 import fs from "fs"
 import { NextRequest } from "next/server"
 import path from "path"
-
+import { createReadStream, existsSync } from "fs"
+import { Readable } from "stream"
 
 interface Params {
     slug: string
 }
+
 export async function GET(
     req: NextRequest,
     props: { params: Promise<Params> }
 ): Promise<Response> {
     const { slug } = await props.params
 
+    const searchParams = req.nextUrl.searchParams
+
+    const download = searchParams.get("download")
+
     const media = await getMedia(slug)
 
-    if (!media) return new Response('Media not found', { status: 404 })
+    if (!media) return new Response("Media not found", { status: 404 })
 
-    const mediaPath = path.join(DIR_MEDIA, media.path)
+    const feed = path.join(DIR_FEED_IMAGES, `${slug}.webp`)
+    const original =  path.join(DIR_MEDIA, media.path)
 
-    if (!fs.existsSync(mediaPath)) return new Response('File not found', { status: 404 })
+    let mediaPath
+    
+    if (download) {
+        mediaPath = original
+    } else {
+        mediaPath = !existsSync(feed) ? original : feed
+    }
+    
+    if (!existsSync(mediaPath)) return new Response("File not found", { status: 404 })
 
-    const buffer = fs.readFileSync(mediaPath)
-        
-    return new Response(new Uint8Array(buffer), {
-        headers: { "Content-Type": "image/jpeg" },
+    const stream = Readable.toWeb(
+        createReadStream(mediaPath)
+    )
+
+    return new Response(stream as ReadableStream, {
+        headers: {
+            "Content-Type": "image/webp",
+            "Cache-Control": "public, max-age=31536000, immutable",
+        },
     })
 }

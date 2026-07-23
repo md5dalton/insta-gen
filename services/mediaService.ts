@@ -4,7 +4,7 @@ import { PrismaClient } from "@/prisma/generated/client"
 import { MEDIA_CONFIG } from "@/config/media"
 import { Video } from "@/lib/video"
 import { generateId } from "@/lib/path"
-import { generateThumbnail, getMetadata } from "@/lib/image"
+import ImageProcessor from "@/lib/image"
 import { File } from "@/types/type"
 
 const VIDEO_EXTENSIONS = MEDIA_CONFIG.VIDEO_EXTENSIONS
@@ -33,9 +33,14 @@ export class MediaService {
 
             } else {
 
-                await generateThumbnail(path)
+                const image = await new ImageProcessor(path).init()
 
-                metadata = await getMetadata(path)
+                await image.process()
+
+                metadata = {
+                    width: image.width,
+                    height: image.height,
+                }
 
             }
 

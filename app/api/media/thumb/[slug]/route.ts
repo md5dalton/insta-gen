@@ -1,8 +1,10 @@
 import { DIR_THUMB } from "@/config/media"
 import { ParamsSlug } from "@/types/type"
-import { existsSync, readFileSync } from "fs"
+import { existsSync } from "fs"
 import { NextRequest } from "next/server"
 import path from "path"
+import { createReadStream } from "fs"
+import { Readable } from "stream"
 
 export async function GET(
     req: NextRequest,
@@ -15,10 +17,15 @@ export async function GET(
     
     if (!existsSync(imagePath)) return new Response("Image not found", { status: 404 })
         
-    const buffer = readFileSync(imagePath)
+    const stream = Readable.toWeb(
+        createReadStream(imagePath)
+    )
 
-    return new Response(new Uint8Array(buffer), {
-        headers: { "Content-Type": "image/jpeg" },
+    return new Response(stream as ReadableStream, {
+        headers: {
+            "Content-Type": "image/jpg",
+            "Cache-Control": "public, max-age=31536000, immutable",
+        },
     })
 
 }

@@ -3,8 +3,11 @@
 First, set env variables:
 
 ```bash
-MEDIA_ROOT_PATH=
+MEDIA_ROOT=
 # /media or c:\users\user\media
+
+MEDIA_CACHE=
+# /.cache or c:\users\user\.cache
 
 DATABASE_URL=
 # postgresql://user:password@localhost:5432/db

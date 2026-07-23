@@ -1,52 +1,104 @@
-import { DIR_THUMB } from "@/config/media"
 import { join } from "path"
 import sharp from "sharp"
 import { generateId } from "./path"
 import { existsSync } from "fs"
+import { DIR_FEED_IMAGES, DIR_THUMB } from "@/config/media"
 
-export const getMetadata = async (filePath: string): Promise<{
-    width: number,
-    height: number
-}> => {
-    let width, height
+export default class ImageProcessor {
+    path: string
 
-    try {
-        const { info } = await sharp(filePath)
-            .rotate()
-            .toBuffer({ resolveWithObject: true })
+    width = 0
+    height = 0
+    format?: string
+    orientation?: number
 
-        width = info.width
-        height = info.height
+    constructor(path: string) {
+        this.path = path
+    }
 
-    } catch (err) {
-        const meta = await sharp(filePath, { failOnError: false }).metadata()
+    async init() {
+        const meta = await sharp(this.path, {
+            failOnError: false,
+        }).metadata()
 
-        width = meta.width
-        height = meta.height
+        this.format = meta.format
+        this.orientation = meta.orientation
 
-        if ([5,6,7,8].includes(Number(meta.orientation))) {
-            [width, height] = [height, width]
+        this.width = meta.width ?? 0
+        this.height = meta.height ?? 0
+
+        // normalize dimensions based on EXIF
+        if ([5, 6, 7, 8].includes(Number(this.orientation))) {
+            [this.width, this.height] = [
+                this.height,
+                this.width,
+            ]
         }
+
+        return this
     }
 
-    return {
-        width,
-        height
+    needsFeed() {
+        return (
+            this.width > 1080 ||
+            this.height > 1080 ||
+            [5, 6, 7, 8].includes(Number(this.orientation))
+        )
     }
-} 
 
-export const generateThumbnail = async (filePath: string) => {
+    async process() {
+        const tasks = []
 
-    const output = join(DIR_THUMB, `${generateId(filePath)}.jpg`)
+        if (this.needsFeed()) {
+            tasks.push(this.generateFeed())
+        }
 
-    if (existsSync(output)) return
-    
-    const image = sharp(filePath, { failOnError: false })
-    
-    await image
-        .rotate()
-        .resize(320)
-        .jpeg({ quality: 80, mozjpeg: true })
-        .toFile(output)
+        tasks.push(this.generateThumb())
 
+        await Promise.all(tasks)
+    }
+
+    async generateFeed() {
+        const output = join(
+            DIR_FEED_IMAGES,
+            `${generateId(this.path)}.webp`
+        )
+
+        if (existsSync(output)) return
+
+        await sharp(this.path, {
+            failOnError: false,
+        })
+            .rotate()
+            .resize({
+                width: 1080,
+                height: 1080,
+                fit: "inside",
+                withoutEnlargement: true,
+            })
+            .webp({
+                quality: 100
+            })
+            .toFile(output)
+    }
+
+    async generateThumb() {
+        const output = join(
+            DIR_THUMB,
+            `${generateId(this.path)}.jpg`
+        )
+
+        if (existsSync(output)) return
+
+        await sharp(this.path, {
+            failOnError: false,
+        })
+            .rotate()
+            .resize(320)
+            .jpeg({
+                quality: 80,
+                mozjpeg: true,
+            })
+            .toFile(output)
+    }
 }

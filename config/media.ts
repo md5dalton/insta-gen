@@ -11,10 +11,18 @@ export interface MediaConfig {
     IGNORED_PATTERNS: RegExp[]
 }
 
-export const DIR_THUMB = path.join(process.cwd(), ".cache", "thumbs")
 export const DIR_MEDIA = process.env.MEDIA_ROOT!
+export const DIR_CACHE = process.env.MEDIA_CACHE!
 
-mkdirSync(DIR_THUMB, { recursive: true })
+export const DIR_THUMB = path.join(DIR_CACHE, "thumbs")
+export const DIR_FEED = path.join(DIR_CACHE, "feed")
+
+export const DIR_FEED_IMAGES = path.join(DIR_FEED, "images")
+export const DIR_FEED_VIDEOS = path.join(DIR_FEED, "videos")
+
+mkdirSync(DIR_FEED_IMAGES, { recursive: true })
+mkdirSync(DIR_FEED_VIDEOS, { recursive: true })
+
 
 export const MEDIA_CONFIG: MediaConfig = {
     ROOT_PATH: DIR_MEDIA,
