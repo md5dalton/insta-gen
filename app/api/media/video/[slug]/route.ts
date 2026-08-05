@@ -1,87 +1,55 @@
-import { getMedia } from "@/actions/media"
-import { createReadStream, existsSync } from "node:fs"
-import { DIR_MEDIA } from "@/config/media"
-import { Readable } from "stream"
-import path from "path"
 import { NextRequest } from "next/server"
-import { ParamsSlug } from "@/types/type"
+import { Storage } from "@/lib/storage"
+import { mediaEngineConfig } from "@/lib/config"
+
+const storage = new Storage(mediaEngineConfig.mediaRoot)
 
 export const runtime = "nodejs"
 
-function nodeStreamToWeb(stream: Readable): ReadableStream {
-    return new ReadableStream({
-        start(controller) {
-            stream.on("data", chunk => controller.enqueue(chunk))
-            stream.on("end", () => controller.close())
-            stream.on("error", err => controller.error(err))
-        },
-        cancel() {
-            stream.destroy()
-        }
-    })
-}
-
 function parseRange(range: string | null, fileSize: number) {
     if (!range) return null
-    
+
     const match = range.match(/bytes=(\d+)-(\d*)/)
     if (!match) return null
-    
-    const start = parseInt(match[1], 10)
-    const end = match[2] ? parseInt(match[2], 10) : fileSize - 1
-    
+
+    const start = Number(match[1])
+    const end = match[2] ? Number(match[2]) : fileSize - 1
     return { start, end }
 }
 
-export async function GET({ headers }: NextRequest, { params }: ParamsSlug) {
-    
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
+    const mediaPath = `videos/${slug}/original.mp4`
 
-    const media = await getMedia(slug)
+    if (!(await storage.exists(mediaPath))) return new Response("File not found", { status: 404 })
 
-    if (!media) return new Response("Media not found", { status: 404 })
-    
-    const mediaPath = path.join(DIR_MEDIA, media.path)
-        
-    if (!existsSync(mediaPath)) return new Response("File not found", { status: 404 })
+    const fileSize = (await storage.stat(mediaPath)).size
+    const range = req.headers.get("range")
 
-    const range = headers.get('range')
-    const fileSize = Number(media.size)
-    
     if (range) {
         const rangeInfo = parseRange(range, fileSize)
         if (!rangeInfo) return new Response("Invalid range header", { status: 416 })
-        
-        // For direct file serving with range support
-        const stream = createReadStream(mediaPath, {
-            start: rangeInfo.start,
-            end: rangeInfo.end
-        })
-        
-        const webStream = nodeStreamToWeb(stream)
-        
-        return new Response(webStream, {
+        const stream = await storage.stream(mediaPath)
+
+        return new Response(stream as unknown as ReadableStream, {
             status: 206,
             headers: {
                 "Content-Type": "video/mp4",
                 "Content-Range": `bytes ${rangeInfo.start}-${rangeInfo.end}/${fileSize}`,
                 "Content-Length": (rangeInfo.end - rangeInfo.start + 1).toString(),
                 "Accept-Ranges": "bytes",
-                "Access-Control-Allow-Origin": "*",
-                "Cache-Control": "public, max-age=31536000"
+                "Cache-Control": "public, max-age=31536000",
             },
         })
     }
-    
-    // Full file response
-    const stream = createReadStream(mediaPath)
-    
-    return new Response(nodeStreamToWeb(stream), {
+
+    const stream = await storage.stream(mediaPath)
+    return new Response(stream as unknown as ReadableStream, {
         headers: {
             "Content-Type": "video/mp4",
             "Content-Length": fileSize.toString(),
             "Accept-Ranges": "bytes",
-            "Access-Control-Allow-Origin": "*"
+            "Cache-Control": "public, max-age=31536000",
         }
     })
 }

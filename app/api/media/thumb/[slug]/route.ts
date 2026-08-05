@@ -1,31 +1,22 @@
-import { DIR_THUMB } from "@/config/media"
-import { ParamsSlug } from "@/types/type"
-import { existsSync } from "fs"
 import { NextRequest } from "next/server"
-import path from "path"
-import { createReadStream } from "fs"
-import { Readable } from "stream"
+import { Storage } from "@/lib/storage"
+import { mediaEngineConfig } from "@/lib/config"
 
-export async function GET(
-    req: NextRequest,
-    { params }: ParamsSlug
-): Promise<Response> {
+const storage = new Storage(mediaEngineConfig.mediaRoot)
 
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
+    const imagePath = `images/${slug}/thumb.webp`
 
-    const imagePath = path.join(DIR_THUMB, `${slug}.jpg`)
-    
-    if (!existsSync(imagePath)) return new Response("Image not found", { status: 404 })
-        
-    const stream = Readable.toWeb(
-        createReadStream(imagePath)
-    )
+    if (!(await storage.exists(imagePath))) return new Response("Image not found", { status: 404 })
 
-    return new Response(stream as ReadableStream, {
+    const stream = await storage.stream(imagePath)
+
+    return new Response(stream as unknown as ReadableStream, {
         headers: {
-            "Content-Type": "image/jpg",
+            "Content-Type": "image/webp",
             "Cache-Control": "public, max-age=31536000, immutable",
+            ETag: slug,
         },
     })
-
 }
