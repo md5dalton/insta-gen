@@ -14,9 +14,14 @@ export class Storage {
 
   resolve(relativePath: string): string {
     const normalized = path.normalize(relativePath)
-    if (normalized.startsWith("..") || path.isAbsolute(normalized)) {
+    if (normalized.startsWith("..")) {
       throw new StorageError("Invalid storage path")
     }
+
+    if (path.isAbsolute(normalized)) {
+      return normalized
+    }
+
     return path.join(this.rootDir, normalized)
   }
 

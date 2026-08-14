@@ -15,6 +15,9 @@ export interface VideoAssetMetadata {
   masterPlaylistPath: string
   variantPlaylistPath: string
   startupSegments: string[]
+  width: number
+  height: number
+  duration: string
 }
 
 export class VideoProcessor {
@@ -28,8 +31,8 @@ export class VideoProcessor {
     this.ffprobe = ffprobe
   }
 
-  async process(inputRelativePath: string, id: string): Promise<VideoAssetMetadata> {
-    const originalPath = `videos/${id}/original.mp4`
+  async process(inputPath: string, id: string): Promise<VideoAssetMetadata> {
+    const sourcePath = path.isAbsolute(inputPath) ? inputPath : this.storage.resolve(inputPath)
     const posterPath = `videos/${id}/poster.webp`
     const metadataPath = `videos/${id}/metadata.json`
     const masterPlaylistPath = `videos/${id}/hls/master.m3u8`
@@ -37,15 +40,14 @@ export class VideoProcessor {
     const startupSegments = [`videos/${id}/hls/1080/segment000.ts`, `videos/${id}/hls/1080/segment001.ts`]
 
     await this.storage.mkdir(`videos/${id}/hls/1080`)
-    await this.storage.copy(inputRelativePath, originalPath)
 
-    const probe = await this.ffprobe.probe(this.storage.resolve(originalPath))
+    const probe = await this.ffprobe.probe(sourcePath)
     const videoStream = probe.streams.find((stream) => stream.codec_type === "video")
     if (!videoStream?.width || !videoStream?.height) {
       throw new TranscodeError("Unable to inspect uploaded video")
     }
 
-    await sharp(this.storage.resolve(originalPath), { failOnError: false }).resize({ width: 1920, height: 1080, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toFile(this.storage.resolve(posterPath))
+    await sharp(sourcePath, { failOnError: false }).resize({ width: 1920, height: 1080, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toFile(this.storage.resolve(posterPath))
 
     const metadata = {
       id,
@@ -56,30 +58,33 @@ export class VideoProcessor {
     }
     await this.storage.saveFile(metadataPath, Buffer.from(JSON.stringify(metadata, null, 2)))
 
-    await this.generateStartupSegments(originalPath, id)
+    await this.generateStartupSegments(sourcePath, id)
 
-    await this.storage.saveFile(masterPlaylistPath, Buffer.from(this.renderMasterPlaylist(id)))
-    await this.storage.saveFile(variantPlaylistPath, Buffer.from(this.renderVariantPlaylist(id)))
+    await this.storage.saveFile(masterPlaylistPath, Buffer.from(this.renderMasterPlaylist()))
+    await this.storage.saveFile(variantPlaylistPath, Buffer.from(this.renderVariantPlaylist()))
 
     logger.info("Generated video assets", { videoId: id })
     return {
       id,
-      originalPath,
+      originalPath: sourcePath,
       posterPath,
       metadataPath,
       masterPlaylistPath,
       variantPlaylistPath,
       startupSegments,
+      width: videoStream.width,
+      height: videoStream.height,
+      duration: metadata.duration,
     }
   }
 
-  private async generateStartupSegments(originalPath: string, id: string): Promise<void> {
+  private async generateStartupSegments(sourcePath: string, id: string): Promise<void> {
     const outputPattern = `videos/${id}/hls/1080/segment%03d.ts`
     const command = [
       "ffmpeg",
       "-y",
       "-i",
-      this.storage.resolve(originalPath),
+      sourcePath,
       "-c:v",
       "libx264",
       "-preset",
@@ -106,17 +111,17 @@ export class VideoProcessor {
     })
   }
 
-  private renderMasterPlaylist(id: string): string {
+  private renderMasterPlaylist(): string {
     return [
       "#EXTM3U",
       "#EXT-X-VERSION:3",
       "#EXT-X-STREAM-INF:BANDWIDTH=1200000,RESOLUTION=1920x1080",
-      `hls/1080/index.m3u8`,
+      "hls/1080/index.m3u8",
       "",
     ].join("\n")
   }
 
-  private renderVariantPlaylist(id: string): string {
+  private renderVariantPlaylist(): string {
     return [
       "#EXTM3U",
       "#EXT-X-VERSION:3",

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { Storage } from "@/lib/storage"
 import { mediaEngineConfig } from "@/lib/config"
 
-const storage = new Storage(mediaEngineConfig.mediaRoot)
+const storage = new Storage(mediaEngineConfig.storageRoot)
 
 export const runtime = "nodejs"
 

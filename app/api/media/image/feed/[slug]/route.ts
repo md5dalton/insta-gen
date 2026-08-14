@@ -6,7 +6,8 @@ const storage = new Storage(MediaConfig.ASSETS_ROOT)
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
-    const imagePath = `thumbs/${slug}.webp`
+    
+    const imagePath = `feed/${slug}.webp`
 
     if (!(await storage.exists(imagePath))) return new Response("Image not found", { status: 404 })
 
@@ -19,4 +20,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
             ETag: slug,
         },
     })
+
 }

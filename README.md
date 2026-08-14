@@ -3,16 +3,17 @@
 First, set env variables:
 
 ```bash
-MEDIA_ROOT=
+MEDIA_ROOT
 # /media or c:\users\user\media
+MEDIA_ROOT=/home/mjr/media
 
-MEDIA_CACHE=
-# /.cache or c:\users\user\.cache
+MEDIA_ASSETS_ROOT
+# /.insta-assets or c:\users\user\.insta-assets
 
-DATABASE_URL=
+DATABASE_URL
 # postgresql://user:password@localhost:5432/db
 
-JWT_SECRET=
+JWT_SECRET
 # openssl rand -hex 32
 ```
 

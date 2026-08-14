@@ -1,3 +1,4 @@
+import path from "node:path"
 import sharp from "sharp"
 import { mediaEngineConfig } from "./config"
 import { Storage } from "./storage"
@@ -8,20 +9,21 @@ export interface ImageAssetMetadata {
   originalPath: string
   feedPath: string
   thumbPath: string
+  width: number
+  height: number
 }
 
 export class ImageProcessor {
   constructor(private readonly storage: Storage) {}
 
-  async process(inputRelativePath: string, id: string): Promise<ImageAssetMetadata> {
-    const originalPath = `images/${id}/original`
+  async process(inputPath: string, id: string): Promise<ImageAssetMetadata> {
+    const sourcePath = path.isAbsolute(inputPath) ? inputPath : this.storage.resolve(inputPath)
     const feedPath = `images/${id}/feed.webp`
     const thumbPath = `images/${id}/thumb.webp`
 
     await this.storage.mkdir(`images/${id}`)
-    await this.storage.copy(inputRelativePath, originalPath)
 
-    const image = sharp(this.storage.resolve(originalPath), { failOnError: false })
+    const image = sharp(sourcePath, { failOnError: false })
     const metadata = await image.metadata()
     const width = metadata.width ?? 0
     const height = metadata.height ?? 0
@@ -32,7 +34,7 @@ export class ImageProcessor {
       .webp({ quality: mediaEngineConfig.feedQuality })
       .toFile(this.storage.resolve(feedPath))
 
-    await sharp(this.storage.resolve(originalPath), { failOnError: false })
+    await sharp(sourcePath, { failOnError: false })
       .rotate()
       .resize({ width: mediaEngineConfig.thumbWidth, height: mediaEngineConfig.thumbWidth, fit: "inside", withoutEnlargement: true })
       .webp({ quality: mediaEngineConfig.thumbQuality })
@@ -42,9 +44,11 @@ export class ImageProcessor {
 
     return {
       id,
-      originalPath,
+      originalPath: sourcePath,
       feedPath,
       thumbPath,
+      width,
+      height,
     }
   }
 }
