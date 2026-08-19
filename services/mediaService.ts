@@ -29,8 +29,8 @@ export class MediaService {
             let metadata: { width: number; height: number; duration?: string } | null = null
 
             if (isVideo) {
-                const video = new VideoProcessor(this.storage)
-                const result = await video.process(path, id)
+                const video = new VideoProcessor(this.storage, path, id)
+                const result = await video.process()
                 metadata = {
                     width: result.width,
                     height: result.height,
