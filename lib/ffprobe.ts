@@ -1,6 +1,12 @@
 import { spawn } from "node:child_process"
 import { TranscodeError } from "./errors"
 
+export interface ProbeSideData {
+  side_data_type?: string
+  rotation?: string
+  displaymatrix?: string
+}
+
 export interface ProbeStream {
   codec_type?: string
   codec_name?: string
@@ -11,6 +17,8 @@ export interface ProbeStream {
   avg_frame_rate?: string
   channels?: number
   sample_rate?: number
+  tags?: Record<string, string>
+  side_data_list?: ProbeSideData[]
 }
 
 export interface ProbeFormat {

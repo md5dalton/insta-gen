@@ -43,8 +43,10 @@ export class VideoProcessor {
 
         const probe = await this.ffprobe.probe(this.path)
         const videoStream = probe.streams.find((stream) => stream.codec_type === "video")
-        
+
         if (!videoStream?.width || !videoStream?.height) throw new TranscodeError("Unable to inspect video")
+
+        const normalizedDimensions = this.normalizeDimensions(videoStream)
 
         const tempPosterRel = posterPath.replace(/\.webp$/, ".tmp.webp")
         const tempPosterAbs = this.storage.resolve(tempPosterRel)
@@ -65,47 +67,69 @@ export class VideoProcessor {
             tempPosterAbs,
         ]
 
-        const posterProcess = this.ffmpeg.run(posterCommand)
-
-        await new Promise<void>((resolve, reject) => {
-            posterProcess.once("end", async () => {
-                try {
-                    await this.storage.move(tempPosterRel, posterPath)
-                    resolve()
-                } catch (err) {
-                    reject(err)
-                }
-            })
-
-            posterProcess.once("error", async (error) => {
-                try {
-                    await this.storage.delete(tempPosterRel)
-                } catch {}
-                reject(error)
-            })
-        })
-
         const metadata = {
             id: this.id,
-            width: videoStream.width,
-            height: videoStream.height,
+            width: normalizedDimensions.width,
+            height: normalizedDimensions.height,
             duration: probe.format.duration ?? "0",
             createdAt: new Date().toISOString(),
         }
 
-        await this.storage.saveFile(metadataPath, Buffer.from(JSON.stringify(metadata, null, 2)))
+        if (!(await this.storage.exists(posterPath))) {
+            await new Promise<void>((resolve, reject) => {
+                const posterProcess = this.ffmpeg.run(posterCommand)
 
-        await this.generateStartupSegments()
+                posterProcess.once("end", async () => {
+                    try {
+                        await this.storage.move(tempPosterRel, posterPath)
+                        resolve()
+                    } catch (err) {
+                        reject(err)
+                    }
+                })
 
-        await this.storage.saveFile(masterPlaylistPath, Buffer.from(this.renderMasterPlaylist()))
-        await this.storage.saveFile(variantPlaylistPath, Buffer.from(this.renderVariantPlaylist()))
+                posterProcess.once("error", async (error) => {
+                    try {
+                        await this.storage.delete(tempPosterRel)
+                    } catch {}
+                    reject(error)
+                })
+            })
+        }
+
+        if (!(await this.storage.exists(metadataPath))) {
+            await this.storage.saveFile(metadataPath, Buffer.from(JSON.stringify(metadata, null, 2)))
+        }
+
+        if (!(await this.storage.exists(masterPlaylistPath)) || !(await this.storage.exists(variantPlaylistPath))) {
+            await this.generateStartupSegments()
+            await this.storage.saveFile(masterPlaylistPath, Buffer.from(this.renderMasterPlaylist()))
+            await this.storage.saveFile(variantPlaylistPath, Buffer.from(this.renderVariantPlaylist()))
+        }
 
         return {
-            width: videoStream.width,
-            height: videoStream.height,
+            width: normalizedDimensions.width,
+            height: normalizedDimensions.height,
             duration: metadata.duration,
         }
   }
+
+    private normalizeDimensions(videoStream: { width?: number; height?: number; tags?: Record<string, string>; side_data_list?: Array<{ rotation?: string }> }): { width: number; height: number } {
+        let width = videoStream.width ?? 0
+        let height = videoStream.height ?? 0
+
+        const rotation = Number(
+            videoStream.tags?.rotate ??
+            videoStream.side_data_list?.find((item) => item.rotation)?.rotation ??
+            0
+        )
+
+        if ([90, -90, 270, -270].includes(rotation)) {
+            [width, height] = [height, width]
+        }
+
+        return { width, height }
+    }
 
     private async generateStartupSegments(): Promise<void> {
         const outputPattern = `videos/${this.id}/hls/1080/segment%03d.ts`

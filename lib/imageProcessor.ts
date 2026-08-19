@@ -19,20 +19,29 @@ export class ImageProcessor {
 
         const image = sharp(path, { failOnError: false })
         const metadata = await image.metadata()
-        const width = metadata.width ?? 0
-        const height = metadata.height ?? 0
+        let width = metadata.width ?? 0
+        let height = metadata.height ?? 0
 
-        await image
-            .rotate()
-            .resize({ width: mediaEngineConfig.feedWidth, height: mediaEngineConfig.feedWidth, fit: "inside", withoutEnlargement: true })
-            .webp({ quality: mediaEngineConfig.feedQuality })
-            .toFile(this.storage.resolve(feedPath))
+        // normalize dimensions based on EXIF orientation so stored values match the rendered image
+        if ([5, 6, 7, 8].includes(Number(metadata.orientation))) {
+            [width, height] = [height, width]
+        }
 
-        await sharp(path, { failOnError: false })
-            .rotate()
-            .resize({ width: mediaEngineConfig.thumbWidth, height: mediaEngineConfig.thumbWidth, fit: "inside", withoutEnlargement: true })
-            .webp({ quality: mediaEngineConfig.thumbQuality })
-            .toFile(this.storage.resolve(thumbPath))
+        if (!(await this.storage.exists(feedPath))) {
+            await image
+                .rotate()
+                .resize({ width: mediaEngineConfig.feedWidth, height: mediaEngineConfig.feedWidth, fit: "inside", withoutEnlargement: true })
+                .webp({ quality: mediaEngineConfig.feedQuality })
+                .toFile(this.storage.resolve(feedPath))
+        }
+
+        if (!(await this.storage.exists(thumbPath))) {
+            await sharp(path, { failOnError: false })
+                .rotate()
+                .resize({ width: mediaEngineConfig.thumbWidth, height: mediaEngineConfig.thumbWidth, fit: "inside", withoutEnlargement: true })
+                .webp({ quality: mediaEngineConfig.thumbQuality })
+                .toFile(this.storage.resolve(thumbPath))
+        }
 
         return {
             width,
