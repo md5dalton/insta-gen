@@ -45,5 +45,6 @@ export const mediaEngineConfig: MediaEngineConfig = {
     startupDuration: 10,
     cleanupIntervalMs: 60 * 60 * 1000,
     ffmpegTimeoutMs: 30_000,
-    gpuEnabled: process.env.INTEL_GPU === "1",
+    // Enable VA-API hardware acceleration when VAAPI=1 (works for Intel/AMD VA-API drivers)
+    gpuEnabled: (process.env.INTEL_GPU === "1") || (process.env.VAAPI === "1"),
 }
