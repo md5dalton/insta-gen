@@ -1,29 +1,28 @@
 import { extname } from "node:path"
 import { PrismaClient } from "@/prisma/generated/client"
-import { MEDIA_CONFIG } from "@/config/media"
 import { generateId } from "@/lib/path"
 import { File } from "@/types/type"
 import { Storage } from "@/lib/storage"
 import { ImageProcessor } from "@/lib/imageProcessor"
 import { VideoProcessor } from "@/lib/videoProcessor"
-import { mediaEngineConfig } from "@/lib/config"
+import { MediaConfig } from "@/lib/config"
 import { logger } from "@/lib/logger"
 
-const VIDEO_EXTENSIONS = MEDIA_CONFIG.VIDEO_EXTENSIONS
+const CONFIG = MediaConfig
 
 export class MediaService {
     private userCache = new Map<string, unknown>()
     private readonly storage: Storage
 
     constructor(private prisma: PrismaClient) {
-        this.storage = new Storage(mediaEngineConfig.storageRoot)
+        this.storage = new Storage(CONFIG.ASSETS_ROOT)
     }
 
     async handleAddOrChange(file: File, userId: string, tags: string[]) {
         const { id, path } = file
         const ext = extname(path).toLowerCase()
-        const isVideo = VIDEO_EXTENSIONS.includes(ext)
-        const relativePath = path.replace(MEDIA_CONFIG.ROOT_PATH, "").replace(/^\/+/, "")
+        const isVideo = CONFIG.VIDEO_EXTENSIONS.includes(ext)
+        const relativePath = path.replace(CONFIG.MEDIA_ROOT, "").replace(/^\/+/, "")
 
         try {
             const stats = await this.storage.stat(path)
