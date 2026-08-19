@@ -40,7 +40,15 @@ export class FFmpegProcess extends EventEmitter {
     this.child.on("close", (code) => {
       this.cleanup()
       if (code !== 0) {
-        this.emit("error", new TranscodeError(this.stderrBuffer || "ffmpeg exited unexpectedly"))
+        // Remove ffmpeg progress-like lines to avoid noisy garbage in the error message
+        const lines = this.stderrBuffer.split(/\r?\n/)
+        const filtered = lines
+          .filter((line) => !/(frame=|fps=|size=|time=|bitrate=|speed=)/.test(line))
+          .map((l) => l.trim())
+          .filter(Boolean)
+        const cleaned = filtered.slice(-10).join("\n")
+        const message = cleaned || this.stderrBuffer || "ffmpeg exited unexpectedly"
+        this.emit("error", new TranscodeError(message))
         return
       }
       this.emit("end")
