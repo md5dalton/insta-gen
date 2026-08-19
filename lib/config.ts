@@ -24,8 +24,8 @@ interface MediaEngineConfig {
 }
     
 export const MediaConfig: MediaConfig = {
-    MEDIA_ROOT: process.env.MEDIA_ROOT ?? "/media-root",
-    ASSETS_ROOT: process.env.MEDIA_ASSETS_ROOT ?? "/assets-root",
+    MEDIA_ROOT: process.env.MEDIA_ROOT ?? "/media-root/",
+    ASSETS_ROOT: process.env.MEDIA_ASSETS_ROOT ?? "/assets-root/",
 
     CHUNK_SIZE: 10,
     DEBOUNCE_MS: 1000,
