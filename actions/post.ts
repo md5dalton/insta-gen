@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma"
-import { Prisma } from "@/prisma/generated/client"
+import { MediaType, Prisma } from "@/prisma/generated/client"
 
 type PostBase = Prisma.MediaGetPayload<{
     select: ReturnType<typeof postSelect>
@@ -156,6 +156,8 @@ export const getRandom = async (
 
         LEFT JOIN "Tag" t
             ON t.id = mt."tagId"
+
+        WHERE m.type = ${MediaType.VIDEO}::"MediaType"
 
         GROUP BY m.id, u.id
 

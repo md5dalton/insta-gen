@@ -36,7 +36,13 @@ export class Storage {
     const absolutePath = this.resolve(relativePath)
     return fs.readFile(absolutePath, "utf8")
   }
+async readBuffer(relativePath: string): Promise<Buffer> {
+    const absolutePath = this.resolve(relativePath)
 
+    return fs.readFile(
+        absolutePath
+    )
+}
   async exists(relativePath: string): Promise<boolean> {
     try {
       await fs.access(this.resolve(relativePath))
