@@ -157,8 +157,6 @@ export const getRandom = async (
         LEFT JOIN "Tag" t
             ON t.id = mt."tagId"
 
-        WHERE m.type = ${MediaType.VIDEO}::"MediaType"
-
         GROUP BY m.id, u.id
 
         ORDER BY
