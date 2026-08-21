@@ -3,22 +3,16 @@ import { Storage } from "./storage"
 import { FFmpeg } from "./ffmpeg"
 import { FFprobe } from "./ffprobe"
 import { TranscodeError } from "./errors"
-import { EventEmitter } from "node:events"
 
 export interface VideoAssetMetadata {
     width: number
     height: number
     duration: string
 }
-type StoredVideoMetadata = {
-    id: string
-    width: number
-    height: number
-    duration: string | number
-    createdAt: string
-}
 
-const VAAPI_DEVICE = process.env.VAAPI_DEVICE ?? "/dev/dri/renderD128"
+const VAAPI_DEVICE =
+    process.env.VAAPI_DEVICE ??
+    "/dev/dri/renderD128"
 
 export class VideoProcessor {
     private readonly storage: Storage
@@ -27,23 +21,13 @@ export class VideoProcessor {
     private readonly ffmpeg: FFmpeg
     private readonly ffprobe: FFprobe
 
-    /**
-     * Prevent multiple requests in this Node process from generating
-     * the same segment simultaneously.
-     *
-     * Key:
-     *   videoId:segmentNumber
-     */
-    private static readonly segmentLocks = new Map<
-        string,
-        Promise<void>
-    >()
-
     constructor(
         storage: Storage,
         path: string,
         id: string,
-        ffmpeg = new FFmpeg(mediaEngineConfig.ffmpegTimeoutMs),
+        ffmpeg = new FFmpeg(
+            mediaEngineConfig.ffmpegTimeoutMs
+        ),
         ffprobe = new FFprobe()
     ) {
         this.storage = storage
@@ -52,106 +36,102 @@ export class VideoProcessor {
         this.ffmpeg = ffmpeg
         this.ffprobe = ffprobe
     }
-
+    
     async process(): Promise<VideoAssetMetadata> {
-        const posterPath = `videos/${this.id}/poster.webp`
-        const metadataPath = `videos/${this.id}/metadata.json`
-        const masterPlaylistPath = `videos/${this.id}/hls/master.m3u8`
-        const hlsDirectory = `videos/${this.id}/hls/1080`
+        const posterPath =
+            `videos/${this.id}/poster.webp`
 
-        await this.storage.mkdir(hlsDirectory)
+        const metadataPath =
+            `videos/${this.id}/metadata.json`
 
-        const probe = await this.ffprobe.probe(this.path)
+        const masterPlaylistPath =
+            `videos/${this.id}/hls/master.m3u8`
 
-        const videoStream = probe.streams.find(stream => stream.codec_type === "video")
+        const hlsDirectory =
+            `videos/${this.id}/hls/1080`
 
-        if (!videoStream?.width || !videoStream?.height) throw new TranscodeError("Unable to inspect video")
+        await this.storage.mkdir(
+            hlsDirectory
+        )
 
-        const normalizedDimensions = this.normalizeDimensions(videoStream)
+        const probe =
+            await this.ffprobe.probe(this.path)
 
-        const duration = Number(probe.format.duration ?? 0)
+        const videoStream =
+            probe.streams.find(
+                stream =>
+                    stream.codec_type === "video"
+            )
+
+        if (
+            !videoStream?.width ||
+            !videoStream?.height
+        ) {
+            throw new TranscodeError(
+                "Unable to inspect video"
+            )
+        }
+
+        const normalizedDimensions =
+            this.normalizeDimensions(
+                videoStream
+            )
 
         const metadata = {
             id: this.id,
-            width: normalizedDimensions.width,
-            height: normalizedDimensions.height,
-            duration: probe.format.duration ?? "0",
-            createdAt: new Date().toISOString(),
+            width:
+                normalizedDimensions.width,
+            height:
+                normalizedDimensions.height,
+            duration:
+                probe.format.duration ?? "0",
+            createdAt:
+                new Date().toISOString(),
         }
 
-        /** Poster */
-        if (!(await this.storage.exists(posterPath))) {
-            const tempPosterRel = posterPath.replace(
-                /\.webp$/,
-                ".tmp.webp"
+        if (
+            !(await this.storage.exists(
+                posterPath
+            ))
+        ) {
+            await this.generatePoster(
+                posterPath
             )
-
-            const tempPosterAbs = this.storage.resolve(tempPosterRel)
-
-            const posterCommand = [
-                "ffmpeg",
-                "-y",
-                "-ss",
-                "1",
-                "-i",
-                this.path,
-                "-vframes",
-                "1",
-                "-vf",
-                "scale=1920:1080:force_original_aspect_ratio=decrease",
-                "-q:v",
-                "82",
-                tempPosterAbs,
-            ]
-
-            await new Promise<void>((resolve, reject) => {
-                const posterProcess = this.ffmpeg.run(posterCommand)
-
-                posterProcess.once("end", async () => {
-                    try {
-                        await this.storage.move(
-                            tempPosterRel,
-                            posterPath
-                        )
-
-                        resolve()
-                    } catch (error) {
-                        reject(error)
-                    }
-                })
-
-                posterProcess.once("error", async (error) => {
-                    try {
-                        await this.storage.delete(tempPosterRel)
-                    } catch {}
-
-                    reject(error)
-                })
-            })
         }
 
-        /* * Metadata */
-        if (!(await this.storage.exists(metadataPath))) {
+        if (
+            !(await this.storage.exists(
+                metadataPath
+            ))
+        ) {
             await this.storage.saveFile(
                 metadataPath,
                 Buffer.from(
-                    JSON.stringify(metadata, null, 2)
+                    JSON.stringify(
+                        metadata,
+                        null,
+                        2
+                    )
                 )
             )
         }
 
-        const firstSegmentPath = `${hlsDirectory}/segment000.ts`
-
-        if (!(await this.storage.exists(firstSegmentPath))) {
-            await this.generateStartupSegments()
-        }
+        /*
+        * Process the ENTIRE video.
+        *
+        * Generates all .ts segments and
+        * the complete index.m3u8.
+        */
+        await this.generateHls()
 
         /*
-         * Master playlist
-         *
-         * This one is tiny and can remain static.
-         */
-        if (!(await this.storage.exists(masterPlaylistPath))) {
+        * Generate master playlist.
+        */
+        if (
+            !(await this.storage.exists(
+                masterPlaylistPath
+            ))
+        ) {
             await this.storage.saveFile(
                 masterPlaylistPath,
                 Buffer.from(
@@ -161,9 +141,12 @@ export class VideoProcessor {
         }
 
         return {
-            width: normalizedDimensions.width,
-            height: normalizedDimensions.height,
-            duration: metadata.duration,
+            width:
+                normalizedDimensions.width,
+            height:
+                normalizedDimensions.height,
+            duration:
+                metadata.duration,
         }
     }
 
@@ -180,19 +163,28 @@ export class VideoProcessor {
         width: number
         height: number
     } {
-        let width = videoStream.width ?? 0
-        let height = videoStream.height ?? 0
+        let width =
+            videoStream.width ?? 0
 
-        const rotation = Number(
-            videoStream.tags?.rotate ??
-                videoStream.side_data_list?.find(
-                    (item) => item.rotation
-                )?.rotation ??
-                0
-        )
+        let height =
+            videoStream.height ?? 0
 
-        if ([90, -90, 270, -270].includes(rotation)) {
-            ;[width, height] = [height, width]
+        const rotation =
+            Number(
+                videoStream.tags?.rotate ??
+                    videoStream.side_data_list?.find(
+                        item =>
+                            item.rotation
+                    )?.rotation ??
+                    0
+            )
+
+        if (
+            [90, -90, 270, -270]
+                .includes(rotation)
+        ) {
+            ;[width, height] =
+                [height, width]
         }
 
         return {
@@ -201,167 +193,109 @@ export class VideoProcessor {
         }
     }
 
-    /**
-     * Generate the first few segments.
-     *
-     * FFmpeg owns the initial HLS playlist.
-     */
-    private async generateStartupSegments(): Promise<void> {
-        const initialSegments = 3
-
-        for (
-            let segmentNumber = 0;
-            segmentNumber < initialSegments;
-            segmentNumber++
-        ) {
-            try {
-                await this.generateSegment(segmentNumber)
-            } catch (error) {
-                // The video may be shorter than the initial
-                // number of segments.
-                if (error instanceof SegmentNotFoundError) {
-                    break
-                }
-
-                throw error
-            }
-        }
-    }
-    /**
-     * Generate one specific HLS segment.
-     *
-     * Example:
-     *
-     * segment 3
-     *   start = 18
-     *   duration = 6
-     *
-     * resulting file:
-     *
-     *   segment003.ts
-     */
-    async generateSegment(
-        segmentNumber: number
+    private async generatePoster(
+        posterPath: string
     ): Promise<void> {
-        if (
-            !Number.isInteger(segmentNumber) ||
-            segmentNumber < 0
-        ) {
-            throw new TranscodeError(
-                "Invalid segment number"
+        const tempPosterRel =
+            posterPath.replace(
+                /\.webp$/,
+                ".tmp.webp"
             )
-        }
 
-        const lockKey =
-            `${this.id}:${segmentNumber}`
+        const tempPosterAbs =
+            this.storage.resolve(
+                tempPosterRel
+            )
 
-        const existingLock =
-            VideoProcessor.segmentLocks.get(lockKey)
+        const command = [
+            "ffmpeg",
+            "-y",
 
-        if (existingLock) {
-            await existingLock
-            return
-        }
+            "-ss",
+            "1",
 
-        const generation = this.generateSegmentLocked(
-            segmentNumber
-        )
+            "-i",
+            this.path,
 
-        VideoProcessor.segmentLocks.set(
-            lockKey,
-            generation
-        )
+            "-vframes",
+            "1",
+
+            "-vf",
+            "scale=1920:1080:force_original_aspect_ratio=decrease",
+
+            "-q:v",
+            "82",
+
+            tempPosterAbs,
+        ]
+
+        const process =
+            this.ffmpeg.run(command)
 
         try {
-            await generation
-        } finally {
-            VideoProcessor.segmentLocks.delete(
-                lockKey
+            await new Promise<void>(
+                (resolve, reject) => {
+                    process.once(
+                        "end",
+                        resolve
+                    )
+
+                    process.once(
+                        "error",
+                        reject
+                    )
+                }
             )
+
+            await this.storage.move(
+                tempPosterRel,
+                posterPath
+            )
+        } catch (error) {
+            try {
+                await this.storage.delete(
+                    tempPosterRel
+                )
+            } catch {}
+
+            throw error
         }
     }
 
-    private async generateSegmentLocked(
-        segmentNumber: number
-    ): Promise<void> {
-        const segmentName =
-            `segment${String(segmentNumber).padStart(3, "0")}.ts`
+    private async generateHls(): Promise<void> {
+        const outputDir =
+            `videos/${this.id}/hls/1080`
 
-        const segmentPath =
-            `videos/${this.id}/hls/1080/${segmentName}`
+        const playlistPath =
+            `${outputDir}/index.m3u8`
 
-        /*
-        * Double-check after acquiring the lock.
-        */
-        if (await this.storage.exists(segmentPath)) {
-            return
-        }
+        const segmentPattern =
+            `${outputDir}/segment%03d.ts`
 
-        const metadata =
-            await this.readMetadata()
-
-        const totalDuration =
-            Number(metadata.duration)
-
-        if (
-            !Number.isFinite(totalDuration) ||
-            totalDuration <= 0
-        ) {
-            throw new TranscodeError(
-                "Invalid video duration"
+        const playlistAbs =
+            this.storage.resolve(
+                playlistPath
             )
-        }
 
-        const segmentDuration =
-            mediaEngineConfig.segmentDuration
-
-        const start =
-            segmentNumber * segmentDuration
-
-        /*
-        * Example with 6 second segments:
-        *
-        * segment000 -> 0s
-        * segment001 -> 6s
-        * segment002 -> 12s
-        * segment003 -> 18s
-        */
-        if (start >= totalDuration) {
-            throw new SegmentNotFoundError(
-                "Segment is beyond the end of the video"
+        const segmentPatternAbs =
+            this.storage.resolve(
+                segmentPattern
             )
-        }
 
-        /*
-        * The final segment may be shorter than the
-        * normal segment duration.
-        */
         const duration =
-            Math.min(
-                segmentDuration,
-                totalDuration - start
-            )
-
-        const tempPath =
-            `${segmentPath}.tmp`
-
-        const outputAbs =
-            this.storage.resolve(tempPath)
+            mediaEngineConfig.segmentDuration
 
         const command: string[] = [
             "ffmpeg",
             "-y",
 
-            "-ss",
-            String(start),
-
             "-i",
             this.path,
-
-            "-t",
-            String(duration),
         ]
 
+        /*
+        * Video.
+        */
         if (mediaEngineConfig.gpuEnabled) {
             command.push(
                 "-vaapi_device",
@@ -389,194 +323,68 @@ export class VideoProcessor {
             )
         }
 
+        /*
+        * Audio + complete HLS VOD.
+        */
         command.push(
             "-c:a",
             "aac",
 
             "-f",
-            "mpegts",
+            "hls",
 
-            outputAbs
+            "-hls_time",
+            String(duration),
+
+            /*
+            * 0 means keep ALL segments in
+            * the playlist.
+            */
+            "-hls_list_size",
+            "0",
+
+            /*
+            * Generate every segment:
+            *
+            * segment000.ts
+            * segment001.ts
+            * segment002.ts
+            * ...
+            */
+            "-hls_segment_filename",
+            segmentPatternAbs,
+
+            /*
+            * Complete playlist.
+            */
+            playlistAbs
+        )
+
+        console.log(
+            `[VideoProcessor] Generating complete HLS for ${this.id}`
         )
 
         const process =
             this.ffmpeg.run(command)
 
-        try {
-            await new Promise<void>(
-                (resolve, reject) => {
-                    process.once(
-                        "end",
-                        resolve
-                    )
-
-                    process.once(
-                        "error",
-                        reject
-                    )
-                }
-            )
-
-            /*
-            * Only move the file into its permanent
-            * location after FFmpeg succeeded.
-            */
-            await this.storage.move(
-                tempPath,
-                segmentPath
-            )
-        } catch (error) {
-            try {
-                await this.storage.delete(
-                    tempPath
-                )
-            } catch {}
-
-            throw error
-        }
-    }
-
-    async getAvailableSegments(): Promise<number[]> {
-        const metadata =
-            await this.readMetadata()
-
-        const totalDuration =
-            Number(metadata.duration)
-
-        const segmentDuration =
-            mediaEngineConfig.segmentDuration
-
-        const totalSegments =
-            Math.ceil(
-                totalDuration /
-                    segmentDuration
-            )
-
-        const available: number[] = []
-
-        /*
-        * HLS segments must be contiguous.
-        *
-        * If segment003 is missing, don't advertise
-        * segment004 even if it happens to exist.
-        */
-        for (
-            let i = 0;
-            i < totalSegments;
-            i++
-        ) {
-            const segmentPath =
-                `videos/${this.id}/hls/1080/segment${String(
-                    i
-                ).padStart(3, "0")}.ts`
-
-            if (
-                !(await this.storage.exists(
-                    segmentPath
-                ))
-            ) {
-                break
-            }
-
-            available.push(i)
-        }
-
-        return available
-    }
-
-    async renderAvailablePlaylist(): Promise<string> {
-        const metadata =
-            await this.readMetadata()
-
-        const totalDuration =
-            Number(metadata.duration)
-
-        const segmentDuration =
-            mediaEngineConfig.segmentDuration
-
-        const totalSegments =
-            Math.ceil(
-                totalDuration /
-                    segmentDuration
-            )
-
-        const availableSegments =
-            await this.getAvailableSegments()
-
-        /*
-        * Generate two segments ahead.
-        */
-        const lookAhead = 2
-
-        const targetCount =
-            Math.min(
-                availableSegments.length +
-                    lookAhead,
-                totalSegments
-            )
-
-        for (
-            let segmentNumber =
-                availableSegments.length;
-            segmentNumber < targetCount;
-            segmentNumber++
-        ) {
-            await this.generateSegment(
-                segmentNumber
-            )
-        }
-
-        /*
-        * Re-read after generation.
-        */
-        const segments =
-            await this.getAvailableSegments()
-
-        const lines = [
-            "#EXTM3U",
-            "#EXT-X-VERSION:3",
-            `#EXT-X-TARGETDURATION:${Math.ceil(
-                segmentDuration
-            )}`,
-            "#EXT-X-MEDIA-SEQUENCE:0",
-        ]
-
-        for (
-            const segmentNumber of segments
-        ) {
-            const start =
-                segmentNumber *
-                segmentDuration
-
-            const duration =
-                Math.min(
-                    segmentDuration,
-                    totalDuration - start
+        await new Promise<void>(
+            (resolve, reject) => {
+                process.once(
+                    "end",
+                    resolve
                 )
 
-            if (duration <= 0) {
-                break
+                process.once(
+                    "error",
+                    reject
+                )
             }
+        )
 
-            lines.push(
-                `#EXTINF:${duration.toFixed(6)},`,
-                `segment${String(
-                    segmentNumber
-                ).padStart(3, "0")}.ts`
-            )
-        }
-
-        if (
-            segments.length >= totalSegments
-        ) {
-            lines.push("#EXT-X-ENDLIST")
-        }
-
-        lines.push("")
-
-        return lines.join("\n")
+        console.log(
+            `[VideoProcessor] Complete HLS generated for ${this.id}`
+        )
     }
-    
     private renderMasterPlaylist(): string {
         return [
             "#EXTM3U",
@@ -585,38 +393,5 @@ export class VideoProcessor {
             "hls/1080/index.m3u8",
             "",
         ].join("\n")
-    }
-
-    private async readMetadata(): Promise<StoredVideoMetadata> {
-        const metadataPath =
-            `videos/${this.id}/metadata.json`
-
-        if (!(await this.storage.exists(metadataPath))) {
-            throw new TranscodeError(
-                "Video metadata not found"
-            )
-        }
-
-        const content =
-            await this.storage.readFile(metadataPath)
-
-        try {
-            return JSON.parse(
-                content.toString()
-            ) as StoredVideoMetadata
-        } catch {
-            throw new TranscodeError(
-                "Invalid video metadata"
-            )
-        }
-    }
-
-    
-}
-
-export class SegmentNotFoundError extends Error {
-    constructor(message = "Segment not found") {
-        super(message)
-        this.name = "SegmentNotFoundError"
     }
 }
