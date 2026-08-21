@@ -1,47 +1,48 @@
-import { extname } from "path"
-import { stat } from "fs/promises"
+import { extname } from "node:path"
 import { PrismaClient } from "@/prisma/generated/client"
-import { MEDIA_CONFIG } from "@/config/media"
-import { Video } from "@/lib/video"
 import { generateId } from "@/lib/path"
-import ImageProcessor from "@/lib/image"
 import { File } from "@/types/type"
+import { Storage } from "@/lib/storage"
+import { ImageProcessor } from "@/lib/imageProcessor"
+import { VideoProcessor } from "@/lib/videoProcessor"
+import { MediaConfig } from "@/lib/config"
+import { logger } from "@/lib/logger"
 
-const VIDEO_EXTENSIONS = MEDIA_CONFIG.VIDEO_EXTENSIONS
+const CONFIG = MediaConfig
 
 export class MediaService {
-    private userCache = new Map<string, any>()
+    private userCache = new Map<string, unknown>()
+    private readonly storage: Storage
 
-    constructor(private prisma: PrismaClient) {}
+    constructor(private prisma: PrismaClient) {
+        this.storage = new Storage(CONFIG.ASSETS_ROOT)
+    }
 
     async handleAddOrChange(file: File, userId: string, tags: string[]) {
         const { id, path } = file
-
         const ext = extname(path).toLowerCase()
-        const isVideo = VIDEO_EXTENSIONS.includes(ext)
-        const relativePath = path.replace(MEDIA_CONFIG.ROOT_PATH, "")
+        const isVideo = CONFIG.VIDEO_EXTENSIONS.includes(ext)
+        const relativePath = path.replace(CONFIG.MEDIA_ROOT, "").replace(/^\/+/, "")
 
         try {
-            let metadata: any
-            const stats = await stat(path)
+            const stats = await this.storage.stat(path)
+            let metadata: { width: number; height: number; duration?: string } | null = null
 
             if (isVideo) {
-                const video = new Video(path)
-                metadata = await video.getMetadata()
-
-                if (metadata) await video.extractThumbnail(id)
-
-            } else {
-
-                const image = await new ImageProcessor(path).init()
-
-                await image.process()
-
+                const video = new VideoProcessor(this.storage, path, id)
+                const result = await video.process()
                 metadata = {
-                    width: image.width,
-                    height: image.height,
+                    width: result.width,
+                    height: result.height,
+                    duration: result.duration,
                 }
-
+            } else {
+                const image = new ImageProcessor(this.storage)
+                const result = await image.process(path, id)
+                metadata = {
+                    width: result.width,
+                    height: result.height,
+                }
             }
 
             if (metadata) {
@@ -55,40 +56,32 @@ export class MediaService {
                         width: metadata.width,
                         size: stats.size,
                         duration: isVideo ? metadata.duration : null,
-                        mktime: String(stats.birthtimeMs)
+                        mktime: String(Date.now())
                     }
                 })
-                
+
                 if (media) {
-                    this.setUserPicture(userId, media.id)
+                    await this.setUserPicture(userId, media.id)
                     await this.processTags(id, tags)
                 }
 
-                console.log(`✅ Processed: ${relativePath}`)
-
-            } else {
-                console.log(`❌ Failed to process media: ${relativePath}`)
+                logger.info("Processed watched media", { mediaId: id, path: relativePath })
             }
-
-
-        } catch (err) {
-            console.error(`❌ Failed: ${relativePath}`, err)
-            throw err
+        } catch (error) {
+            logger.error("Failed processing watched media", { mediaId: id, path: relativePath, error: error instanceof Error ? error.message : String(error) })
+            throw error
         }
-
     }
 
     async handleDelete(id: string) {
-
         const media = await this.prisma.media.delete({
             where: { id }
         })
 
-        console.log(`🗑️ Deleted: ${id} -> ${media.path}`)
+        logger.info("Deleted watched media", { mediaId: id, path: media.path })
     }
 
     private async setUserPicture(userId: string, mediaId: string) {
-
         if (this.userCache.has(userId)) return
 
         const user = await this.prisma.user.findUnique({
@@ -99,19 +92,17 @@ export class MediaService {
         })
 
         if (user && !user.picture) {
-
             await this.prisma.user.update({
                 where: { id: userId },
                 data: { picture: mediaId }
             })
 
             this.userCache.set(userId, user)
-
         }
     }
-    
+
     private async processTags(mediaId: string, tags: string[]) {
-        tags.forEach(async (tagId) => {
+        await Promise.all(tags.map(async (tagId) => {
             await this.prisma.mediaTag.create({
                 data: {
                     id: generateId(`media-${mediaId}-tag-${tagId}`),
@@ -119,7 +110,6 @@ export class MediaService {
                     tagId
                 }
             })
-        })
+        }))
     }
-
 }

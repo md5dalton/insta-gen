@@ -1,4 +1,3 @@
-import { MEDIA_CONFIG } from "@/config/media"
 import { dirname, extname, sep, join } from "path"
 import chokidar, { FSWatcher } from "chokidar"
 import { readdir, realpath, stat } from "fs/promises"
@@ -8,13 +7,15 @@ import { Collection, PrismaClient, RootCollection } from "@/prisma/generated/cli
 import { generateId } from "@/lib/path"
 import { File } from "@/types/type"
 import { MediaService } from "./mediaService"
-import { existsSync } from "fs"
+import { MediaConfig } from "@/lib/config"
 
 type FileUpdate = {
     event: "add" | "change" | "delete"
     timestamp: number
     file: File
 }
+
+const CONFIG = MediaConfig
 
 export default class DebouncedMediaProcessor {
     private root: string
@@ -33,7 +34,7 @@ export default class DebouncedMediaProcessor {
     private tagCache = new Map<string, any>()
 
     constructor() {
-        this.root = MEDIA_CONFIG.ROOT_PATH
+        this.root = CONFIG.MEDIA_ROOT
         this.prisma = prisma
         this.isProcessing = false
         this.watcher = null
@@ -41,13 +42,13 @@ export default class DebouncedMediaProcessor {
         this.mediaService = new MediaService(prisma)
 
         this.exts = new Set([
-            ...MEDIA_CONFIG.IMAGE_EXTENSIONS,
-            ...MEDIA_CONFIG.VIDEO_EXTENSIONS
+            ...CONFIG.IMAGE_EXTENSIONS,
+            ...CONFIG.VIDEO_EXTENSIONS
         ])
 
         this.processThrottled = throttle(
             () => this.processPending(),
-            MEDIA_CONFIG.DEBOUNCE_MS,
+            CONFIG.DEBOUNCE_MS,
             { leading: false, trailing: true }
         )
     }
@@ -98,8 +99,8 @@ export default class DebouncedMediaProcessor {
         const files: string[] = []
 
         const extensions = new Set([
-            ...MEDIA_CONFIG.IMAGE_EXTENSIONS,
-            ...MEDIA_CONFIG.VIDEO_EXTENSIONS
+            ...CONFIG.IMAGE_EXTENSIONS,
+            ...CONFIG.VIDEO_EXTENSIONS
         ])
         
         const seen = new Set<string>()
