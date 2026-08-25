@@ -22,7 +22,6 @@ export const GET = withAuthParams(async (req: NextRequest, { user }) => {
         reels = await getRandom(userId)
 
     }
-    reels = []
 
     return Response.json({
         items: reels,
