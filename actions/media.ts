@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma"
 import { Media } from "@/prisma/generated/client"
 import { MediaType } from "@/types/type"
 
-type MediaProps = Pick<Media, "path" | "size" | "bitrate">
+type MediaProps = Pick<Media, "path" | "size" | "bitrate" | "type">
 
 export type MediaResponse = {
     id: string
@@ -21,7 +21,8 @@ export const getMedia = async (slug: string): Promise<MediaProps | null> => awai
     select: {
         path: true,
         size: true,
-        bitrate: true
+        bitrate: true,
+        type: true
     }
 })
 

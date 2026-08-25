@@ -1,26 +1,30 @@
 import { NextRequest } from "next/server"
 import { Storage } from "@/lib/storage"
-import { getMedia } from "@/actions/media"
 import { MediaConfig } from "@/lib/config"
+import { getMedia } from "@/actions/media"
+import { MediaType } from "@/prisma/generated/enums"
 
 const storage = new Storage(MediaConfig.MEDIA_ROOT)
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
-
+    
     const media = await getMedia(slug)
+    
+    if (!media) return new Response("DB Media not found", { status: 404 })
 
-    if (!media) return new Response("Media not found", { status: 404 })
+    const filepath = media.path
 
-    if (!(await storage.exists(media.path))) return new Response("Image not found", { status: 404 })
+    if (!(await storage.exists(filepath))) return new Response("File not found", { status: 404 })
 
-    const stream = await storage.stream(media.path)
+    const stream = await storage.stream(filepath)
 
     return new Response(stream as unknown as ReadableStream, {
         headers: {
-            "Content-Type": "video/mp4",
+            "Content-Type": media.type == MediaType.VIDEO ? "video/mp4" : "image/webp",
             "Cache-Control": "public, max-age=31536000, immutable",
             ETag: slug,
         },
     })
+
 }
