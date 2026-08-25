@@ -6,11 +6,14 @@ const storage = new Storage(MediaConfig.ASSETS_ROOT)
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
-    const posterPath = `videos/${slug}/poster.webp`
-    
-    if (!(await storage.exists(posterPath))) return new Response("Image not found", { status: 404 })
 
-    const stream = await storage.stream(posterPath)
+    let [id, isVideo] = slug.split(":")
+
+    const imagePath = (isVideo ? "videos" : "images") +  `/${id}/` + (isVideo ? "poster" : "thumb") + ".webp"
+
+    if (!(await storage.exists(imagePath))) return new Response("Thumbnail not found", { status: 404 })
+
+    const stream = await storage.stream(imagePath)
 
     return new Response(stream as unknown as ReadableStream, {
         headers: {

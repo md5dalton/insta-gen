@@ -45,6 +45,7 @@ enum MediaType {
 model Media {
     id          String @id
     path        String @unique
+    
     type        MediaType
 
     owner       User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -52,8 +53,8 @@ model Media {
     
     tags        MediaTag[]
     
-    likes        Like[]
-    saves        Save[]
+    likes       Like[]
+    saves       Save[]
 
     height      Int
     width       Int
@@ -62,10 +63,10 @@ model Media {
     bitrate     String?
     mktime      String
 
-    createdAt  DateTime @default(now())
-    updatedAt  DateTime @updatedAt
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
 
-    random Float @default(dbgenerated("random()"))
+    random      Float @default(dbgenerated("random()"))
 
     @@unique([mktime, id])
     @@index([type, random])

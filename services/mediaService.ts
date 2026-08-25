@@ -60,10 +60,7 @@ export class MediaService {
                     }
                 })
 
-                if (media) {
-                    await this.setUserPicture(userId, media.id)
-                    await this.processTags(id, tags)
-                }
+                if (media) await this.processTags(id, tags)
 
                 logger.info("Processed watched media", { mediaId: id, path: relativePath })
             }
