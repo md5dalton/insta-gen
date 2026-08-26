@@ -1,60 +1,57 @@
 import path from "node:path"
 import { Readable } from "node:stream"
-import {
-  createReadStream,
-  createWriteStream,
-  promises as fs,
-} from "node:fs"
+import { createReadStream, createWriteStream, promises as fs } from "node:fs"
 
 export class StorageError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
-    super(message)
-    this.name = "StorageError"
-  }
+    constructor(
+        message: string,
+        readonly cause?: unknown
+    ) {
+        super(message)
+        this.name = "StorageError"
+    }
 }
 
 export class Storage {
-  constructor(private readonly rootDir: string) {}
+    constructor(private readonly rootDir: string) {}
 
-  resolve(relativePath: string): string {
-    const normalized = path.normalize(relativePath)
-    if (normalized.startsWith("..")) {
-      throw new StorageError("Invalid storage path")
+    resolve(relativePath: string): string {
+        const normalized = path.normalize(relativePath)
+        if (normalized.startsWith("..")) {
+            throw new StorageError("Invalid storage path")
+        }
+
+        if (path.isAbsolute(normalized)) {
+            return normalized
+        }
+
+        return path.join(this.rootDir, normalized)
     }
 
-    if (path.isAbsolute(normalized)) {
-      return normalized
+    async saveFile(relativePath: string, content: Buffer | Uint8Array | string): Promise<string> {
+        const absolutePath = this.resolve(relativePath)
+        await this.mkdir(path.dirname(relativePath))
+        await fs.writeFile(absolutePath, content)
+        return absolutePath
     }
 
-    return path.join(this.rootDir, normalized)
-  }
-
-  async saveFile(relativePath: string, content: Buffer | Uint8Array | string): Promise<string> {
-    const absolutePath = this.resolve(relativePath)
-    await this.mkdir(path.dirname(relativePath))
-    await fs.writeFile(absolutePath, content)
-    return absolutePath
-  }
-
-  async readFile(relativePath: string): Promise<string> {
-    const absolutePath = this.resolve(relativePath)
-    return fs.readFile(absolutePath, "utf8")
-  }
-async readBuffer(relativePath: string): Promise<Buffer> {
-    const absolutePath = this.resolve(relativePath)
-
-    return fs.readFile(
-        absolutePath
-    )
-}
-  async exists(relativePath: string): Promise<boolean> {
-    try {
-      await fs.access(this.resolve(relativePath))
-      return true
-    } catch {
-      return false
+    async readFile(relativePath: string): Promise<string> {
+        const absolutePath = this.resolve(relativePath)
+        return fs.readFile(absolutePath, "utf8")
     }
-  }
+    async readBuffer(relativePath: string): Promise<Buffer> {
+        const absolutePath = this.resolve(relativePath)
+
+        return fs.readFile(absolutePath)
+    }
+    async exists(relativePath: string): Promise<boolean> {
+        try {
+            await fs.access(this.resolve(relativePath))
+            return true
+        } catch {
+            return false
+        }
+    }
 
     async mkdir(relativePath: string): Promise<void> {
         const absolutePath = this.resolve(relativePath)

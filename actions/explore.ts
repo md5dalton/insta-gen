@@ -9,7 +9,7 @@ export type MediaResponse = {
 
 export const getRandom = async (count: number, type: MediaType): Promise<MediaResponse[]> => {
     const r = Math.random()
-    
+
     return await prisma.$queryRaw`
         SELECT 
             m.id,

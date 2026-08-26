@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { LoginPage } from '../../components/LoginPage';
+import { LoginPage } from "../../components/LoginPage"
 
 export default function LoginRoute() {
-  return <LoginPage />;
+    return <LoginPage />
 }

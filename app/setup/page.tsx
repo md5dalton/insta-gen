@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { AuthSetupPage } from '../../components/AuthSetupPage';
+import { AuthSetupPage } from "../../components/AuthSetupPage"
 
 export default function SetupRoute() {
-  return <AuthSetupPage />;
+    return <AuthSetupPage />
 }

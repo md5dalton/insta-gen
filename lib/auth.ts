@@ -22,8 +22,8 @@ export async function resolveUserFromRequest(req: Request) {
     const user = await prisma.profileUser.findUnique({
         where: { id: decoded.userId },
         select: {
-            id: true
-        }
+            id: true,
+        },
     })
 
     if (!user) throw new Error("User not found or revoked")

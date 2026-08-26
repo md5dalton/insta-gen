@@ -10,9 +10,7 @@ export interface VideoAssetMetadata {
     duration: string
 }
 
-const VAAPI_DEVICE =
-    process.env.VAAPI_DEVICE ??
-    "/dev/dri/renderD128"
+const VAAPI_DEVICE = process.env.VAAPI_DEVICE ?? "/dev/dri/renderD128"
 
 export class VideoProcessor {
     private readonly storage: Storage
@@ -25,9 +23,7 @@ export class VideoProcessor {
         storage: Storage,
         path: string,
         id: string,
-        ffmpeg = new FFmpeg(
-            mediaEngineConfig.ffmpegTimeoutMs
-        ),
+        ffmpeg = new FFmpeg(mediaEngineConfig.ffmpegTimeoutMs),
         ffprobe = new FFprobe()
     ) {
         this.storage = storage
@@ -36,155 +32,95 @@ export class VideoProcessor {
         this.ffmpeg = ffmpeg
         this.ffprobe = ffprobe
     }
-    
+
     async process(): Promise<VideoAssetMetadata> {
-        const posterPath =
-            `videos/${this.id}/poster.webp`
+        const posterPath = `videos/${this.id}/poster.webp`
 
-        const metadataPath =
-            `videos/${this.id}/metadata.json`
+        const metadataPath = `videos/${this.id}/metadata.json`
 
-        const masterPlaylistPath =
-            `videos/${this.id}/hls/master.m3u8`
+        const masterPlaylistPath = `videos/${this.id}/hls/master.m3u8`
 
-        const hlsDirectory =
-            `videos/${this.id}/hls/1080`
+        const hlsDirectory = `videos/${this.id}/hls/1080`
 
-        await this.storage.mkdir(
-            hlsDirectory
-        )
+        await this.storage.mkdir(hlsDirectory)
 
-        const probe =
-            await this.ffprobe.probe(this.path)
+        const probe = await this.ffprobe.probe(this.path)
 
-        const videoStream =
-            probe.streams.find(
-                stream =>
-                    stream.codec_type === "video"
-            )
+        const videoStream = probe.streams.find((stream) => stream.codec_type === "video")
 
-        if (
-            !videoStream?.width ||
-            !videoStream?.height
-        ) {
-            throw new TranscodeError(
-                "Unable to inspect video"
-            )
+        if (!videoStream?.width || !videoStream?.height) {
+            throw new TranscodeError("Unable to inspect video")
         }
 
-        const normalizedDimensions =
-            this.normalizeDimensions(
-                videoStream
-            )
+        const normalizedDimensions = this.normalizeDimensions(videoStream)
 
         const metadata = {
             id: this.id,
-            width:
-                normalizedDimensions.width,
-            height:
-                normalizedDimensions.height,
-            duration:
-                probe.format.duration ?? "0",
-            createdAt:
-                new Date().toISOString(),
+            width: normalizedDimensions.width,
+            height: normalizedDimensions.height,
+            duration: probe.format.duration ?? "0",
+            createdAt: new Date().toISOString(),
         }
 
-        if (
-            !(await this.storage.exists(
-                posterPath
-            ))
-        ) {
-            await this.generatePoster(
-                posterPath
-            )
+        if (!(await this.storage.exists(posterPath))) {
+            await this.generatePoster(posterPath)
         }
 
-        if (
-            !(await this.storage.exists(
-                metadataPath
-            ))
-        ) {
+        if (!(await this.storage.exists(metadataPath))) {
             await this.storage.saveFile(
                 metadataPath,
-                Buffer.from(
-                    JSON.stringify(
-                        metadata,
-                        null,
-                        2
-                    )
-                )
+                Buffer.from(JSON.stringify(metadata, null, 2))
             )
         }
 
         /*
-        * Process the ENTIRE video.
-        *
-        * Generates all .ts segments and
-        * the complete index.m3u8.
-        */
+         * Process the ENTIRE video.
+         *
+         * Generates all .ts segments and
+         * the complete index.m3u8.
+         */
         await this.generateHls()
 
         /*
-        * Generate master playlist.
-        */
-        if (
-            !(await this.storage.exists(
-                masterPlaylistPath
-            ))
-        ) {
+         * Generate master playlist.
+         */
+        if (!(await this.storage.exists(masterPlaylistPath))) {
             await this.storage.saveFile(
                 masterPlaylistPath,
-                Buffer.from(
-                    this.renderMasterPlaylist()
-                )
+                Buffer.from(this.renderMasterPlaylist())
             )
         }
 
         return {
-            width:
-                normalizedDimensions.width,
-            height:
-                normalizedDimensions.height,
-            duration:
-                metadata.duration,
+            width: normalizedDimensions.width,
+            height: normalizedDimensions.height,
+            duration: metadata.duration,
         }
     }
 
-    private normalizeDimensions(
-        videoStream: {
-            width?: number
-            height?: number
-            tags?: Record<string, string>
-            side_data_list?: Array<{
-                rotation?: string
-            }>
-        }
-    ): {
+    private normalizeDimensions(videoStream: {
+        width?: number
+        height?: number
+        tags?: Record<string, string>
+        side_data_list?: Array<{
+            rotation?: string
+        }>
+    }): {
         width: number
         height: number
     } {
-        let width =
-            videoStream.width ?? 0
+        let width = videoStream.width ?? 0
 
-        let height =
-            videoStream.height ?? 0
+        let height = videoStream.height ?? 0
 
-        const rotation =
-            Number(
-                videoStream.tags?.rotate ??
-                    videoStream.side_data_list?.find(
-                        item =>
-                            item.rotation
-                    )?.rotation ??
-                    0
-            )
+        const rotation = Number(
+            videoStream.tags?.rotate ??
+                videoStream.side_data_list?.find((item) => item.rotation)?.rotation ??
+                0
+        )
 
-        if (
-            [90, -90, 270, -270]
-                .includes(rotation)
-        ) {
-            ;[width, height] =
-                [height, width]
+        if ([90, -90, 270, -270].includes(rotation)) {
+            ;[width, height] = [height, width]
         }
 
         return {
@@ -193,19 +129,10 @@ export class VideoProcessor {
         }
     }
 
-    private async generatePoster(
-        posterPath: string
-    ): Promise<void> {
-        const tempPosterRel =
-            posterPath.replace(
-                /\.webp$/,
-                ".tmp.webp"
-            )
+    private async generatePoster(posterPath: string): Promise<void> {
+        const tempPosterRel = posterPath.replace(/\.webp$/, ".tmp.webp")
 
-        const tempPosterAbs =
-            this.storage.resolve(
-                tempPosterRel
-            )
+        const tempPosterAbs = this.storage.resolve(tempPosterRel)
 
         const command = [
             "ffmpeg",
@@ -229,33 +156,19 @@ export class VideoProcessor {
             tempPosterAbs,
         ]
 
-        const process =
-            this.ffmpeg.run(command)
+        const process = this.ffmpeg.run(command)
 
         try {
-            await new Promise<void>(
-                (resolve, reject) => {
-                    process.once(
-                        "end",
-                        resolve
-                    )
+            await new Promise<void>((resolve, reject) => {
+                process.once("end", resolve)
 
-                    process.once(
-                        "error",
-                        reject
-                    )
-                }
-            )
+                process.once("error", reject)
+            })
 
-            await this.storage.move(
-                tempPosterRel,
-                posterPath
-            )
+            await this.storage.move(tempPosterRel, posterPath)
         } catch (error) {
             try {
-                await this.storage.delete(
-                    tempPosterRel
-                )
+                await this.storage.delete(tempPosterRel)
             } catch {}
 
             throw error
@@ -263,39 +176,23 @@ export class VideoProcessor {
     }
 
     private async generateHls(): Promise<void> {
-        const outputDir =
-            `videos/${this.id}/hls/1080`
+        const outputDir = `videos/${this.id}/hls/1080`
 
-        const playlistPath =
-            `${outputDir}/index.m3u8`
+        const playlistPath = `${outputDir}/index.m3u8`
 
-        const segmentPattern =
-            `${outputDir}/segment%03d.ts`
+        const segmentPattern = `${outputDir}/segment%03d.ts`
 
-        const playlistAbs =
-            this.storage.resolve(
-                playlistPath
-            )
+        const playlistAbs = this.storage.resolve(playlistPath)
 
-        const segmentPatternAbs =
-            this.storage.resolve(
-                segmentPattern
-            )
+        const segmentPatternAbs = this.storage.resolve(segmentPattern)
 
-        const duration =
-            mediaEngineConfig.segmentDuration
+        const duration = mediaEngineConfig.segmentDuration
 
-        const command: string[] = [
-            "ffmpeg",
-            "-y",
-
-            "-i",
-            this.path,
-        ]
+        const command: string[] = ["ffmpeg", "-y", "-i", this.path]
 
         /*
-        * Video.
-        */
+         * Video.
+         */
         if (mediaEngineConfig.gpuEnabled) {
             command.push(
                 "-vaapi_device",
@@ -324,8 +221,8 @@ export class VideoProcessor {
         }
 
         /*
-        * Audio + complete HLS VOD.
-        */
+         * Audio + complete HLS VOD.
+         */
         command.push(
             "-c:a",
             "aac",
@@ -337,53 +234,40 @@ export class VideoProcessor {
             String(duration),
 
             /*
-            * 0 means keep ALL segments in
-            * the playlist.
-            */
+             * 0 means keep ALL segments in
+             * the playlist.
+             */
             "-hls_list_size",
             "0",
 
             /*
-            * Generate every segment:
-            *
-            * segment000.ts
-            * segment001.ts
-            * segment002.ts
-            * ...
-            */
+             * Generate every segment:
+             *
+             * segment000.ts
+             * segment001.ts
+             * segment002.ts
+             * ...
+             */
             "-hls_segment_filename",
             segmentPatternAbs,
 
             /*
-            * Complete playlist.
-            */
+             * Complete playlist.
+             */
             playlistAbs
         )
 
-        console.log(
-            `[VideoProcessor] Generating complete HLS for ${this.id}`
-        )
+        console.log(`[VideoProcessor] Generating complete HLS for ${this.id}`)
 
-        const process =
-            this.ffmpeg.run(command)
+        const process = this.ffmpeg.run(command)
 
-        await new Promise<void>(
-            (resolve, reject) => {
-                process.once(
-                    "end",
-                    resolve
-                )
+        await new Promise<void>((resolve, reject) => {
+            process.once("end", resolve)
 
-                process.once(
-                    "error",
-                    reject
-                )
-            }
-        )
+            process.once("error", reject)
+        })
 
-        console.log(
-            `[VideoProcessor] Complete HLS generated for ${this.id}`
-        )
+        console.log(`[VideoProcessor] Complete HLS generated for ${this.id}`)
     }
     private renderMasterPlaylist(): string {
         return [

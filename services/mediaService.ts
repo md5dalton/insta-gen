@@ -56,8 +56,8 @@ export class MediaService {
                         width: metadata.width,
                         size: stats.size,
                         duration: isVideo ? metadata.duration : null,
-                        mktime: String(Date.now())
-                    }
+                        mktime: String(Date.now()),
+                    },
                 })
 
                 if (media) await this.processTags(id, tags)
@@ -65,14 +65,18 @@ export class MediaService {
                 logger.info("Processed watched media", { mediaId: id, path: relativePath })
             }
         } catch (error) {
-            logger.error("Failed processing watched media", { mediaId: id, path: relativePath, error: error instanceof Error ? error.message : String(error) })
+            logger.error("Failed processing watched media", {
+                mediaId: id,
+                path: relativePath,
+                error: error instanceof Error ? error.message : String(error),
+            })
             throw error
         }
     }
 
     async handleDelete(id: string) {
         const media = await this.prisma.media.delete({
-            where: { id }
+            where: { id },
         })
 
         logger.info("Deleted watched media", { mediaId: id, path: media.path })
@@ -84,14 +88,14 @@ export class MediaService {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
             select: {
-                picture: true
-            }
+                picture: true,
+            },
         })
 
         if (user && !user.picture) {
             await this.prisma.user.update({
                 where: { id: userId },
-                data: { picture: mediaId }
+                data: { picture: mediaId },
             })
 
             this.userCache.set(userId, user)
@@ -99,14 +103,16 @@ export class MediaService {
     }
 
     private async processTags(mediaId: string, tags: string[]) {
-        await Promise.all(tags.map(async (tagId) => {
-            await this.prisma.mediaTag.create({
-                data: {
-                    id: generateId(`media-${mediaId}-tag-${tagId}`),
-                    mediaId,
-                    tagId
-                }
+        await Promise.all(
+            tags.map(async (tagId) => {
+                await this.prisma.mediaTag.create({
+                    data: {
+                        id: generateId(`media-${mediaId}-tag-${tagId}`),
+                        mediaId,
+                        tagId,
+                    },
+                })
             })
-        }))
+        )
     }
 }

@@ -2,17 +2,19 @@ import prisma from "@/lib/prisma"
 import { Tag } from "@/prisma/generated/client"
 import { mapPost, Post, postSelect } from "./post"
 
-export const getTag = async (id: string): Promise<Tag | null> => await prisma.tag.findUnique({
-    where: { id }
-})
+export const getTag = async (id: string): Promise<Tag | null> =>
+    await prisma.tag.findUnique({
+        where: { id },
+    })
 
-export const getCursor = async (id: string): Promise<{ id: string, mktime: string } | null> => await prisma.media.findUnique({
-    where: { id },
-    select: {
-        id: true,
-        mktime: true
-    }
-})
+export const getCursor = async (id: string): Promise<{ id: string; mktime: string } | null> =>
+    await prisma.media.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            mktime: true,
+        },
+    })
 
 export const getTagPosts = async (
     userId: string,
@@ -39,8 +41,8 @@ export const getTagPosts = async (
             skip: 1,
         }),
         take: count,
-        select: postSelect(userId)
+        select: postSelect(userId),
     })
 
-    return posts.map(post => mapPost(post))
+    return posts.map((post) => mapPost(post))
 }

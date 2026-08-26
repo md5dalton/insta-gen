@@ -13,11 +13,9 @@ type ParamsHandler<TParams extends Record<string, string>> = (
     }
 ) => Promise<Response>
 
-export default function withAuthParams<
-    TParams extends Record<string, string>
->(
+export default function withAuthParams<TParams extends Record<string, string>>(
     handler: ParamsHandler<TParams>
-){
+) {
     return async (
         req: NextRequest,
         ctx: {
@@ -31,13 +29,10 @@ export default function withAuthParams<
 
             return handler(req, {
                 user,
-                params
+                params,
             })
         } catch (err: any) {
-            return NextResponse.json(
-                { error: err?.message || "Unauthorized" },
-                { status: 401 }
-            )
+            return NextResponse.json({ error: err?.message || "Unauthorized" }, { status: 401 })
         }
     }
 }

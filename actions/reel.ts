@@ -2,7 +2,6 @@ import prisma from "@/lib/prisma"
 import { MediaType } from "@/types/type"
 import { Prisma } from "@/prisma/generated/client"
 
-
 type ReelBase = Prisma.MediaGetPayload<{
     select: ReturnType<typeof reelSelect>
 }>
@@ -16,37 +15,38 @@ export type Reel = Omit<ReelBase, "likes" | "saves" | "tags"> & {
     saved: boolean
 }
 
-export const reelSelect = (userId: string) => ({
-    id: true,
-    owner: {
-        select: {
-            id: true,
-            name: true,
-            picture: true,
-        }
-    },
+export const reelSelect = (userId: string) =>
+    ({
+        id: true,
+        owner: {
+            select: {
+                id: true,
+                name: true,
+                picture: true,
+            },
+        },
 
-    tags: {
-        select: {
-            tag: {
-                select: {
-                    id: true,
-                    name: true,
+        tags: {
+            select: {
+                tag: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
                 },
             },
         },
-    },
 
-    likes: {
-        where: { userId },
-        select: { userId: true },
-    },
+        likes: {
+            where: { userId },
+            select: { userId: true },
+        },
 
-    saves: {
-        where: { userId },
-        select: { userId: true },
-    },
-}) satisfies Prisma.MediaSelect
+        saves: {
+            where: { userId },
+            select: { userId: true },
+        },
+    }) satisfies Prisma.MediaSelect
 
 export const mapReel = (reel: ReelBase): Reel => {
     const { likes, saves, tags, ...rest } = reel
@@ -59,10 +59,7 @@ export const mapReel = (reel: ReelBase): Reel => {
     }
 }
 
-export const getReel = async (
-    id: string,
-    userId: string
-): Promise<Reel | null> => {
+export const getReel = async (id: string, userId: string): Promise<Reel | null> => {
     const reel = await prisma.media.findFirst({
         where: {
             id,
@@ -80,7 +77,6 @@ export const getUserReels = async (
     cursorId?: string,
     take: number = 10
 ): Promise<Reel[]> => {
-    
     const reels = await prisma.media.findMany({
         where: {
             ownerId,
@@ -98,12 +94,8 @@ export const getUserReels = async (
     })
 
     return reels.map(mapReel)
-
 }
-export const getRandom = async (
-    userId: string,
-    limit: number = 10
-): Promise<Reel[]> => {
+export const getRandom = async (userId: string, limit: number = 10): Promise<Reel[]> => {
     const r = Math.random()
 
     return await prisma.$queryRaw<Reel[]>`

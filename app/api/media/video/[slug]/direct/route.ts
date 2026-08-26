@@ -20,7 +20,7 @@ function parseRange(range: string | null, fileSize: number) {
         const length = Number(match[2])
 
         if (!Number.isSafeInteger(length) || length <= 0) {
-        return null
+            return null
         }
 
         start = Math.max(fileSize - length, 0)
@@ -28,9 +28,7 @@ function parseRange(range: string | null, fileSize: number) {
     } else {
         start = Number(match[1])
 
-        end = match[2]
-        ? Number(match[2])
-        : fileSize - 1
+        end = match[2] ? Number(match[2]) : fileSize - 1
     }
 
     if (
@@ -50,10 +48,7 @@ function parseRange(range: string | null, fileSize: number) {
 
 const storage = new Storage(MediaConfig.MEDIA_ROOT)
 
-export async function GET(
-    req: NextRequest,
-    { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
 
     const media = await getMedia(slug)
@@ -75,12 +70,12 @@ export async function GET(
         const rangeInfo = parseRange(range, fileSize)
 
         if (!rangeInfo) {
-        return new Response("Invalid range header", {
-            status: 416,
-            headers: {
-            "Content-Range": `bytes */${fileSize}`,
-            },
-        })
+            return new Response("Invalid range header", {
+                status: 416,
+                headers: {
+                    "Content-Range": `bytes */${fileSize}`,
+                },
+            })
         }
 
         const { start, end } = rangeInfo

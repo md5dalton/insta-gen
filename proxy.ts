@@ -8,23 +8,21 @@ export function proxy(request: NextRequest) {
     if (
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/api/media") ||
-
         // use withAuth
         pathname.startsWith("/api/reel") ||
         pathname.startsWith("/api/post") ||
         pathname.startsWith("/api/user") ||
         pathname.startsWith("/api/tag") ||
         pathname.startsWith("/api/activity")
-    ) return NextResponse.next()
+    )
+        return NextResponse.next()
 
     // Only protect API routes
     if (pathname.startsWith("/api")) {
         const authHeader = request.headers.get("authorization")
 
-        if (!authHeader || !authHeader.startsWith("Bearer ")) return NextResponse.json(
-            { error: "Unauthorized" },
-            { status: 401 }
-        )
+        if (!authHeader || !authHeader.startsWith("Bearer "))
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
         const token = authHeader.split(" ")[1]
 
@@ -32,10 +30,7 @@ export function proxy(request: NextRequest) {
             jwt.verify(token, process.env.JWT_SECRET!)
             return NextResponse.next()
         } catch (err) {
-            return NextResponse.json(
-                { error: "Invalid token" },
-                { status: 401 }
-            )
+            return NextResponse.json({ error: "Invalid token" }, { status: 401 })
         }
     }
 

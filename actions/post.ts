@@ -25,49 +25,47 @@ export const mapPost = (post: PostBase): Post => {
     }
 }
 
-export const postSelect = (userId: string) => ({
-    id: true,
-    type: true,
-    height: true,
-    width: true,
+export const postSelect = (userId: string) =>
+    ({
+        id: true,
+        type: true,
+        height: true,
+        width: true,
 
-    owner: {
-        select: {
-            id: true,
-            name: true,
-            picture: true,
+        owner: {
+            select: {
+                id: true,
+                name: true,
+                picture: true,
+            },
         },
-    },
 
-    tags: {
-        select: {
-            tag: {
-                select: {
-                    id: true,
-                    name: true,
+        tags: {
+            select: {
+                tag: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
                 },
             },
         },
-    },
 
-    likes: {
-        where: { userId },
-        select: { userId: true },
-    },
+        likes: {
+            where: { userId },
+            select: { userId: true },
+        },
 
-    saves: {
-        where: { userId },
-        select: { userId: true },
-    },
-}) satisfies Prisma.MediaSelect
+        saves: {
+            where: { userId },
+            select: { userId: true },
+        },
+    }) satisfies Prisma.MediaSelect
 
-export const getPost = async (
-    id: string,
-    userId: string
-): Promise<Post | null> => {
+export const getPost = async (id: string, userId: string): Promise<Post | null> => {
     const post = await prisma.media.findFirst({
         where: {
-            id
+            id,
         },
         select: postSelect(userId),
     })
@@ -83,7 +81,7 @@ export const getUserPosts = async (
 ): Promise<Post[]> => {
     const posts = await prisma.media.findMany({
         where: {
-            ownerId
+            ownerId,
         },
 
         ...(cursorId && {
@@ -103,10 +101,7 @@ export const getUserPosts = async (
     return posts.map(mapPost)
 }
 
-export const getRandom = async (
-    userId: string,
-    limit: number = 10
-): Promise<Post[]> => {
+export const getRandom = async (userId: string, limit: number = 10): Promise<Post[]> => {
     const r = Math.random()
 
     return await prisma.$queryRaw<Post[]>`

@@ -1,40 +1,40 @@
 type LogLevel = "debug" | "info" | "warn" | "error"
 
 interface LogFields {
-  [key: string]: unknown
+    [key: string]: unknown
 }
 
 class Logger {
-  private write(level: LogLevel, message: string, fields: LogFields = {}): void {
-    const payload = {
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      ...fields,
+    private write(level: LogLevel, message: string, fields: LogFields = {}): void {
+        const payload = {
+            timestamp: new Date().toISOString(),
+            level,
+            message,
+            ...fields,
+        }
+
+        if (process.env.NODE_ENV === "test") {
+            return
+        }
+
+        console.log(JSON.stringify(payload))
     }
 
-    if (process.env.NODE_ENV === "test") {
-      return
+    debug(message: string, fields?: LogFields): void {
+        this.write("debug", message, fields)
     }
 
-    console.log(JSON.stringify(payload))
-  }
+    info(message: string, fields?: LogFields): void {
+        this.write("info", message, fields)
+    }
 
-  debug(message: string, fields?: LogFields): void {
-    this.write("debug", message, fields)
-  }
+    warn(message: string, fields?: LogFields): void {
+        this.write("warn", message, fields)
+    }
 
-  info(message: string, fields?: LogFields): void {
-    this.write("info", message, fields)
-  }
-
-  warn(message: string, fields?: LogFields): void {
-    this.write("warn", message, fields)
-  }
-
-  error(message: string, fields?: LogFields): void {
-    this.write("error", message, fields)
-  }
+    error(message: string, fields?: LogFields): void {
+        this.write("error", message, fields)
+    }
 }
 
 export const logger = new Logger()

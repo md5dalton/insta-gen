@@ -12,36 +12,32 @@ export type Post = {
     isVideo: boolean
 }
 
-export const getLike = async (
-    userId: string,
-    mediaId: string,
-): Promise<Cursor | null> => await prisma.like.findUnique({
-    where: {
-        userId_mediaId: {
-            userId,
-            mediaId,
+export const getLike = async (userId: string, mediaId: string): Promise<Cursor | null> =>
+    await prisma.like.findUnique({
+        where: {
+            userId_mediaId: {
+                userId,
+                mediaId,
+            },
         },
-    },
-    select: {
-        id: true,
-        createdAt: true
-    }
-})
-export const getSave = async (
-    userId: string,
-    mediaId: string,
-): Promise<Cursor | null> => await prisma.save.findUnique({
-    where: {
-        userId_mediaId: {
-            userId,
-            mediaId,
+        select: {
+            id: true,
+            createdAt: true,
         },
-    },
-    select: {
-        id: true,
-        createdAt: true
-    }
-})
+    })
+export const getSave = async (userId: string, mediaId: string): Promise<Cursor | null> =>
+    await prisma.save.findUnique({
+        where: {
+            userId_mediaId: {
+                userId,
+                mediaId,
+            },
+        },
+        select: {
+            id: true,
+            createdAt: true,
+        },
+    })
 
 export const getLikedPosts = async (
     userId: string,
@@ -101,7 +97,7 @@ export const getLikedPosts = async (
     return likes.map(({ media }) => ({
         id: media.id,
         ownerId: media.owner.id,
-        isVideo: media.type === MediaType.VIDEO
+        isVideo: media.type === MediaType.VIDEO,
     }))
 }
 export const getSavedPosts = async (
@@ -162,6 +158,6 @@ export const getSavedPosts = async (
     return saves.map(({ media }) => ({
         id: media.id,
         ownerId: media.owner.id,
-        isVideo: media.type === MediaType.VIDEO
+        isVideo: media.type === MediaType.VIDEO,
     }))
 }

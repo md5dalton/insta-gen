@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { MediaLibraryPage } from '../../components/MediaLibraryPage';
+import { MediaLibraryPage } from "../../components/MediaLibraryPage"
 
 export default function MediaPage() {
-  return <MediaLibraryPage />;
+    return <MediaLibraryPage />
 }

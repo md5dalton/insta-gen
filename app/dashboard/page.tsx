@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { DashboardHomePage } from '../../components/DashboardHomePage';
+import { DashboardHomePage } from "../../components/DashboardHomePage"
 
 export default function DashboardPage() {
-  return <DashboardHomePage stats={null} onNavigate={() => {}} />;
+    return <DashboardHomePage stats={null} onNavigate={() => {}} />
 }

@@ -16,7 +16,9 @@ import { api } from "@/lib/api"
 
 export default () => {
     const { admin, setupRequired, loading } = useAuth()
-    const [currentTab, setCurrentTab] = useState<"dashboard" | "media" | "processing" | "collections" | "access" | "settings">("dashboard")
+    const [currentTab, setCurrentTab] = useState<
+        "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
+    >("dashboard")
     const [stats, setStats] = useState<LibraryStats | null>(null)
 
     const fetchStats = async () => {

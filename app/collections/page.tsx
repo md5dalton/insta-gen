@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { CollectionsPage } from '../../components/CollectionsPage';
+import { CollectionsPage } from "../../components/CollectionsPage"
 
 export default function CollectionsRoute() {
-  return <CollectionsPage />;
+    return <CollectionsPage />
 }

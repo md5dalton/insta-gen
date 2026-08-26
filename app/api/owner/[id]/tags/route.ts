@@ -4,10 +4,7 @@ import { ParamsId } from "@/types/type"
 import { NextRequest } from "next/server"
 
 export const GET = async (req: NextRequest, { params }: ParamsId) => {
-
-    const { 
-        id
-    } = await params
+    const { id } = await params
 
     const searchParams = req.nextUrl.searchParams
 
@@ -19,10 +16,6 @@ export const GET = async (req: NextRequest, { params }: ParamsId) => {
 
     return Response.json({
         items,
-        nextCursor:
-            items.length === 10
-                ? items[items.length - 1].id
-                : null,
+        nextCursor: items.length === 10 ? items[items.length - 1].id : null,
     })
-
 }

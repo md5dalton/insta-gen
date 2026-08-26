@@ -13,7 +13,6 @@ declare global {
             processed: number
             errors: number
             queued: number
-
         }
     }
 }

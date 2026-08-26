@@ -10,8 +10,10 @@ export type UserCapability = "VIEW" | "DOWNLOAD" | "MANAGE" | "ADMIN"
 
 export enum MediaType {
     IMAGE = "IMAGE",
-    VIDEO = "VIDEO"
+    VIDEO = "VIDEO",
 }
+
+export type MediaTypeString = "IMAGE" | "VIDEO"
 
 export interface AdminUser {
     id: string
@@ -67,6 +69,7 @@ export interface RootCollection {
     deletedAt?: string | null
     collectionsCount?: number
     mediaCount?: number
+    collections?: Collection[]
 }
 
 export interface Collection {
@@ -81,6 +84,7 @@ export interface Collection {
     deletedAt?: string | null
     usersCount?: number
     mediaCount?: number
+    users?: MediaUser[]
 }
 
 export interface MediaUser {
@@ -179,7 +183,7 @@ export interface MediaItem {
 
 export interface MediaFilterParams {
     query?: string
-    type?: "ALL" | MediaType
+    type?: "ALL" | "IMAGE" | "VIDEO"
     status?: "ALL" | ProcessingStatus | "DELETED"
     rootCollectionId?: string
     collectionId?: string

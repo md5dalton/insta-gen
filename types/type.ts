@@ -1,6 +1,6 @@
 export enum MediaType {
     IMAGE = "IMAGE",
-    VIDEO = "VIDEO"
+    VIDEO = "VIDEO",
 }
 export interface VideoMetadata {
     width: number
@@ -17,7 +17,7 @@ export type ParamsSlug = {
     params: Promise<{ slug: string }>
 }
 export interface ParamsIdPage {
-    params: Promise<{ id: string, page: string }>
+    params: Promise<{ id: string; page: string }>
 }
 export interface ParamsId {
     params: Promise<{ id: string }>

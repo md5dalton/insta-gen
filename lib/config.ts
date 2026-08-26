@@ -5,7 +5,7 @@ interface MediaConfig {
     CHUNK_SIZE: number
     DEBOUNCE_MS: number
     BATCH_SIZE: number
-    
+
     VIDEO_EXTENSIONS: string[]
     IMAGE_EXTENSIONS: string[]
     IGNORED_PATTERNS: RegExp[]
@@ -22,7 +22,7 @@ interface MediaEngineConfig {
     ffmpegTimeoutMs: number
     gpuEnabled: boolean
 }
-    
+
 export const MediaConfig: MediaConfig = {
     MEDIA_ROOT: process.env.MEDIA_ROOT ?? "/media-root/",
     ASSETS_ROOT: process.env.MEDIA_ASSETS_ROOT ?? "/assets-root/",
@@ -33,7 +33,7 @@ export const MediaConfig: MediaConfig = {
 
     VIDEO_EXTENSIONS: [".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"],
     IMAGE_EXTENSIONS: [".jpg", ".jpeg", ".png", ".webp"],
-    IGNORED_PATTERNS: [/node_modules/, /\.git/, /Thumbs\.db/, /\.DS_Store/]
+    IGNORED_PATTERNS: [/node_modules/, /\.git/, /Thumbs\.db/, /\.DS_Store/],
 }
 
 export const mediaEngineConfig: MediaEngineConfig = {
@@ -46,5 +46,5 @@ export const mediaEngineConfig: MediaEngineConfig = {
     cleanupIntervalMs: 60 * 60 * 1000,
     ffmpegTimeoutMs: 3000_000,
     // Enable VA-API hardware acceleration when VAAPI=1 (works for Intel/AMD VA-API drivers)
-    gpuEnabled: (process.env.INTEL_GPU === "1") || (process.env.VAAPI === "1"),
+    gpuEnabled: process.env.INTEL_GPU === "1" || process.env.VAAPI === "1",
 }

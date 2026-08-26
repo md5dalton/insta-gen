@@ -10,10 +10,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     const { slug } = await params
     const playlistPath = `videos/${slug}/hls/master.m3u8`
 
-    if (!(await storage.exists(playlistPath))) return new Response("Playlist not found", { status: 404 })
+    if (!(await storage.exists(playlistPath)))
+        return new Response("Playlist not found", { status: 404 })
 
     const content = await storage.readFile(playlistPath)
-    
+
     return new Response(content, {
         headers: {
             "Content-Type": "application/vnd.apple.mpegurl",

@@ -8,9 +8,9 @@ const storage = new Storage(MediaConfig.MEDIA_ROOT)
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params
-    
+
     const media = await getMedia(slug)
-    
+
     if (!media) return new Response("DB Media not found", { status: 404 })
 
     const filepath = media.path
@@ -26,5 +26,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
             ETag: slug,
         },
     })
-
 }

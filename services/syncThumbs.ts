@@ -4,19 +4,16 @@ import fs from "fs/promises"
 import path from "path"
 import { DIR_THUMB } from "@/config/media"
 
-
 async function main() {
     console.log("Loading media ids...")
 
     const media = await prisma.media.findMany({
         select: {
-            id: true
-        }
+            id: true,
+        },
     })
 
-    const valid = new Set(
-        media.map(m => `${m.id}.jpg`)
-    )
+    const valid = new Set(media.map((m) => `${m.id}.jpg`))
 
     console.log(`DB media: ${valid.size}`)
 
@@ -28,10 +25,7 @@ async function main() {
         if (!entry.isFile()) continue
 
         if (!valid.has(entry.name)) {
-            const file = path.join(
-                DIR_THUMB,
-                entry.name
-            )
+            const file = path.join(DIR_THUMB, entry.name)
 
             await fs.unlink(file)
 
@@ -45,7 +39,7 @@ async function main() {
 }
 
 main()
-    .catch(err => {
+    .catch((err) => {
         console.error(err)
         process.exit(1)
     })

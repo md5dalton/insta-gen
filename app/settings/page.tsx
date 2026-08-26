@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { SettingsPage } from '../../components/SettingsPage';
+import { SettingsPage } from "../../components/SettingsPage"
 
 export default function SettingsRoute() {
-  return <SettingsPage />;
+    return <SettingsPage />
 }

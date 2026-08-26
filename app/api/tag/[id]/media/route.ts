@@ -3,36 +3,29 @@ import { getCursor, getTagPosts } from "@/actions/tag"
 import withAuthParams from "@/hooks/withAuthParams"
 
 export const GET = withAuthParams<{ id: string }>(async (req, { params, user }) => {
-
     const { id } = params
 
     const searchParams = req.nextUrl.searchParams
 
     const cursor = searchParams.get("cursor")
 
-    let posts: Post[] = [] 
+    let posts: Post[] = []
 
     if (cursor) {
-        
         const cursorProps = await getCursor(cursor)
-        
-        if (!cursorProps) return new Response("cursor is invalid", { status: 400 })
-        
-        posts = await getTagPosts(user.id, id, cursorProps) || []
 
+        if (!cursorProps) return new Response("cursor is invalid", { status: 400 })
+
+        posts = (await getTagPosts(user.id, id, cursorProps)) || []
     } else {
-        posts = await getTagPosts(user.id, id) || []
+        posts = (await getTagPosts(user.id, id)) || []
     }
-    
+
     return Response.json({
         items: posts.map(({ type, ...rest }) => ({
             ...rest,
-            mediaType: type
+            mediaType: type,
         })),
-        nextCursor:
-            posts.length === 10
-                ? posts[posts.length - 1].id
-                : null
+        nextCursor: posts.length === 10 ? posts[posts.length - 1].id : null,
     })
-
 })

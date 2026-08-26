@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { ProcessingPage } from '../../components/ProcessingPage';
+import { ProcessingPage } from "../../components/ProcessingPage"
 
 export default function ProcessingRoute() {
-  return <ProcessingPage />;
+    return <ProcessingPage />
 }

@@ -9,7 +9,12 @@ interface AuthContextType {
     setupRequired: boolean
     loading: boolean
     login: (data: { email: string; password: string }) => Promise<void>
-    setup: (data: { name: string; email: string; password: string; confirmPassword: string }) => Promise<void>
+    setup: (data: {
+        name: string
+        email: string
+        password: string
+        confirmPassword: string
+    }) => Promise<void>
     logout: () => Promise<void>
     refreshAuth: () => Promise<void>
 }
@@ -31,7 +36,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             } else {
                 setAdmin(null)
                 if (!getAuthToken()) {
-                clearAuthToken()
+                    clearAuthToken()
                 }
             }
         } catch (err: any) {
@@ -44,54 +49,59 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         }
     }
 
-  useEffect(() => {
-    checkAuth()
-  }, [])
+    useEffect(() => {
+        checkAuth()
+    }, [])
 
-  const login = async (data: { email: string; password: string }) => {
-    const res = await api.login(data)
-    if (res.token) {
-      setAuthToken(res.token)
-      setAdmin(res.admin)
-      setSetupRequired(false)
+    const login = async (data: { email: string; password: string }) => {
+        const res = await api.login(data)
+        if (res.token) {
+            setAuthToken(res.token)
+            setAdmin(res.admin)
+            setSetupRequired(false)
+        }
     }
-  }
 
-  const setup = async (data: { name: string; email: string; password: string; confirmPassword: string }) => {
-    const res = await api.setupAdmin(data)
-    if (res.token) {
-      setAuthToken(res.token)
-      setAdmin(res.admin)
-      setSetupRequired(false)
+    const setup = async (data: {
+        name: string
+        email: string
+        password: string
+        confirmPassword: string
+    }) => {
+        const res = await api.setupAdmin(data)
+        if (res.token) {
+            setAuthToken(res.token)
+            setAdmin(res.admin)
+            setSetupRequired(false)
+        }
     }
-  }
 
-  const logout = async () => {
-    await api.logout()
-    setAdmin(null)
-  }
+    const logout = async () => {
+        await api.logout()
+        setAdmin(null)
+    }
 
-  return (
-    <AuthContext.Provider
-      value={{
-        admin,
-        setupRequired,
-        loading,
-        login,
-        setup,
-        logout,
-        refreshAuth: checkAuth,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
+    return (
+        <AuthContext.Provider
+            value={{
+                admin,
+                setupRequired,
+                loading,
+                login,
+                setup,
+                logout,
+                refreshAuth: checkAuth,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    )
 }
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
+    const context = useContext(AuthContext)
+    if (!context) {
+        throw new Error("useAuth must be used within an AuthProvider")
+    }
+    return context
 }

@@ -16,19 +16,18 @@ export type MediaResponse = {
     height: number
     duration: string | null
 }
-export const getMedia = async (slug: string): Promise<MediaProps | null> => await prisma.media.findUnique({
-    where: { id: slug },
-    select: {
-        path: true,
-        size: true,
-        bitrate: true,
-        type: true
-    }
-})
+export const getMedia = async (slug: string): Promise<MediaProps | null> =>
+    await prisma.media.findUnique({
+        where: { id: slug },
+        select: {
+            path: true,
+            size: true,
+            bitrate: true,
+            type: true,
+        },
+    })
 
-export const getRandom = async (
-  limit: number = 10
-): Promise<MediaResponse[]> => {
+export const getRandom = async (limit: number = 10): Promise<MediaResponse[]> => {
     const r = Math.random()
 
     return await prisma.$queryRaw`

@@ -4,7 +4,6 @@ import { ParamsId } from "@/types/type"
 import { NextRequest } from "next/server"
 
 export const GET = async (req: NextRequest, { params }: ParamsId) => {
-
     const { id } = await params
 
     const user = await getUser(id)
@@ -29,6 +28,6 @@ export const GET = async (req: NextRequest, { params }: ParamsId) => {
         id: user.id,
         name: user.name,
         picture: user.picture,
-        stats: counts
+        stats: counts,
     })
 }
