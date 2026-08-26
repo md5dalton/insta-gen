@@ -62,7 +62,7 @@ export const api = {
         authenticated: boolean
         admin: AdminUser | null
     }> {
-        return fetchApi("/api/auth/status")
+        return fetchApi("/api/admin/auth/status")
     },
 
     async setupAdmin(data: {
@@ -71,7 +71,7 @@ export const api = {
         password: string
         confirmPassword: string
     }): Promise<{ success: boolean; token: string; admin: AdminUser }> {
-        return fetchApi("/api/auth/setup", {
+        return fetchApi("/api/admin/auth/setup", {
             method: "POST",
             body: JSON.stringify(data),
         })
@@ -81,7 +81,7 @@ export const api = {
         email: string
         password: string
     }): Promise<{ success: boolean; token: string; admin: AdminUser }> {
-        return fetchApi("/api/auth/login", {
+        return fetchApi("/api/admin/auth/login", {
             method: "POST",
             body: JSON.stringify(data),
         })
@@ -89,7 +89,7 @@ export const api = {
 
     async logout(): Promise<void> {
         try {
-            await fetchApi("/api/auth/logout", { method: "POST" })
+            await fetchApi("/api/admin/auth/logout", { method: "POST" })
         } finally {
             clearAuthToken()
         }
@@ -97,17 +97,17 @@ export const api = {
 
     // Stats & Settings
     async getStats(): Promise<LibraryStats> {
-        return fetchApi("/api/stats")
+        return fetchApi("/api/admin/stats")
     },
 
     async getSettings(): Promise<SystemSettings> {
-        return fetchApi("/api/settings")
+        return fetchApi("/api/admin/settings")
     },
 
     async updateMediaRoot(
         mediaRoot: string
     ): Promise<{ success: boolean; settings: SystemSettings; message: string }> {
-        return fetchApi("/api/settings/media-root", {
+        return fetchApi("/api/admin/settings/media-root", {
             method: "POST",
             body: JSON.stringify({ mediaRoot }),
         })
@@ -115,32 +115,32 @@ export const api = {
 
     // Processing Profiles
     async getProfiles(): Promise<ProcessingProfile[]> {
-        return fetchApi("/api/profiles")
+        return fetchApi("/api/admin/profiles")
     },
 
     async createProfile(data: Partial<ProcessingProfile>): Promise<ProcessingProfile> {
-        return fetchApi("/api/profiles", {
+        return fetchApi("/api/admin/profiles", {
             method: "POST",
             body: JSON.stringify(data),
         })
     },
 
     async updateProfile(id: string, data: Partial<ProcessingProfile>): Promise<ProcessingProfile> {
-        return fetchApi(`/api/profiles/${id}`, {
+        return fetchApi(`/api/admin/profiles/${id}`, {
             method: "PUT",
             body: JSON.stringify(data),
         })
     },
 
     async deleteProfile(id: string): Promise<{ success: boolean }> {
-        return fetchApi(`/api/profiles/${id}`, {
+        return fetchApi(`/api/admin/profiles/${id}`, {
             method: "DELETE",
         })
     },
 
     // Hierarchy
     async getHierarchy(): Promise<RootCollection[]> {
-        return fetchApi("/api/hierarchy")
+        return fetchApi("/api/admin/hierarchy")
     },
 
     async createRootCollection(data: {
@@ -150,7 +150,7 @@ export const api = {
         visibility?: "ALL_USERS" | "RESTRICTED" | "PRIVATE"
         allowedUserIds?: string[]
     }): Promise<RootCollection> {
-        return fetchApi("/api/hierarchy/roots", {
+        return fetchApi("/api/admin/hierarchy/roots", {
             method: "POST",
             body: JSON.stringify(data),
         })
@@ -164,7 +164,7 @@ export const api = {
         visibility?: string | null
         allowedUserIds?: string[]
     }): Promise<Collection> {
-        return fetchApi("/api/hierarchy/collections", {
+        return fetchApi("/api/admin/hierarchy/collections", {
             method: "POST",
             body: JSON.stringify(data),
         })
@@ -178,7 +178,7 @@ export const api = {
         visibility?: string | null
         allowedUserIds?: string[]
     }): Promise<MediaUser> {
-        return fetchApi("/api/hierarchy/media-users", {
+        return fetchApi("/api/admin/hierarchy/media-users", {
             method: "POST",
             body: JSON.stringify(data),
         })
@@ -194,7 +194,7 @@ export const api = {
             action?: "delete" | "restore"
         }
     ): Promise<{ success: boolean; entity: any }> {
-        return fetchApi(`/api/hierarchy/${type}/${id}`, {
+        return fetchApi(`/api/admin/hierarchy/${type}/${id}`, {
             method: "PUT",
             body: JSON.stringify(data),
         })
@@ -208,11 +208,11 @@ export const api = {
                 query.append(key, String(val))
             }
         })
-        return fetchApi(`/api/media?${query.toString()}`)
+        return fetchApi(`/api/admin/media?${query.toString()}`)
     },
 
     async getMedia(id: string): Promise<MediaItem> {
-        return fetchApi(`/api/media/${id}`)
+        return fetchApi(`/api/admin/media/${id}`)
     },
 
     async createMedia(data: {
@@ -233,14 +233,14 @@ export const api = {
         visibility?: string | null
         allowedUserIds?: string[]
     }): Promise<MediaItem> {
-        return fetchApi("/api/media", {
+        return fetchApi("/api/admin/media", {
             method: "POST",
             body: JSON.stringify(data),
         })
     },
 
     async getMediaAssets(mediaId: string): Promise<any[]> {
-        return fetchApi(`/api/media/${mediaId}/assets`)
+        return fetchApi(`/api/admin/media/${mediaId}/assets`)
     },
 
     async addMediaAsset(
@@ -253,7 +253,7 @@ export const api = {
             error?: string
         }
     ): Promise<{ success: boolean; asset: any; media: MediaItem }> {
-        return fetchApi(`/api/media/${mediaId}/assets`, {
+        return fetchApi(`/api/admin/media/${mediaId}/assets`, {
             method: "POST",
             body: JSON.stringify(data),
         })
@@ -263,13 +263,13 @@ export const api = {
         mediaId: string,
         assetId: string
     ): Promise<{ success: boolean; deleted: any; media: MediaItem }> {
-        return fetchApi(`/api/media/${mediaId}/assets/${assetId}`, {
+        return fetchApi(`/api/admin/media/${mediaId}/assets/${assetId}`, {
             method: "DELETE",
         })
     },
 
     async updateMediaPolicy(id: string, processingProfileId: string | null): Promise<MediaItem> {
-        return fetchApi(`/api/media/${id}/policy`, {
+        return fetchApi(`/api/admin/media/${id}/policy`, {
             method: "POST",
             body: JSON.stringify({ processingProfileId }),
         })
@@ -279,32 +279,32 @@ export const api = {
         id: string,
         data: { visibility?: string | null; allowedUserIds?: string[] }
     ): Promise<MediaItem> {
-        return fetchApi(`/api/media/${id}/access`, {
+        return fetchApi(`/api/admin/media/${id}/access`, {
             method: "POST",
             body: JSON.stringify(data),
         })
     },
 
     async processMedia(id: string): Promise<{ success: boolean; media: MediaItem }> {
-        return fetchApi(`/api/media/${id}/process`, {
+        return fetchApi(`/api/admin/media/${id}/process`, {
             method: "POST",
         })
     },
 
     async retryMedia(id: string): Promise<{ success: boolean; media: MediaItem }> {
-        return fetchApi(`/api/media/${id}/retry`, {
+        return fetchApi(`/api/admin/media/${id}/retry`, {
             method: "POST",
         })
     },
 
     async deleteMedia(id: string): Promise<{ success: boolean; media: MediaItem }> {
-        return fetchApi(`/api/media/${id}/delete`, {
+        return fetchApi(`/api/admin/media/${id}/delete`, {
             method: "POST",
         })
     },
 
     async restoreMedia(id: string): Promise<{ success: boolean; media: MediaItem }> {
-        return fetchApi(`/api/media/${id}/restore`, {
+        return fetchApi(`/api/admin/media/${id}/restore`, {
             method: "POST",
         })
     },
@@ -329,7 +329,7 @@ export const api = {
         skippedCount: number
         message: string
     }> {
-        return fetchApi("/api/media/bulk", {
+        return fetchApi("/api/admin/media/bulk", {
             method: "POST",
             body: JSON.stringify(data),
         })
@@ -337,7 +337,7 @@ export const api = {
 
     // Users & Access
     async getUsers(): Promise<ProfileUser[]> {
-        return fetchApi("/api/users")
+        return fetchApi("/api/admin/users")
     },
 
     async createUser(data: {
@@ -346,36 +346,36 @@ export const api = {
         role?: "ADMIN" | "USER"
         capability: string
     }): Promise<ProfileUser> {
-        return fetchApi("/api/users", {
+        return fetchApi("/api/admin/users", {
             method: "POST",
             body: JSON.stringify(data),
         })
     },
 
     async updateUser(id: string, data: Partial<ProfileUser>): Promise<ProfileUser> {
-        return fetchApi(`/api/users/${id}`, {
+        return fetchApi(`/api/admin/users/${id}`, {
             method: "PUT",
             body: JSON.stringify(data),
         })
     },
 
     async getUser(id: string): Promise<ProfileUser> {
-        return fetchApi(`/api/users/${id}`)
+        return fetchApi(`/api/admin/users/${id}`)
     },
 
     async deleteUser(id: string): Promise<{ success: boolean; deleted: ProfileUser }> {
-        return fetchApi(`/api/users/${id}`, {
+        return fetchApi(`/api/admin/users/${id}`, {
             method: "DELETE",
         })
     },
 
     // Tags
     async getTags(): Promise<{ name: string; count: number }[]> {
-        return fetchApi("/api/tags")
+        return fetchApi("/api/admin/tags")
     },
 
     // Schema & Data Model
     async getSchema(): Promise<any> {
-        return fetchApi("/api/schema")
+        return fetchApi("/api/admin/schema")
     },
 }
