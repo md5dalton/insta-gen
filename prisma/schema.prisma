@@ -1,11 +1,12 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 generator client {
-    provider = "prisma-client"
-    output   = "./generated"
+  provider = "prisma-client"
+  output   = "./generated"
 }
+
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 // ==========================================
@@ -13,64 +14,64 @@ datasource db {
 // ==========================================
 
 enum MediaType {
-    IMAGE
-    VIDEO
+  IMAGE
+  VIDEO
 }
 
 enum ProcessingStatus {
-    NEW
-    NEEDS_PROCESSING
-    PROCESSING
-    READY
-    FAILED
+  NEW
+  NEEDS_PROCESSING
+  PROCESSING
+  READY
+  FAILED
 }
 
 enum AssetType {
-    THUMBNAIL
-    FEED_IMAGE
-    HLS
-    LOW_QUALITY
+  THUMBNAIL
+  FEED_IMAGE
+  HLS
+  LOW_QUALITY
 }
 
 enum AssetStatus {
-    READY
-    MISSING
-    PROCESSING
-    FAILED
+  READY
+  MISSING
+  PROCESSING
+  FAILED
 }
 
 enum VisibilityType {
-    INHERIT
-    ALL_USERS
-    RESTRICTED
-    PRIVATE
+  INHERIT
+  ALL_USERS
+  RESTRICTED
+  PRIVATE
 }
 
 enum RootVisibilityType {
-    ALL_USERS
-    RESTRICTED
-    PRIVATE
+  ALL_USERS
+  RESTRICTED
+  PRIVATE
 }
 
 enum UserRole {
-    ADMIN
-    USER
+  ADMIN
+  USER
 }
 
 enum UserCapability {
-    VIEW       // View, like, and save media
-    DOWNLOAD   // View + like + save + download original media file
-    MANAGE     // Manage content within granted hierarchies
-    ADMIN      // Full administrative privileges
+  VIEW // View, like, and save media
+  DOWNLOAD // View + like + save + download original media file
+  MANAGE // Manage content within granted hierarchies
+  ADMIN // Full administrative privileges
 }
 
 enum ActivityType {
-    DISCOVERY
-    PROCESSED
-    FAILED
-    POLICY_CHANGE
-    DELETED
-    SETTINGS_UPDATE
+  DISCOVERY
+  PROCESSED
+  FAILED
+  POLICY_CHANGE
+  DELETED
+  SETTINGS_UPDATE
 }
 
 // ==========================================
@@ -79,293 +80,308 @@ enum ActivityType {
 
 /// Single administrative operator account with root authentication
 model AdminUser {
-    id           String   @id @default(cuid())
-    name         String
-    email        String   @unique
-    passwordHash String
-    createdAt    DateTime @default(now())
-    updatedAt    DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-    @@map("admin_users")
+  // Back-relation to persisted admin sessions
+  adminSessions AdminSession[]
+
+  @@map("admin_users")
 }
 
 /// End-users who can view/download media based on permissions
 model ProfileUser {
-    id         String         @id @default(cuid())
-    name       String
-    email      String         @unique
-    role       UserRole       @default(USER)
-    capability UserCapability @default(VIEW)
-    picture    String?
-    createdAt  DateTime       @default(now())
-    updatedAt  DateTime       @updatedAt
+  id         String         @id @default(cuid())
+  name       String
+  email      String         @unique
+  role       UserRole       @default(USER)
+  capability UserCapability @default(VIEW)
+  picture    String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
-    // Allowed access relations across hierarchy levels
-    allowedRootCollections RootCollectionAllowedUser[]
-    allowedCollections     CollectionAllowedUser[]
-    allowedMediaUsers      MediaUserAllowedUser[]
-    allowedMediaItems      MediaItemAllowedUser[]
+  // Allowed access relations across hierarchy levels
+  allowedRootCollections RootCollectionAllowedUser[]
+  allowedCollections     CollectionAllowedUser[]
+  allowedMediaUsers      MediaUserAllowedUser[]
+  allowedMediaItems      MediaItemAllowedUser[]
 
-    @@map("profile_users")
+  @@map("profile_users")
 }
 
 /// Deterministic transcoding profile defining required renditions
 model ProcessingProfile {
-    id                 String   @id @default(cuid())
-    name               String   @unique
-    description        String
-    isSystem           Boolean  @default(false)
-    
-    // Rendition requirements (Thumbnail is always mandatory)
-    reqThumbnail       Boolean  @default(true)
-    reqFeedImage       Boolean  @default(true)
-    reqHls             Boolean  @default(false)
-    reqLowQuality      Boolean  @default(false)
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String
+  isSystem    Boolean @default(false)
 
-    createdAt          DateTime @default(now())
-    updatedAt          DateTime @updatedAt
+  // Rendition requirements (Thumbnail is always mandatory)
+  reqThumbnail  Boolean @default(true)
+  reqFeedImage  Boolean @default(true)
+  reqHls        Boolean @default(false)
+  reqLowQuality Boolean @default(false)
 
-    // Hierarchy relations using this profile as default / override
-    rootCollections    RootCollection[]
-    collections        Collection[]
-    mediaUsers         MediaUser[]
-    mediaItems         MediaItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@map("processing_profiles")
+  // Hierarchy relations using this profile as default / override
+  rootCollections RootCollection[]
+  collections     Collection[]
+  mediaUsers      MediaUser[]
+  mediaItems      MediaItem[]
+
+  @@map("processing_profiles")
 }
 
 /// Level 1: Root storage collection / mount point
 model RootCollection {
-    id                  String             @id @default(cuid())
-    name                String
-    path                String             @unique
-    visibility          RootVisibilityType @default(ALL_USERS)
-    deletedAt           DateTime?
-    createdAt           DateTime           @default(now())
-    updatedAt           DateTime           @updatedAt
+  id         String             @id @default(cuid())
+  name       String
+  path       String             @unique
+  visibility RootVisibilityType @default(ALL_USERS)
+  deletedAt  DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 
-    // Optional processing profile override
-    processingProfileId String?
-    processingProfile   ProcessingProfile? @relation(fields: [processingProfileId], references: [id], onDelete: SetNull)
+  // Optional processing profile override
+  processingProfileId String?
+  processingProfile   ProcessingProfile? @relation(fields: [processingProfileId], references: [id], onDelete: SetNull)
 
-    // Explicit allowed users when visibility is RESTRICTED
-    allowedUsers        RootCollectionAllowedUser[]
+  // Explicit allowed users when visibility is RESTRICTED
+  allowedUsers RootCollectionAllowedUser[]
 
-    // Child collections
-    collections         Collection[]
-    mediaItems          MediaItem[]
+  // Child collections
+  collections Collection[]
+  mediaItems  MediaItem[]
 
-    @@index([deletedAt])
-    @@map("root_collections")
+  @@index([deletedAt])
+  @@map("root_collections")
 }
 
 model RootCollectionAllowedUser {
-    rootCollectionId String
-    userId           String
+  rootCollectionId String
+  userId           String
 
-    rootCollection   RootCollection @relation(fields: [rootCollectionId], references: [id], onDelete: Cascade)
-    user             ProfileUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rootCollection RootCollection @relation(fields: [rootCollectionId], references: [id], onDelete: Cascade)
+  user           ProfileUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@id([rootCollectionId, userId])
-    @@map("root_collection_allowed_users")
+  @@id([rootCollectionId, userId])
+  @@map("root_collection_allowed_users")
 }
 
 /// Level 2: Sub-collection belonging to a RootCollection
 model Collection {
-    id                  String             @id @default(cuid())
-    name                String
-    path                String
-    visibility          VisibilityType     @default(INHERIT)
-    deletedAt           DateTime?
-    createdAt           DateTime           @default(now())
-    updatedAt           DateTime           @updatedAt
+  id         String         @id @default(cuid())
+  name       String
+  path       String
+  visibility VisibilityType @default(INHERIT)
+  deletedAt  DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
-    // Parent Root Collection
-    rootCollectionId    String
-    rootCollection      RootCollection     @relation(fields: [rootCollectionId], references: [id], onDelete: Cascade)
+  // Parent Root Collection
+  rootCollectionId String
+  rootCollection   RootCollection @relation(fields: [rootCollectionId], references: [id], onDelete: Cascade)
 
-    // Optional processing profile override
-    processingProfileId String?
-    processingProfile   ProcessingProfile? @relation(fields: [processingProfileId], references: [id], onDelete: SetNull)
+  // Optional processing profile override
+  processingProfileId String?
+  processingProfile   ProcessingProfile? @relation(fields: [processingProfileId], references: [id], onDelete: SetNull)
 
-    // Explicit allowed users when visibility is RESTRICTED
-    allowedUsers        CollectionAllowedUser[]
+  // Explicit allowed users when visibility is RESTRICTED
+  allowedUsers CollectionAllowedUser[]
 
-    // Child media users (creators/handles) & media items
-    mediaUsers          MediaUser[]
-    mediaItems          MediaItem[]
+  // Child media users (creators/handles) & media items
+  mediaUsers MediaUser[]
+  mediaItems MediaItem[]
 
-    @@unique([rootCollectionId, path])
-    @@index([rootCollectionId])
-    @@index([deletedAt])
-    @@map("collections")
+  @@unique([rootCollectionId, path])
+  @@index([rootCollectionId])
+  @@index([deletedAt])
+  @@map("collections")
 }
 
 model CollectionAllowedUser {
-    collectionId String
-    userId       String
+  collectionId String
+  userId       String
 
-    collection   Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-    user         ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collection Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user       ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@id([collectionId, userId])
-    @@map("collection_allowed_users")
+  @@id([collectionId, userId])
+  @@map("collection_allowed_users")
 }
 
 /// Level 3: Content creator / user handle folder within a Collection
 model MediaUser {
-    id                  String             @id @default(cuid())
-    username            String
-    displayName         String
-    avatarUrl           String?
-    visibility          VisibilityType     @default(INHERIT)
-    deletedAt           DateTime?
-    createdAt           DateTime           @default(now())
-    updatedAt           DateTime           @updatedAt
+  id          String         @id @default(cuid())
+  username    String
+  displayName String
+  avatarUrl   String?
+  visibility  VisibilityType @default(INHERIT)
+  deletedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
-    // Parent Collection
-    collectionId        String
-    collection          Collection         @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  // Parent Collection
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
-    // Optional processing profile override
-    processingProfileId String?
-    processingProfile   ProcessingProfile? @relation(fields: [processingProfileId], references: [id], onDelete: SetNull)
+  // Optional processing profile override
+  processingProfileId String?
+  processingProfile   ProcessingProfile? @relation(fields: [processingProfileId], references: [id], onDelete: SetNull)
 
-    // Explicit allowed users when visibility is RESTRICTED
-    allowedUsers        MediaUserAllowedUser[]
+  // Explicit allowed users when visibility is RESTRICTED
+  allowedUsers MediaUserAllowedUser[]
 
-    // Media items owned by this creator handle
-    mediaItems          MediaItem[]
+  // Media items owned by this creator handle
+  mediaItems MediaItem[]
 
-    @@unique([collectionId, username])
-    @@index([collectionId])
-    @@index([deletedAt])
-    @@map("media_users")
+  @@unique([collectionId, username])
+  @@index([collectionId])
+  @@index([deletedAt])
+  @@map("media_users")
 }
 
 model MediaUserAllowedUser {
-    mediaUserId String
-    userId      String
+  mediaUserId String
+  userId      String
 
-    mediaUser   MediaUser   @relation(fields: [mediaUserId], references: [id], onDelete: Cascade)
-    user        ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaUser MediaUser   @relation(fields: [mediaUserId], references: [id], onDelete: Cascade)
+  user      ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@id([mediaUserId, userId])
-    @@map("media_user_allowed_users")
+  @@id([mediaUserId, userId])
+  @@map("media_user_allowed_users")
 }
 
 /// Level 4: Core Media Item catalog record
 model MediaItem {
-    id                  String             @id @default(cuid())
-    name                String
-    type                MediaType
-    path                String             @unique
-    size                BigInt             // Size in bytes
-    width               Int                // Resolution width
-    height              Int                // Resolution height
-    duration            Float?             // Video duration in seconds
-    bitrate             Int?               // Video bitrate in kbps
-    previewUrl          String             // Original or direct URL
-    thumbnailUrl        String?            // Fast preview / poster thumbnail
-    tags                String[]           @default([])
-    likesCount          Int                @default(0)
-    savesCount          Int                @default(0)
+  id           String    @id @default(cuid())
+  name         String
+  type         MediaType
+  path         String    @unique
+  size         BigInt // Size in bytes
+  width        Int // Resolution width
+  height       Int // Resolution height
+  duration     Float? // Video duration in seconds
+  bitrate      Int? // Video bitrate in kbps
+  previewUrl   String // Original or direct URL
+  thumbnailUrl String? // Fast preview / poster thumbnail
+  tags         String[]  @default([])
+  likesCount   Int       @default(0)
+  savesCount   Int       @default(0)
 
-    // Processing telemetry
-    processingStatus    ProcessingStatus   @default(NEW)
-    processingError     String?
+  // Processing telemetry
+  processingStatus ProcessingStatus @default(NEW)
+  processingError  String?
 
-    // Access control override
-    visibility          VisibilityType     @default(INHERIT)
-    deletedAt           DateTime?
-    createdAt           DateTime           @default(now())
-    updatedAt           DateTime           @updatedAt
+  // Access control override
+  visibility VisibilityType @default(INHERIT)
+  deletedAt  DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
-    // Hierarchy Foreign Keys
-    userId              String
-    user                MediaUser          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Hierarchy Foreign Keys
+  userId String
+  user   MediaUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    collectionId        String
-    collection          Collection         @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
-    rootCollectionId    String
-    rootCollection      RootCollection     @relation(fields: [rootCollectionId], references: [id], onDelete: Cascade)
+  rootCollectionId String
+  rootCollection   RootCollection @relation(fields: [rootCollectionId], references: [id], onDelete: Cascade)
 
-    // Optional processing profile override
-    processingProfileId String?
-    processingProfile   ProcessingProfile? @relation(fields: [processingProfileId], references: [id], onDelete: SetNull)
+  // Optional processing profile override
+  processingProfileId String?
+  processingProfile   ProcessingProfile? @relation(fields: [processingProfileId], references: [id], onDelete: SetNull)
 
-    // Explicit allowed users when visibility is RESTRICTED
-    allowedUsers        MediaItemAllowedUser[]
+  // Explicit allowed users when visibility is RESTRICTED
+  allowedUsers MediaItemAllowedUser[]
 
-    // Generated child renditions / assets
-    assets              MediaAsset[]
+  // Generated child renditions / assets
+  assets MediaAsset[]
 
-    @@index([userId])
-    @@index([collectionId])
-    @@index([rootCollectionId])
-    @@index([processingStatus])
-    @@index([type])
-    @@index([deletedAt])
-    @@index([createdAt])
-    @@map("media_items")
+  @@index([userId])
+  @@index([collectionId])
+  @@index([rootCollectionId])
+  @@index([processingStatus])
+  @@index([type])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@map("media_items")
 }
 
 model MediaItemAllowedUser {
-    mediaItemId String
-    userId      String
+  mediaItemId String
+  userId      String
 
-    mediaItem   MediaItem   @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
-    user        ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaItem MediaItem   @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  user      ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@id([mediaItemId, userId])
-    @@map("media_item_allowed_users")
+  @@id([mediaItemId, userId])
+  @@map("media_item_allowed_users")
 }
 
 /// Rendition assets generated for a MediaItem
 model MediaAsset {
-    id          String      @id @default(cuid())
-    type        AssetType
-    status      AssetStatus @default(MISSING)
-    path        String?
-    size        BigInt?
-    width       Int?
-    height      Int?
-    error       String?
-    generatedAt DateTime?
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
+  id          String      @id @default(cuid())
+  type        AssetType
+  status      AssetStatus @default(MISSING)
+  path        String?
+  size        BigInt?
+  width       Int?
+  height      Int?
+  error       String?
+  generatedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-    // Parent Media Item
-    mediaId     String
-    media       MediaItem   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  // Parent Media Item
+  mediaId String
+  media   MediaItem @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
-    @@unique([mediaId, type])
-    @@index([mediaId])
-    @@index([status])
-    @@index([type])
-    @@map("media_assets")
+  @@unique([mediaId, type])
+  @@index([mediaId])
+  @@index([status])
+  @@index([type])
+  @@map("media_assets")
 }
 
 /// Global system settings and storage paths
 model SystemSetting {
-    id          String   @id @default("singleton")
-    mediaRoot   String   @default("/mnt/media/library")
-    updatedAt   DateTime @updatedAt
+  id        String   @id @default("singleton")
+  mediaRoot String   @default("/mnt/media/library")
+  updatedAt DateTime @updatedAt
 
-    @@map("system_settings")
+  @@map("system_settings")
 }
 
 /// Audit log and processing activity feed
 model ActivityLog {
-    id          String       @id @default(cuid())
-    type        ActivityType
-    title       String
-    description String
-    metadata    Json?
-    timestamp   DateTime     @default(now())
+  id          String       @id @default(cuid())
+  type        ActivityType
+  title       String
+  description String
+  metadata    Json?
+  timestamp   DateTime     @default(now())
 
-    @@index([timestamp])
-    @@index([type])
-    @@map("activity_logs")
+  @@index([timestamp])
+  @@index([type])
+  @@map("activity_logs")
+}
+
+/// Persisted admin sessions (Bearer tokens)
+model AdminSession {
+  token       String    @id
+  adminUserId String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@map("admin_sessions")
 }

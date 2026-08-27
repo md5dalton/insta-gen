@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
     if (authHeader) {
         const token = authHeader.replace(/^Bearer\s+/i, "").trim()
-        db.tokens.delete(token)
+        await db.deleteSession(token)
     }
     
     return NextResponse.json({ success: true, message: "Logged out successfully" })

@@ -10,6 +10,7 @@ import {
     SystemSettings,
     MediaType,
 } from "@/types/types"
+import prisma from "@/lib/prisma"
 
 export class DatabaseStore {
     admin: AdminUser | null = null
@@ -263,6 +264,85 @@ export class DatabaseStore {
     constructor() {
         this.seedInitialMedia()
         this.seedInitialActivity()
+    }
+
+    // ---------- Prisma-backed admin & sessions API wrappers ----------
+
+    async adminCount(): Promise<number> {
+        try {
+            return await prisma.adminUser.count()
+        } catch (e) {
+            return this.admin ? 1 : 0
+        }
+    }
+
+    async findAdminByEmail(email: string) {
+        try {
+            const rec = await prisma.adminUser.findUnique({ where: { email } })
+            if (!rec) return null
+            return {
+                id: rec.id,
+                name: rec.name,
+                email: rec.email,
+                passwordHash: rec.passwordHash,
+                createdAt: rec.createdAt.toISOString(),
+            }
+        } catch (e) {
+            // fallback to in-memory
+            if (this.admin && this.admin.email.toLowerCase() === email.toLowerCase()) return this.admin
+            return null
+        }
+    }
+
+    async createAdmin(data: { name: string; email: string; passwordHash: string }) {
+        const created = await prisma.adminUser.create({ data: { name: data.name, email: data.email, passwordHash: data.passwordHash } })
+        // mirror into memory
+        this.admin = {
+            id: created.id,
+            name: created.name,
+            email: created.email,
+            createdAt: created.createdAt.toISOString(),
+        }
+        this.adminPasswordHash = created.passwordHash
+        return this.admin
+    }
+
+    async createSession(token: string, adminId: string) {
+        try {
+            await prisma.adminSession.create({ data: { token, adminUserId: adminId } })
+        } catch (e) {
+            // ignore if DB not available
+        }
+        this.tokens.add(token)
+    }
+
+    async deleteSession(token: string) {
+        try {
+            await prisma.adminSession.deleteMany({ where: { token } })
+        } catch (e) {
+            // ignore
+        }
+        this.tokens.delete(token)
+    }
+
+    async loadFromDatabase(): Promise<void> {
+        try {
+            const admin = await prisma.adminUser.findFirst()
+            if (admin) {
+                this.admin = {
+                    id: admin.id,
+                    name: admin.name,
+                    email: admin.email,
+                    createdAt: admin.createdAt.toISOString(),
+                }
+                this.adminPasswordHash = admin.passwordHash
+            }
+
+            const sessions = await prisma.adminSession.findMany({ include: { adminUser: true } })
+            sessions.forEach((s) => this.tokens.add(s.token))
+        } catch (e) {
+            // ignore DB errors during startup - keep in-memory defaults
+        }
     }
 
     private seedInitialMedia() {
@@ -765,3 +845,12 @@ export class DatabaseStore {
 }
 
 export const db = new DatabaseStore()
+
+// Kick off background sync to mirror persisted admin & sessions into memory
+;(async () => {
+    try {
+        await db.loadFromDatabase()
+    } catch (e) {
+        console.error("Failed to sync db from Prisma:", e)
+    }
+})()
