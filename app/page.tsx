@@ -1,6 +1,5 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Layout } from "@/components/Layout"
 import { AuthSetupPage } from "@/components/AuthSetupPage"
 import { DashboardHomePage } from "@/components/DashboardHomePage"
 import { MediaLibraryPage } from "@/components/MediaLibraryPage"
@@ -13,6 +12,7 @@ import Loader from "@/components/Loader"
 import { LoginPage } from "@/components/LoginPage"
 import { LibraryStats } from "@/types/types"
 import { api } from "@/lib/api"
+import Dashboard from "@/components/Dashboard"
 
 export default () => {
     const { user, isConfigured, loading } = useAuth()
@@ -50,7 +50,7 @@ export default () => {
 
     // Main Administrative Application
     return (
-        <Layout
+        <Dashboard
             currentTab={currentTab}
             onSelectTab={setCurrentTab}
             stats={stats}
@@ -64,6 +64,6 @@ export default () => {
             {currentTab === "collections" && <CollectionsPage />}
             {currentTab === "access" && <AccessPage />}
             {currentTab === "settings" && <SettingsPage />}
-        </Layout>
+        </Dashboard>
     )
 }

@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useAuth } from "@/context/AuthContext"
 import {
     LayoutDashboard,
     Film,
@@ -7,14 +6,11 @@ import {
     FolderTree,
     ShieldCheck,
     Settings,
-    HardDrive,
-    LogOut,
-    Menu,
-    X,
     Radio,
-    CheckCircle2,
 } from "lucide-react"
 import { LibraryStats } from "@/types/types"
+import Header from "./Header"
+import Logo from "./Logo"
 
 interface LayoutProps {
     currentTab: "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
@@ -26,14 +22,12 @@ interface LayoutProps {
     onRefreshStats?: () => void
 }
 
-export const Layout: React.FC<LayoutProps> = ({
+export default ({
     currentTab,
     onSelectTab,
     children,
     stats,
-    onRefreshStats,
-}) => {
-    const { admin, logout } = useAuth()
+}: LayoutProps) => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
     const navItems = [
@@ -83,73 +77,12 @@ export const Layout: React.FC<LayoutProps> = ({
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col antialiased">
             {/* Top Application Bar */}
-            <header className="h-14 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-md"
-                    >
-                        {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                    </button>
-
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-indigo-900/40">
-                            <HardDrive className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <span className="text-sm font-bold text-white tracking-tight block leading-tight">
-                                Media Manager
-                            </span>
-                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold block leading-tight">
-                                Admin Control Plane
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Media Root Connectivity Indicator */}
-                <div className="hidden sm:flex items-center gap-3 text-xs bg-slate-900/90 border border-slate-800 px-3 py-1 rounded-full">
-                    <span className="flex items-center gap-1.5 text-slate-300">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span className="text-slate-400 font-mono text-[11px]">Media Root:</span>
-                        <span className="font-mono text-slate-200 font-medium truncate max-w-[200px]">
-                            {stats?.mediaRoot || "/mnt/media/library"}
-                        </span>
-                    </span>
-                    <span className="text-emerald-400 text-[11px] font-medium flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Connected
-                    </span>
-                </div>
-
-                {/* Admin Menu & Logout */}
-                <div className="flex items-center gap-3">
-                    <div className="hidden lg:flex items-center gap-2 text-xs text-slate-300">
-                        <div className="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center font-bold text-indigo-300 text-xs">
-                            {admin?.name?.charAt(0) || "A"}
-                        </div>
-                        <div className="text-left">
-                            <span className="font-semibold block leading-tight text-slate-200">
-                                {admin?.name}
-                            </span>
-                            <span className="text-[10px] text-indigo-400 font-mono block leading-tight">
-                                Administrator
-                            </span>
-                        </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => logout()}
-                        className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 hover:text-rose-400 text-slate-300 text-xs font-medium transition-colors flex items-center gap-1.5"
-                        title="Sign out of Admin Dashboard"
-                    >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Sign Out</span>
-                    </button>
-                </div>
-            </header>
+            <Header stats={stats || null}>
+                <Logo
+                    menuHandler={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    isOpen={mobileMenuOpen}
+                />
+            </Header>
 
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Sidebar Navigation */}
