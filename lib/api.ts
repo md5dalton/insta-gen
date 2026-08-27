@@ -58,9 +58,9 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 export const api = {
     // Auth
     async getAuthStatus(): Promise<{
-        setupRequired: boolean
-        authenticated: boolean
-        admin: AdminUser | null
+        isConfigured: boolean
+        isAuthenticated: boolean
+        user: AdminUser | null
     }> {
         return fetchApi("/api/admin/auth/status")
     },
@@ -70,7 +70,7 @@ export const api = {
         email: string
         password: string
         confirmPassword: string
-    }): Promise<{ success: boolean; token: string; admin: AdminUser }> {
+    }): Promise<{ success: boolean; token: string; user: AdminUser }> {
         return fetchApi("/api/admin/auth/setup", {
             method: "POST",
             body: JSON.stringify(data),
@@ -80,7 +80,7 @@ export const api = {
     async login(data: {
         email: string
         password: string
-    }): Promise<{ success: boolean; token: string; admin: AdminUser }> {
+    }): Promise<{ success: boolean; token: string; user: AdminUser }> {
         return fetchApi("/api/admin/auth/login", {
             method: "POST",
             body: JSON.stringify(data),

@@ -6,6 +6,8 @@ export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     if (
+        pathname.startsWith("/api/admin") ||
+
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/api/media") ||
         // use withAuth
@@ -14,8 +16,7 @@ export function proxy(request: NextRequest) {
         pathname.startsWith("/api/user") ||
         pathname.startsWith("/api/tag") ||
         pathname.startsWith("/api/activity")
-    )
-        return NextResponse.next()
+    ) return NextResponse.next()
 
     // Only protect API routes
     if (pathname.startsWith("/api")) {

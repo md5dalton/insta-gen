@@ -5,8 +5,8 @@ import { api, setAuthToken, clearAuthToken, getAuthToken } from "@/lib/api"
 import { AdminUser } from "@/types/types"
 
 interface AuthContextType {
-    admin: AdminUser | null
-    setupRequired: boolean
+    user: AdminUser | null
+    isConfigured: boolean
     loading: boolean
     login: (data: { email: string; password: string }) => Promise<void>
     setup: (data: {
@@ -22,28 +22,25 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
-    const [admin, setAdmin] = useState<AdminUser | null>(null)
-    const [setupRequired, setSetupRequired] = useState<boolean>(true)
+    const [user, setUser] = useState<AdminUser | null>(null)
+    const [isConfigured, setIsConfigured] = useState<boolean>(false)
     const [loading, setLoading] = useState<boolean>(true)
 
     const checkAuth = async () => {
         try {
             setLoading(true)
             const res = await api.getAuthStatus()
-            setSetupRequired(res.setupRequired)
-            if (res.authenticated && res.admin) {
-                setAdmin(res.admin)
+            setIsConfigured(res.isConfigured)
+
+            if (res.isAuthenticated && res.user) {
+                setUser(res.user)
             } else {
-                setAdmin(null)
-                if (!getAuthToken()) {
-                    clearAuthToken()
-                }
+                setUser(null)
+                if (!getAuthToken()) clearAuthToken()
             }
         } catch (err: any) {
-            if (err.data?.setupRequired) {
-                setSetupRequired(true)
-            }
-            setAdmin(null)
+            if (err.data?.isConfigured) setIsConfigured(true)
+            setUser(null)
         } finally {
             setLoading(false)
         }
@@ -57,8 +54,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         const res = await api.login(data)
         if (res.token) {
             setAuthToken(res.token)
-            setAdmin(res.admin)
-            setSetupRequired(false)
+            setUser(res.user)
+            setIsConfigured(true)
         }
     }
 
@@ -71,21 +68,21 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         const res = await api.setupAdmin(data)
         if (res.token) {
             setAuthToken(res.token)
-            setAdmin(res.admin)
-            setSetupRequired(false)
+            setUser(res.user)
+            setIsConfigured(true)
         }
     }
 
     const logout = async () => {
         await api.logout()
-        setAdmin(null)
+        setUser(null)
     }
 
     return (
         <AuthContext.Provider
             value={{
-                admin,
-                setupRequired,
+                user,
+                isConfigured,
                 loading,
                 login,
                 setup,

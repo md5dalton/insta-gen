@@ -15,14 +15,15 @@ import { LibraryStats } from "@/types/types"
 import { api } from "@/lib/api"
 
 export default () => {
-    const { admin, setupRequired, loading } = useAuth()
+    const { user, isConfigured, loading } = useAuth()
     const [currentTab, setCurrentTab] = useState<
         "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
     >("dashboard")
     const [stats, setStats] = useState<LibraryStats | null>(null)
 
     const fetchStats = async () => {
-        if (!admin) return
+        if (!user) return
+
         try {
             const s = await api.getStats()
             setStats(s)
@@ -32,20 +33,20 @@ export default () => {
     }
 
     useEffect(() => {
-        if (admin) {
+        if (user) {
             fetchStats()
             const interval = setInterval(fetchStats, 15000)
             return () => clearInterval(interval)
         }
-    }, [admin, currentTab])
+    }, [user, currentTab])
 
     if (loading) return <Loader />
 
     // Initial Administrator Setup Flow (if not configured)
-    if (setupRequired) return <AuthSetupPage />
+    if (!isConfigured) return <AuthSetupPage />
 
     // Administrator Login Flow (if not authenticated)
-    if (!admin) return <LoginPage />
+    if (!user) return <LoginPage />
 
     // Main Administrative Application
     return (
