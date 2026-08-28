@@ -24,12 +24,12 @@ export default function HomePage() {
             return
         }
 
-        // if (!settings.mediaRoot) {
+        if (!settings.mediaRoot) {
             router.replace("/settings-setup")
-            // return
-        // }
+            return
+        }
 
-        // router.replace("/dashboard")
+        router.replace("/dashboard")
     }, [loading, isConfigured, user, settings.mediaRoot, router])
 
     return <Loader />
