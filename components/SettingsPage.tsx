@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from "react"
 import { api } from "../lib/api"
+import { useSettings } from "@/context/SettingsContext"
 import { ProcessingProfile, AssetType } from "@/types/types"
 import {
     Settings,
@@ -21,7 +22,8 @@ import {
 } from "lucide-react"
 
 export const SettingsPage: React.FC = () => {
-    const [mediaRoot, setMediaRoot] = useState("/mnt/media/library")
+    const { settings, refreshSettings, updateMediaRoot } = useSettings()
+    const [mediaRoot, setMediaRoot] = useState(settings.mediaRoot)
     const [profiles, setProfiles] = useState<ProcessingProfile[]>([])
     const [loading, setLoading] = useState(true)
     const [savingRoot, setSavingRoot] = useState(false)
@@ -48,7 +50,7 @@ export const SettingsPage: React.FC = () => {
     const loadData = async () => {
         setLoading(true)
         try {
-            const [settingsRes, profRes] = await Promise.all([api.getSettings(), api.getProfiles()])
+            const [settingsRes, profRes] = await Promise.all([refreshSettings(), api.getProfiles()])
             setMediaRoot(settingsRes.mediaRoot)
             setProfiles(profRes)
         } catch (err: any) {
@@ -59,6 +61,10 @@ export const SettingsPage: React.FC = () => {
     }
 
     useEffect(() => {
+        setMediaRoot(settings.mediaRoot)
+    }, [settings.mediaRoot])
+
+    useEffect(() => {
         loadData()
     }, [])
 
@@ -66,8 +72,8 @@ export const SettingsPage: React.FC = () => {
         e.preventDefault()
         setSavingRoot(true)
         try {
-            const res = await api.updateMediaRoot(mediaRoot)
-            setMediaRoot(res.settings.mediaRoot)
+            const res = await updateMediaRoot(mediaRoot)
+            setMediaRoot(res.mediaRoot)
             showFeedback("Media Root updated successfully.")
         } catch (err: any) {
             showFeedback(err.message || "Failed to update media root", "error")

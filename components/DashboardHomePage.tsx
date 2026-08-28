@@ -1,4 +1,5 @@
 import React from "react"
+import { useSettings } from "@/context/SettingsContext"
 import { LibraryStats } from "@/types/types"
 import {
     HardDrive,
@@ -23,6 +24,8 @@ interface DashboardHomePageProps {
 }
 
 export const DashboardHomePage: React.FC<DashboardHomePageProps> = ({ stats, onNavigate }) => {
+    const { settings } = useSettings()
+
     return (
         <div className="space-y-8 animate-in fade-in duration-300">
             {/* Page Title & Intro */}
@@ -59,7 +62,7 @@ export const DashboardHomePage: React.FC<DashboardHomePageProps> = ({ stats, onN
                             </span>
                             <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-base font-mono font-bold text-white">
-                                    {stats?.mediaRoot || "/mnt/media/library"}
+                                    {settings.mediaRoot || "/mnt/media/library"}
                                 </span>
                                 <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2.5 py-0.5 rounded-full">
                                     <CheckCircle2 className="w-3.5 h-3.5" />

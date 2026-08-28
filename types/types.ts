@@ -208,13 +208,6 @@ export interface PaginatedResponse<T> {
 }
 
 export interface LibraryStats {
-    mediaRoot?: string
-    mediaRootStatus?: {
-        exists: boolean
-        readable: boolean
-        writable: boolean
-        path: string
-    }
     totalFiles?: number
     readyFiles?: number
     processingFiles?: number
