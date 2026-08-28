@@ -1,3 +1,7 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { LibraryStats } from "@/types/types"
 import {
     LayoutDashboard,
@@ -12,24 +16,23 @@ import {
 type Props = {
     isOpen: boolean
     stats?: LibraryStats | null
-    currentTab: "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
-    onSelectTab: (
-        tab: "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
-    ) => void
     closeMenu: () => void
 }
 
-export default ({ isOpen, stats, currentTab, onSelectTab, closeMenu }: Props) => {
-    
+export default ({ isOpen, stats, closeMenu }: Props) => {
+    const pathname = usePathname()
+
     const navItems = [
         {
             id: "dashboard" as const,
+            href: "/dashboard",
             label: "Dashboard",
             icon: <LayoutDashboard className="w-4 h-4" />,
             description: "Overview & Attention",
         },
         {
             id: "media" as const,
+            href: "/media",
             label: "Media",
             icon: <Film className="w-4 h-4" />,
             badge: stats?.totalMedia ? stats.totalMedia.toLocaleString() : undefined,
@@ -37,6 +40,7 @@ export default ({ isOpen, stats, currentTab, onSelectTab, closeMenu }: Props) =>
         },
         {
             id: "processing" as const,
+            href: "/processing",
             label: "Processing",
             icon: <Cpu className="w-4 h-4" />,
             attention:
@@ -47,25 +51,27 @@ export default ({ isOpen, stats, currentTab, onSelectTab, closeMenu }: Props) =>
         },
         {
             id: "collections" as const,
+            href: "/collections",
             label: "Collections",
             icon: <FolderTree className="w-4 h-4" />,
             description: "Hierarchy & Policies",
         },
         {
             id: "access" as const,
+            href: "/access",
             label: "Access",
             icon: <ShieldCheck className="w-4 h-4" />,
             description: "Users & Visibility",
         },
         {
             id: "settings" as const,
+            href: "/settings-setup",
             label: "Settings",
             icon: <Settings className="w-4 h-4" />,
             description: "Media Root & Profiles",
         },
     ]
-    
-    
+
     return (
         <aside
             className={`${
@@ -74,15 +80,13 @@ export default ({ isOpen, stats, currentTab, onSelectTab, closeMenu }: Props) =>
         >
             <div className="p-4 space-y-1.5">
                 {navItems.map((item) => {
-                    const isActive = currentTab === item.id
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+
                     return (
-                        <button
+                        <Link
                             key={item.id}
-                            type="button"
-                            onClick={() => {
-                                onSelectTab(item.id)
-                                closeMenu()
-                            }}
+                            href={item.href}
+                            onClick={closeMenu}
                             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                                 isActive
                                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30"
@@ -90,15 +94,11 @@ export default ({ isOpen, stats, currentTab, onSelectTab, closeMenu }: Props) =>
                             }`}
                         >
                             <div className="flex items-center gap-2.5">
-                                <span
-                                    className={isActive ? "text-white" : "text-slate-400"}
-                                >
+                                <span className={isActive ? "text-white" : "text-slate-400"}>
                                     {item.icon}
                                 </span>
                                 <div className="text-left">
-                                    <span className="block leading-tight">
-                                        {item.label}
-                                    </span>
+                                    <span className="block leading-tight">{item.label}</span>
                                     <span
                                         className={`text-[10px] block font-normal leading-tight ${
                                             isActive ? "text-indigo-200" : "text-slate-500"
@@ -127,12 +127,11 @@ export default ({ isOpen, stats, currentTab, onSelectTab, closeMenu }: Props) =>
                                     </span>
                                 ) : null}
                             </div>
-                        </button>
+                        </Link>
                     )
                 })}
             </div>
 
-            {/* Sidebar Status Footer Card */}
             <div className="mt-auto p-4 border-t border-slate-800/80">
                 <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-2">
                     <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">

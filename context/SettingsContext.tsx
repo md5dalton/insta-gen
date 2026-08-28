@@ -14,12 +14,12 @@ import { api } from "@/lib/api"
 import type { SystemSettings } from "@/types/types"
 
 const DEFAULT_SETTINGS: SystemSettings = {
-    mediaRoot: "not specified yet",
+    mediaRoot: "",
     mediaRootStatus: {
         exists: false,
         readable: false,
         writable: false,
-        path: "not specified yet",
+        path: "",
     },
     databaseStatus: {
         connected: false,

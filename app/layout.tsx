@@ -1,5 +1,6 @@
 import { AuthProvider } from "@/context/AuthContext"
 import { SettingsProvider } from "@/context/SettingsContext"
+import { StatsProvider } from "@/context/StatsContext"
 import { ReactNode } from "react"
 
 import "./globals.css"
@@ -14,7 +15,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <html lang="en">
             <body>
                 <AuthProvider>
-                    <SettingsProvider>{children}</SettingsProvider>
+                    <SettingsProvider>
+                        <StatsProvider>{children}</StatsProvider>
+                    </SettingsProvider>
                 </AuthProvider>
             </body>
         </html>

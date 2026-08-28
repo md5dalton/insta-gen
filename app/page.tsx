@@ -1,73 +1,36 @@
 "use client"
-import { useState, useEffect } from "react"
-import { AuthSetupPage } from "@/components/AuthSetupPage"
-import { DashboardHomePage } from "@/components/DashboardHomePage"
-import { MediaLibraryPage } from "@/components/MediaLibraryPage"
-import { ProcessingPage } from "@/components/ProcessingPage"
-import { CollectionsPage } from "@/components/CollectionsPage"
-import { AccessPage } from "@/components/AccessPage"
-import { SettingsPage } from "@/components/SettingsPage"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Loader from "@/components/Loader"
 import { useAuth } from "@/context/AuthContext"
 import { useSettings } from "@/context/SettingsContext"
-import Loader from "@/components/Loader"
-import { LoginPage } from "@/components/LoginPage"
-import { LibraryStats } from "@/types/types"
-import { api } from "@/lib/api"
-import Dashboard from "@/components/Dashboard"
 
-export default () => {
+export default function HomePage() {
+    const router = useRouter()
     const { user, isConfigured, loading } = useAuth()
     const { settings } = useSettings()
-    const [currentTab, setCurrentTab] = useState<
-        "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
-    >("dashboard")
-    const [stats, setStats] = useState<LibraryStats | null>(null)
-
-    const fetchStats = async () => {
-        if (!user) return
-
-        try {
-            const s = await api.getStats()
-            setStats(s)
-        } catch (err) {
-            console.error("Failed to fetch stats", err)
-        }
-    }
 
     useEffect(() => {
-        if (user) {
-            fetchStats()
-            const interval = setInterval(fetchStats, 15000)
-            return () => clearInterval(interval)
+        if (loading) return
+
+        if (!isConfigured) {
+            router.replace("/auth/setup")
+            return
         }
-    }, [user, currentTab])
 
-    if (loading) return <Loader />
+        if (!user) {
+            router.replace("/auth/login")
+            return
+        }
 
-    // Initial Administrator Setup Flow (if not configured)
-    if (!isConfigured) return <AuthSetupPage />
+        // if (!settings.mediaRoot) {
+            router.replace("/settings-setup")
+            // return
+        // }
 
-    // Administrator Login Flow (if not authenticated)
-    if (!user) return <LoginPage />
+        // router.replace("/dashboard")
+    }, [loading, isConfigured, user, settings.mediaRoot, router])
 
-    const mediaRootNotConfigured = !settings.mediaRoot || settings.mediaRoot === "not specified yet"
-    if (mediaRootNotConfigured) return <SettingsPage />
-
-    // Main Administrative Application
-    return (
-        <Dashboard
-            currentTab={currentTab}
-            onSelectTab={setCurrentTab}
-            onRefreshStats={fetchStats}
-        >
-            {currentTab === "dashboard" && (
-                <DashboardHomePage stats={stats} onNavigate={setCurrentTab} />
-            )}
-            {currentTab === "media" && <MediaLibraryPage />}
-            {currentTab === "processing" && <ProcessingPage />}
-            {currentTab === "collections" && <CollectionsPage />}
-            {currentTab === "access" && <AccessPage />}
-            {currentTab === "settings" && <SettingsPage />}
-        </Dashboard>
-    )
+    return <Loader />
 }

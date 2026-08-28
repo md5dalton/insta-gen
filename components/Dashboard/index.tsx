@@ -1,20 +1,14 @@
+"use client"
 import React, { useState } from "react"
 import Header from "./Header"
 import Logo from "./Logo"
 import Navigation from "./Navigation"
 
 interface LayoutProps {
-    currentTab: "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
-    onSelectTab: (
-        tab: "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
-    ) => void
     children: React.ReactNode
-    onRefreshStats?: () => void
 }
 
 export default ({
-    currentTab,
-    onSelectTab,
     children
 }: LayoutProps) => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -33,8 +27,6 @@ export default ({
                 {/* Left Sidebar Navigation */}
                 <Navigation
                     closeMenu={() => setMobileMenuOpen(false)}
-                    currentTab={currentTab}
-                    onSelectTab={onSelectTab}
                     isOpen={mobileMenuOpen}
                 />
               

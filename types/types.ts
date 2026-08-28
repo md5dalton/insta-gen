@@ -258,3 +258,18 @@ export interface SystemSettings {
         queuedJobs: number
     }
 }
+
+
+export interface PathValidationResult {
+  valid: boolean;
+  path: string;
+  exists: boolean;
+  readable: boolean;
+  writable: boolean;
+  storageType: string;
+  totalSpaceBytes: number;
+  freeSpaceBytes: number;
+  detectedRoots: string[];
+  latencyMs: number;
+  message: string;
+}
