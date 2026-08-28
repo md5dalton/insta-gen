@@ -354,7 +354,7 @@ model MediaAsset {
 /// Global system settings and storage paths
 model SystemSetting {
   id        String   @id @default("singleton")
-  mediaRoot String   @default("/mnt/media/library")
+  mediaRoot String
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")

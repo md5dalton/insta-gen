@@ -8,6 +8,7 @@ import { CollectionsPage } from "@/components/CollectionsPage"
 import { AccessPage } from "@/components/AccessPage"
 import { SettingsPage } from "@/components/SettingsPage"
 import { useAuth } from "@/context/AuthContext"
+import { useSettings } from "@/context/SettingsContext"
 import Loader from "@/components/Loader"
 import { LoginPage } from "@/components/LoginPage"
 import { LibraryStats } from "@/types/types"
@@ -16,6 +17,7 @@ import Dashboard from "@/components/Dashboard"
 
 export default () => {
     const { user, isConfigured, loading } = useAuth()
+    const { settings } = useSettings()
     const [currentTab, setCurrentTab] = useState<
         "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
     >("dashboard")
@@ -48,12 +50,14 @@ export default () => {
     // Administrator Login Flow (if not authenticated)
     if (!user) return <LoginPage />
 
+    const mediaRootNotConfigured = !settings.mediaRoot || settings.mediaRoot === "not specified yet"
+    if (mediaRootNotConfigured) return <SettingsPage />
+
     // Main Administrative Application
     return (
         <Dashboard
             currentTab={currentTab}
             onSelectTab={setCurrentTab}
-            stats={stats}
             onRefreshStats={fetchStats}
         >
             {currentTab === "dashboard" && (

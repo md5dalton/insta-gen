@@ -4,9 +4,8 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { authenticateRequest } from "@/server/auth"
 import type { SystemSettings } from "@/types/types"
-import { MediaConfig } from "@/lib/config"
 
-const DEFAULT_MEDIA_ROOT = MediaConfig.MEDIA_ROOT!
+const MEDIA_ROOT_NOT_CONFIGURED = "MEDIA_ROOT_NOT_CONFIGURED"
 
 async function getMediaRootStatus(path: string) {
     try {
@@ -49,7 +48,13 @@ export async function getSettingsRecord(): Promise<SystemSettings> {
         where: { id: "singleton" },
     })
 
-    const mediaRoot = setting?.mediaRoot || DEFAULT_MEDIA_ROOT
+    const mediaRoot = setting?.mediaRoot?.trim() || ""
+    if (!mediaRoot) {
+        throw Object.assign(new Error("Media root has not been configured yet."), {
+            code: MEDIA_ROOT_NOT_CONFIGURED,
+        })
+    }
+
     const syncState = (globalThis as any).syncState || {}
 
     return {
@@ -71,6 +76,28 @@ export async function GET(request: Request) {
     const admin = await authenticateRequest(request.headers.get("authorization") || undefined)
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const settings = await getSettingsRecord()
-    return NextResponse.json(settings)
+    try {
+        const settings = await getSettingsRecord()
+        return NextResponse.json(settings)
+    } catch (error: any) {
+        const code = error?.code || "SETTINGS_ERROR"
+        if (code === MEDIA_ROOT_NOT_CONFIGURED) {
+            return NextResponse.json(
+                {
+                    error: "Media root has not been configured yet.",
+                    code: MEDIA_ROOT_NOT_CONFIGURED,
+                    message: "Please add a media root before opening the dashboard.",
+                },
+                { status: 409 }
+            )
+        }
+
+        return NextResponse.json(
+            {
+                error: "Failed to load settings.",
+                code,
+            },
+            { status: 500 }
+        )
+    }
 }

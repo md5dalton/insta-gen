@@ -50,7 +50,12 @@ export const SettingsProvider: FC<{ children: ReactNode }> = ({ children }) => {
             const nextSettings = await api.getSettings()
             setSettings(nextSettings)
             return nextSettings
-        } catch (error) {
+        } catch (error: any) {
+            if (error?.data?.code === "MEDIA_ROOT_NOT_CONFIGURED") {
+                setSettings(DEFAULT_SETTINGS)
+                return DEFAULT_SETTINGS
+            }
+
             console.error("Failed to refresh settings", error)
             return DEFAULT_SETTINGS
         } finally {

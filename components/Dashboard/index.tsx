@@ -1,6 +1,4 @@
 import React, { useState } from "react"
-
-import { LibraryStats } from "@/types/types"
 import Header from "./Header"
 import Logo from "./Logo"
 import Navigation from "./Navigation"
@@ -11,22 +9,20 @@ interface LayoutProps {
         tab: "dashboard" | "media" | "processing" | "collections" | "access" | "settings"
     ) => void
     children: React.ReactNode
-    stats?: LibraryStats | null
     onRefreshStats?: () => void
 }
 
 export default ({
     currentTab,
     onSelectTab,
-    children,
-    stats,
+    children
 }: LayoutProps) => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col antialiased">
             {/* Top Application Bar */}
-            <Header stats={stats || null}>
+            <Header>
                 <Logo
                     menuHandler={() => setMobileMenuOpen(!mobileMenuOpen)}
                     isOpen={mobileMenuOpen}
