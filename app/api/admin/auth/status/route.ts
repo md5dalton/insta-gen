@@ -5,7 +5,7 @@ import { db } from "@/server/db"
 export async function GET(request: Request) {
     // status
     const isConfigured = (await db.adminCount()) > 0
-    const user = authenticateRequest(request.headers.get("authorization") || undefined)
+    const user = await authenticateRequest(request.headers.get("authorization") || undefined)
 
     return NextResponse.json({
         isConfigured,

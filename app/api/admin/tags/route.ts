@@ -4,11 +4,12 @@ import { enrichMediaItem } from "@/server/policy"
 import { authenticateRequest } from "@/server/auth"
 
 export async function GET(request: Request) {
-    const admin = authenticateRequest(request.headers.get("authorization") || undefined)
+    const admin = await authenticateRequest(request.headers.get("authorization") || undefined)
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const counts: Record<string, number> = {}
-    const active = db.media.map(enrichMediaItem).filter((m) => !m.isEffectivelyDeleted)
+    const enriched = await Promise.all((await db.listMedia()).map((m) => enrichMediaItem(m)))
+    const active = enriched.filter((m) => !m.isEffectivelyDeleted)
     active.forEach((m) => {
         ;(m.tags || []).forEach((t: string) => {
             counts[t] = (counts[t] || 0) + 1

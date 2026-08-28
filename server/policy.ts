@@ -11,10 +11,10 @@ import { db } from "./db"
  * Resolves the deterministic effective processing policy for a media item.
  * Precedence: Media -> User -> Collection -> Root Collection -> System default.
  */
-export function resolveEffectiveProcessingPolicy(media: MediaItem): EffectivePolicyResult {
-    const user = db.mediaUsers.find((u) => u.id === media.userId)
-    const collection = db.collections.find((c) => c.id === media.collectionId)
-    const rootCollection = db.rootCollections.find((r) => r.id === media.rootCollectionId)
+export async function resolveEffectiveProcessingPolicy(media: MediaItem): Promise<EffectivePolicyResult> {
+    const user = await db.findMediaUserById(media.userId)
+    const collection = await db.findCollectionById(media.collectionId)
+    const rootCollection = await db.findRootCollectionById(media.rootCollectionId)
 
     let chosenProfileId: string | null | undefined = null
     let inheritedFrom: EffectivePolicyResult["inheritedFrom"] = {
@@ -106,10 +106,10 @@ export function resolveEffectiveProcessingPolicy(media: MediaItem): EffectivePol
  * Rule: Child can restrict further, but cannot bypass a parent restriction.
  * Effective access = parent access ∩ child access.
  */
-export function resolveEffectiveAccess(media: MediaItem): EffectiveAccessResult {
-    const user = db.mediaUsers.find((u) => u.id === media.userId)
-    const collection = db.collections.find((c) => c.id === media.collectionId)
-    const rootCollection = db.rootCollections.find((r) => r.id === media.rootCollectionId)
+export async function resolveEffectiveAccess(media: MediaItem): Promise<EffectiveAccessResult> {
+    const user = await db.findMediaUserById(media.userId)
+    const collection = await db.findCollectionById(media.collectionId)
+    const rootCollection = await db.findRootCollectionById(media.rootCollectionId)
 
     // 1. Resolve visibility precedence
     let effectiveVisibility: "ALL_USERS" | "RESTRICTED" | "PRIVATE" = "ALL_USERS"
@@ -190,7 +190,8 @@ export function resolveEffectiveAccess(media: MediaItem): EffectiveAccessResult 
     }
 
     // 3. Build effective user list for all profile users
-    const effectiveUsers = db.profileUsers.map((pUser) => {
+    const profileUsers = await db.listProfileUsers()
+    const effectiveUsers = profileUsers.map((pUser) => {
         if (pUser.role === "ADMIN") {
             return {
                 user: pUser,
@@ -266,9 +267,9 @@ export function resolveEffectiveAccess(media: MediaItem): EffectiveAccessResult 
 /**
  * Enriches a raw MediaItem with dynamic backend calculations.
  */
-export function enrichMediaItem(media: MediaItem): MediaItem {
-    const policyResult = resolveEffectiveProcessingPolicy(media)
-    const accessResult = resolveEffectiveAccess(media)
+export async function enrichMediaItem(media: MediaItem): Promise<MediaItem> {
+    const policyResult = await resolveEffectiveProcessingPolicy(media)
+    const accessResult = await resolveEffectiveAccess(media)
     const deletionResult = resolveEffectiveDeletion({ media })
 
     // Recalculate processing status if needed
@@ -295,31 +296,31 @@ export function enrichMediaItem(media: MediaItem): MediaItem {
 
 // --- Convenience helpers expected by API routes ---
 
-export function resolveEffectiveProfile(params: {
+export async function resolveEffectiveProfile(params: {
     mediaId?: string
     userId?: string
     collectionId?: string
     rootCollectionId?: string
     type?: "IMAGE" | "VIDEO"
-}): ProcessingProfile {
+}): Promise<ProcessingProfile> {
     const { mediaId, userId, collectionId, rootCollectionId, type = "IMAGE" } = params
 
     let chosenProfileId: string | null | undefined = null
 
     if (mediaId) {
-        const m = db.media.find((item) => item.id === mediaId)
+        const m: any = await db.findMediaById(mediaId)
         if (m?.processingProfileId) chosenProfileId = m.processingProfileId
     }
     if (!chosenProfileId && userId) {
-        const u = db.mediaUsers.find((user) => user.id === userId)
+        const u: any = await db.findMediaUserById(userId)
         if (u?.processingProfileId) chosenProfileId = u.processingProfileId
     }
     if (!chosenProfileId && collectionId) {
-        const c = db.collections.find((col) => col.id === collectionId)
+        const c: any = await db.findCollectionById(collectionId)
         if (c?.processingProfileId) chosenProfileId = c.processingProfileId
     }
     if (!chosenProfileId && rootCollectionId) {
-        const r = db.rootCollections.find((root) => root.id === rootCollectionId)
+        const r: any = await db.findRootCollectionById(rootCollectionId)
         if (r?.processingProfileId) chosenProfileId = r.processingProfileId
     }
 
@@ -331,21 +332,21 @@ export function resolveEffectiveProfile(params: {
     return profile
 }
 
-export function resolveEffectiveVisibility(params: {
+export async function resolveEffectiveVisibility(params: {
     mediaId?: string
     userId?: string
     collectionId?: string
     rootCollectionId?: string
-}): "ALL_USERS" | "RESTRICTED" | "PRIVATE" {
+}): Promise<"ALL_USERS" | "RESTRICTED" | "PRIVATE"> {
     const { mediaId, userId, collectionId, rootCollectionId } = params
 
-    const m = mediaId ? db.media.find((item) => item.id === mediaId) : null
+    const m: any = mediaId ? await db.findMediaById(mediaId) : null
     const targetUserId = userId || m?.userId
-    const u = targetUserId ? db.mediaUsers.find((user) => user.id === targetUserId) : null
+    const u: any = targetUserId ? await db.findMediaUserById(targetUserId) : null
     const targetColId = collectionId || u?.collectionId || m?.collectionId
-    const c = targetColId ? db.collections.find((col) => col.id === targetColId) : null
+    const c: any = targetColId ? await db.findCollectionById(targetColId) : null
     const targetRootId = rootCollectionId || c?.rootCollectionId || m?.rootCollectionId
-    const r = targetRootId ? db.rootCollections.find((root) => root.id === targetRootId) : null
+    const r: any = targetRootId ? await db.findRootCollectionById(targetRootId) : null
 
     const chain = [r?.visibility, c?.visibility, u?.visibility, m?.visibility].filter(
         Boolean as any
@@ -363,21 +364,21 @@ export function resolveEffectiveVisibility(params: {
     return "ALL_USERS"
 }
 
-export function resolveEffectiveAllowedUsers(params: {
+export async function resolveEffectiveAllowedUsers(params: {
     mediaId?: string
     userId?: string
     collectionId?: string
     rootCollectionId?: string
-}): string[] {
+}): Promise<string[]> {
     const { mediaId, userId, collectionId, rootCollectionId } = params
 
-    const m = mediaId ? db.media.find((item) => item.id === mediaId) : null
+    const m: any = mediaId ? await db.findMediaById(mediaId) : null
     const targetUserId = userId || m?.userId
-    const u = targetUserId ? db.mediaUsers.find((user) => user.id === targetUserId) : null
+    const u: any = targetUserId ? await db.findMediaUserById(targetUserId) : null
     const targetColId = collectionId || u?.collectionId || m?.collectionId
-    const c = targetColId ? db.collections.find((col) => col.id === targetColId) : null
+    const c: any = targetColId ? await db.findCollectionById(targetColId) : null
     const targetRootId = rootCollectionId || c?.rootCollectionId || m?.rootCollectionId
-    const r = targetRootId ? db.rootCollections.find((root) => root.id === targetRootId) : null
+    const r: any = targetRootId ? await db.findRootCollectionById(targetRootId) : null
 
     const nodes = [r, c, u, m].filter(Boolean as any)
     let currentAllowed: Set<string> | null = null
@@ -400,7 +401,7 @@ export function resolveEffectiveAllowedUsers(params: {
         }
     }
 
-    return currentAllowed ? Array.from(currentAllowed) : db.profileUsers.map((p) => p.id)
+    return currentAllowed ? Array.from(currentAllowed) : (await db.listProfileUsers()).map((p) => p.id)
 }
 
 export function resolveEffectiveDeletion(params: {
@@ -456,9 +457,9 @@ export function resolveEffectiveDeletion(params: {
     return { isEffectivelyDeleted: false, deletedAt: null }
 }
 
-export function processMediaItemSync(media: MediaItem): MediaItem {
+export async function processMediaItemSync(media: MediaItem): Promise<MediaItem> {
     // Simple implementation: fill missing assets based on processing policy
-    const policy = resolveEffectiveProcessingPolicy(media)
+    const policy = await resolveEffectiveProcessingPolicy(media)
     policy.missingAssets.forEach((assetType) => {
         const assetId = `asset-${media.id}-${assetType.toLowerCase()}`
         const existingIdx = media.assets.findIndex((a) => a.type === assetType)
@@ -481,10 +482,10 @@ export function processMediaItemSync(media: MediaItem): MediaItem {
     media.processingStatus = "READY"
     media.processingError = null as any
     media.updatedAt = new Date().toISOString()
-    return enrichMediaItem(media)
+    return await enrichMediaItem(media)
 }
 
-export function retryFailedAssetsSync(media: MediaItem): MediaItem {
+export async function retryFailedAssetsSync(media: MediaItem): Promise<MediaItem> {
     media.assets.forEach((asset) => {
         if ((asset as any).status === "FAILED") {
             ;(asset as any).status = "READY"
@@ -495,5 +496,5 @@ export function retryFailedAssetsSync(media: MediaItem): MediaItem {
     media.processingStatus = "READY"
     media.processingError = null as any
     media.updatedAt = new Date().toISOString()
-    return enrichMediaItem(media)
+    return await enrichMediaItem(media)
 }

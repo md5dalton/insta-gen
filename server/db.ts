@@ -308,40 +308,428 @@ export class DatabaseStore {
     }
 
     async createSession(token: string, adminId: string) {
-        try {
-            await prisma.adminSession.create({ data: { token, adminUserId: adminId } })
-        } catch (e) {
-            // ignore if DB not available
-        }
-        this.tokens.add(token)
+        await prisma.adminSession.create({ data: { token, adminUserId: adminId } })
     }
 
     async deleteSession(token: string) {
-        try {
-            await prisma.adminSession.deleteMany({ where: { token } })
-        } catch (e) {
-            // ignore
-        }
-        this.tokens.delete(token)
+        await prisma.adminSession.deleteMany({ where: { token } })
     }
 
     async loadFromDatabase(): Promise<void> {
-        try {
-            const admin = await prisma.adminUser.findFirst()
-            if (admin) {
-                this.admin = {
-                    id: admin.id,
-                    name: admin.name,
-                    email: admin.email,
-                    createdAt: admin.createdAt.toISOString(),
-                }
-                this.adminPasswordHash = admin.passwordHash
+        const admin = await prisma.adminUser.findFirst()
+        if (admin) {
+            this.admin = {
+                id: admin.id,
+                name: admin.name,
+                email: admin.email,
+                createdAt: admin.createdAt.toISOString(),
             }
+            this.adminPasswordHash = admin.passwordHash
+        }
+    }
 
-            const sessions = await prisma.adminSession.findMany({ include: { adminUser: true } })
-            sessions.forEach((s) => this.tokens.add(s.token))
+    // ---------- Read helpers to begin migration from in-memory store ----------
+
+    async findMediaById(id: string) {
+        try {
+            const rec: any = await prisma.mediaItem.findUnique({ where: { id }, include: { assets: true } })
+            if (!rec) return null
+            const allowed = await prisma.mediaItemAllowedUser.findMany({ where: { mediaItemId: id } })
+            return {
+                ...rec,
+                createdAt: rec.createdAt?.toISOString(),
+                updatedAt: rec.updatedAt?.toISOString(),
+                deletedAt: rec.deletedAt ? rec.deletedAt.toISOString() : null,
+                assets: (rec.assets || []).map((a: any) => ({ ...a, generatedAt: a.generatedAt ? a.generatedAt.toISOString() : undefined })),
+                allowedUserIds: allowed.map((a: any) => a.profileUserId),
+            }
         } catch (e) {
-            // ignore DB errors during startup - keep in-memory defaults
+            return this.media.find((m) => m.id === id) || null
+        }
+    }
+
+    async findCollectionById(id: string) {
+        try {
+            const rec: any = await prisma.collection.findUnique({ where: { id } })
+            if (!rec) return null
+            const allowed = await prisma.collectionAllowedUser.findMany({ where: { collectionId: id } })
+            return { ...rec, deletedAt: rec.deletedAt ? rec.deletedAt.toISOString() : null, allowedUserIds: allowed.map((a: any) => a.profileUserId) }
+        } catch (e) {
+            return this.collections.find((c) => c.id === id) || null
+        }
+    }
+
+    async findRootCollectionById(id: string) {
+        try {
+            const rec: any = await prisma.rootCollection.findUnique({ where: { id } })
+            if (!rec) return null
+            const allowed = await prisma.rootCollectionAllowedUser.findMany({ where: { rootCollectionId: id } })
+            return { ...rec, deletedAt: rec.deletedAt ? rec.deletedAt.toISOString() : null, allowedUserIds: allowed.map((a: any) => a.profileUserId) }
+        } catch (e) {
+            return this.rootCollections.find((r) => r.id === id) || null
+        }
+    }
+
+    async findMediaUserById(id: string) {
+        try {
+            const rec: any = await prisma.mediaUser.findUnique({ where: { id } })
+            if (!rec) return null
+            const allowed = await prisma.mediaUserAllowedUser.findMany({ where: { mediaUserId: id } })
+            return { ...rec, deletedAt: rec.deletedAt ? rec.deletedAt.toISOString() : null, allowedUserIds: allowed.map((a: any) => a.profileUserId) }
+        } catch (e) {
+            return this.mediaUsers.find((u) => u.id === id) || null
+        }
+    }
+
+    async findProfileUserById(id: string) {
+        try {
+            const rec: any = await prisma.profileUser.findUnique({ where: { id } })
+            if (!rec) return null
+            return { ...rec, createdAt: rec.createdAt.toISOString() }
+        } catch (e) {
+            return this.profileUsers.find((p) => p.id === id) || null
+        }
+    }
+
+    async listProfileUsers() {
+        try {
+            const recs: any[] = await prisma.profileUser.findMany()
+            return recs.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))
+        } catch (e) {
+            return this.profileUsers
+        }
+    }
+
+    async listMedia() {
+        try {
+            const recs: any[] = await prisma.mediaItem.findMany({ include: { assets: true } })
+            const results = []
+            for (const r of recs) {
+                const allowed = await prisma.mediaItemAllowedUser.findMany({ where: { mediaItemId: r.id } })
+                results.push({
+                    ...r,
+                    createdAt: r.createdAt?.toISOString(),
+                    updatedAt: r.updatedAt?.toISOString(),
+                    deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null,
+                    assets: (r.assets || []).map((a: any) => ({ ...a, generatedAt: a.generatedAt ? a.generatedAt.toISOString() : undefined })),
+                    allowedUserIds: allowed.map((a: any) => a.profileUserId),
+                })
+            }
+            return results
+        } catch (e) {
+            return this.media
+        }
+    }
+
+    async listCollections() {
+        try {
+            const recs: any[] = await prisma.collection.findMany()
+            const results = []
+            for (const r of recs) {
+                const allowed = await prisma.collectionAllowedUser.findMany({ where: { collectionId: r.id } })
+                results.push({ ...r, deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null, allowedUserIds: allowed.map((a: any) => a.profileUserId) })
+            }
+            return results
+        } catch (e) {
+            return this.collections
+        }
+    }
+
+    async listRootCollections() {
+        try {
+            const recs: any[] = await prisma.rootCollection.findMany()
+            const results = []
+            for (const r of recs) {
+                const allowed = await prisma.rootCollectionAllowedUser.findMany({ where: { rootCollectionId: r.id } })
+                results.push({ ...r, deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null, allowedUserIds: allowed.map((a: any) => a.profileUserId) })
+            }
+            return results
+        } catch (e) {
+            return this.rootCollections
+        }
+    }
+
+    async listMediaUsers() {
+        try {
+            const recs: any[] = await prisma.mediaUser.findMany()
+            const results = []
+            for (const r of recs) {
+                const allowed = await prisma.mediaUserAllowedUser.findMany({ where: { mediaUserId: r.id } })
+                results.push({ ...r, deletedAt: r.deletedAt ? r.deletedAt.toISOString() : null, allowedUserIds: allowed.map((a: any) => a.profileUserId) })
+            }
+            return results
+        } catch (e) {
+            return this.mediaUsers
+        }
+    }
+
+    async listRecentActivity() {
+        try {
+            const recs: any[] = await prisma.activityLog.findMany({ orderBy: { timestamp: "desc" }, take: 50 })
+            return recs.map((r) => ({ ...r, timestamp: r.timestamp.toISOString() }))
+        } catch (e) {
+            return this.recentActivity
+        }
+    }
+
+    // ---------- Prisma-backed media write helpers ----------
+
+    async createMedia(payload: Partial<MediaItem> & { assets?: Partial<MediaAsset>[]; allowedUserIds?: string[] }) {
+        const created = await prisma.mediaItem.create({
+            data: ({
+                name: payload.name || "",
+                type: (payload.type as any) || "IMAGE",
+                path: payload.path || "",
+                size: payload.size ? BigInt(payload.size as any) : BigInt(0),
+                width: (payload.width as any) || 0,
+                height: (payload.height as any) || 0,
+                duration: (payload.duration as any) || undefined,
+                bitrate: (payload.bitrate as any) || undefined,
+                previewUrl: payload.previewUrl || "",
+                thumbnailUrl: payload.thumbnailUrl || null,
+                tags: (payload.tags as any) || [],
+                likesCount: payload.likesCount || 0,
+                savesCount: payload.savesCount || 0,
+                processingStatus: (payload.processingStatus as any) || undefined,
+                processingError: payload.processingError ? JSON.stringify(payload.processingError) : undefined,
+                visibility: (payload.visibility as any) || undefined,
+                user: payload.userId ? { connect: { id: payload.userId } } : undefined,
+                collection: payload.collectionId ? { connect: { id: payload.collectionId } } : undefined,
+                rootCollection: payload.rootCollectionId ? { connect: { id: payload.rootCollectionId } } : undefined,
+                processingProfile: payload.processingProfileId ? { connect: { id: payload.processingProfileId } } : undefined,
+                assets: payload.assets && payload.assets.length ? { create: payload.assets.map((a) => ({ type: (a.type as any), status: (a.status as any), path: (a.path as any) || undefined, size: a.size ? BigInt(a.size as any) : undefined, width: (a.width as any) || undefined, height: (a.height as any) || undefined, error: (a as any).error || undefined, generatedAt: a.generatedAt ? new Date(a.generatedAt as any) : undefined })) } : undefined,
+            } as any),
+            include: { assets: true },
+        })
+
+        if (payload.allowedUserIds && payload.allowedUserIds.length) {
+            const rows = payload.allowedUserIds.map((uid) => ({ mediaItemId: created.id, userId: uid }))
+            // createMany with skipDuplicates if available
+            try {
+                    await prisma.mediaItemAllowedUser.createMany({ data: rows })
+            } catch (e) {
+                // ignore duplicate errors
+            }
+        }
+
+        return this.findMediaById(created.id)
+    }
+
+    async updateMedia(id: string, updates: Partial<MediaItem> & { assets?: Partial<MediaAsset>[]; allowedUserIds?: string[] }) {
+        const data: any = {}
+        if (updates.name !== undefined) data.name = updates.name
+        if (updates.path !== undefined) data.path = updates.path
+        if (updates.size !== undefined) data.size = BigInt(updates.size as any)
+        if (updates.width !== undefined) data.width = updates.width
+        if (updates.height !== undefined) data.height = updates.height
+        if (updates.duration !== undefined) data.duration = updates.duration
+        if (updates.bitrate !== undefined) data.bitrate = updates.bitrate
+        if (updates.previewUrl !== undefined) data.previewUrl = updates.previewUrl
+        if (updates.thumbnailUrl !== undefined) data.thumbnailUrl = updates.thumbnailUrl
+        if (updates.tags !== undefined) data.tags = updates.tags
+        if (updates.likesCount !== undefined) data.likesCount = updates.likesCount
+        if (updates.savesCount !== undefined) data.savesCount = updates.savesCount
+        if (updates.processingStatus !== undefined) data.processingStatus = updates.processingStatus as any
+        if (updates.processingError !== undefined) data.processingError = updates.processingError as any
+        if (updates.visibility !== undefined) data.visibility = updates.visibility as any
+
+        if (updates.assets && updates.assets.length) {
+            // Upsert assets by unique constraint (mediaId + type). Simpler: delete existing assets for this media and recreate.
+                await prisma.mediaAsset.deleteMany({ where: { mediaId: id } })
+                await prisma.mediaAsset.createMany({ data: updates.assets.map((a) => ({ mediaId: id, type: (a.type as any), status: (a.status as any), path: (a.path as any) || undefined, size: a.size ? BigInt(a.size as any) : undefined, width: (a.width as any) || undefined, height: (a.height as any) || undefined, error: (a as any).error || undefined, generatedAt: a.generatedAt ? new Date(a.generatedAt as any) : undefined })) })
+        }
+
+            await prisma.mediaItem.update({ where: { id }, data: data as any })
+
+        if (updates.allowedUserIds) {
+            // replace allowed users
+            await prisma.mediaItemAllowedUser.deleteMany({ where: { mediaItemId: id } })
+            if (updates.allowedUserIds.length) {
+                const rows = updates.allowedUserIds.map((uid) => ({ mediaItemId: id, userId: uid }))
+                try {
+                    await prisma.mediaItemAllowedUser.createMany({ data: rows })
+                } catch (e) {}
+            }
+        }
+
+        return this.findMediaById(id)
+    }
+
+    async softDeleteMedia(id: string) {
+        const now = new Date()
+        await prisma.mediaItem.update({ where: { id }, data: { deletedAt: now } })
+        return this.findMediaById(id)
+    }
+
+    // ---------- Collections & Profiles write helpers ----------
+
+    async createCollection(payload: Partial<Collection> & { allowedUserIds?: string[] }) {
+        const created = await prisma.collection.create({ data: ({
+            name: payload.name || "",
+            path: payload.path || "",
+            rootCollection: payload.rootCollectionId ? { connect: { id: payload.rootCollectionId } } : undefined,
+            processingProfile: payload.processingProfileId ? { connect: { id: payload.processingProfileId } } : undefined,
+            visibility: (payload.visibility as any) || undefined,
+        } as any) })
+
+        if (payload.allowedUserIds && payload.allowedUserIds.length) {
+            const rows = payload.allowedUserIds.map((uid) => ({ collectionId: created.id, userId: uid }))
+            try { await prisma.collectionAllowedUser.createMany({ data: rows }) } catch (e) {}
+        }
+
+        return this.findCollectionById(created.id)
+    }
+
+    async updateCollection(id: string, updates: Partial<Collection> & { allowedUserIds?: string[] }) {
+        const data: any = {}
+        if (updates.name !== undefined) data.name = updates.name
+        if (updates.path !== undefined) data.path = updates.path
+        if (updates.processingProfileId !== undefined) data.processingProfile = updates.processingProfileId ? { connect: { id: updates.processingProfileId } } : undefined
+        if (updates.visibility !== undefined) data.visibility = updates.visibility as any
+        await prisma.collection.update({ where: { id }, data: data as any })
+        if (updates.allowedUserIds) {
+            await prisma.collectionAllowedUser.deleteMany({ where: { collectionId: id } })
+            if (updates.allowedUserIds.length) {
+                const rows = updates.allowedUserIds.map((uid) => ({ collectionId: id, userId: uid }))
+                try { await prisma.collectionAllowedUser.createMany({ data: rows }) } catch (e) {}
+            }
+        }
+        return this.findCollectionById(id)
+    }
+
+    async createProfileUser(payload: Partial<ProfileUser>) {
+        const created = await prisma.profileUser.create({ data: ({
+            name: payload.name || "",
+            email: payload.email || "",
+            role: (payload.role as any) || undefined,
+            capability: (payload.capability as any) || undefined,
+            picture: (payload as any).picture || undefined,
+        } as any) })
+        return this.findProfileUserById(created.id)
+    }
+
+    async updateProfileUser(id: string, updates: Partial<ProfileUser>) {
+        const data: any = {}
+        if (updates.name !== undefined) data.name = updates.name
+        if (updates.email !== undefined) data.email = updates.email
+        if (updates.role !== undefined) data.role = updates.role as any
+        if (updates.capability !== undefined) data.capability = updates.capability as any
+        if ((updates as any).picture !== undefined) data.picture = (updates as any).picture
+        await prisma.profileUser.update({ where: { id }, data: data as any })
+        return this.findProfileUserById(id)
+    }
+
+    async deleteProfileUser(id: string) {
+        const existing = await prisma.profileUser.findUnique({ where: { id } })
+        if (!existing) return null
+        if (existing.role === "ADMIN") {
+            const adminCount = await prisma.profileUser.count({ where: { role: "ADMIN" } })
+            if (adminCount <= 1) throw new Error("Cannot delete the primary administrator")
+        }
+        const deleted = await prisma.profileUser.delete({ where: { id } })
+        return { ...deleted, createdAt: deleted.createdAt.toISOString() }
+    }
+
+    async createMediaUser(payload: Partial<MediaUser> & { allowedUserIds?: string[] }) {
+        const created = await prisma.mediaUser.create({ data: ({
+            username: payload.username || "",
+            displayName: (payload as any).displayName || payload.username || "",
+            collection: payload.collectionId ? { connect: { id: payload.collectionId } } : undefined,
+            visibility: (payload.visibility as any) || undefined,
+            processingProfile: payload.processingProfileId ? { connect: { id: payload.processingProfileId } } : undefined,
+        } as any) })
+
+        if (payload.allowedUserIds && payload.allowedUserIds.length) {
+            const rows = payload.allowedUserIds.map((uid) => ({ mediaUserId: created.id, userId: uid }))
+            try { await prisma.mediaUserAllowedUser.createMany({ data: rows }) } catch (e) {}
+        }
+
+        return this.findMediaUserById(created.id)
+    }
+
+    async updateMediaUser(id: string, updates: Partial<MediaUser> & { allowedUserIds?: string[] }) {
+        const data: any = {}
+        if (updates.username !== undefined) data.username = updates.username
+        if ((updates as any).displayName !== undefined) data.displayName = (updates as any).displayName
+        if (updates.processingProfileId !== undefined) data.processingProfile = updates.processingProfileId ? { connect: { id: updates.processingProfileId } } : undefined
+        if (updates.visibility !== undefined) data.visibility = updates.visibility as any
+        await prisma.mediaUser.update({ where: { id }, data: data as any })
+        if (updates.allowedUserIds) {
+            await prisma.mediaUserAllowedUser.deleteMany({ where: { mediaUserId: id } })
+            if (updates.allowedUserIds.length) {
+                const rows = updates.allowedUserIds.map((uid) => ({ mediaUserId: id, userId: uid }))
+                try { await prisma.mediaUserAllowedUser.createMany({ data: rows }) } catch (e) {}
+            }
+        }
+        return this.findMediaUserById(id)
+    }
+
+    async createRootCollection(payload: Partial<RootCollection> & { allowedUserIds?: string[] }) {
+        const created = await prisma.rootCollection.create({ data: ({
+            name: payload.name || "",
+            path: payload.path || "",
+            visibility: (payload.visibility as any) || undefined,
+            processingProfile: payload.processingProfileId ? { connect: { id: payload.processingProfileId } } : undefined,
+        } as any) })
+        if (payload.allowedUserIds && payload.allowedUserIds.length) {
+            const rows = payload.allowedUserIds.map((uid) => ({ rootCollectionId: created.id, userId: uid }))
+            try { await prisma.rootCollectionAllowedUser.createMany({ data: rows }) } catch (e) {}
+        }
+        return this.findRootCollectionById(created.id)
+    }
+
+    async updateRootCollection(id: string, updates: Partial<RootCollection> & { allowedUserIds?: string[] }) {
+        const data: any = {}
+        if (updates.name !== undefined) data.name = updates.name
+        if (updates.path !== undefined) data.path = updates.path
+        if (updates.processingProfileId !== undefined) data.processingProfile = updates.processingProfileId ? { connect: { id: updates.processingProfileId } } : undefined
+        if (updates.visibility !== undefined) data.visibility = updates.visibility as any
+        await prisma.rootCollection.update({ where: { id }, data: data as any })
+        if (updates.allowedUserIds) {
+            await prisma.rootCollectionAllowedUser.deleteMany({ where: { rootCollectionId: id } })
+            if (updates.allowedUserIds.length) {
+                const rows = updates.allowedUserIds.map((uid) => ({ rootCollectionId: id, userId: uid }))
+                try { await prisma.rootCollectionAllowedUser.createMany({ data: rows }) } catch (e) {}
+            }
+        }
+        return this.findRootCollectionById(id)
+    }
+
+    async listProcessingProfiles() {
+        try {
+            const recs: any[] = await prisma.processingProfile.findMany()
+            return recs.map((r) => ({
+                id: r.id,
+                name: r.name,
+                description: r.description,
+                isSystem: r.isSystem,
+                requiredRenditions: { thumbnail: r.reqThumbnail, feedImage: r.reqFeedImage, hls: r.reqHls, lowQuality: r.reqLowQuality },
+            }))
+        } catch (e) {
+            return this.profiles
+        }
+    }
+
+    async createProcessingProfile(payload: Partial<ProcessingProfile>) {
+        const created = await prisma.processingProfile.create({ data: ({
+            name: payload.name || "",
+            description: payload.description || "",
+            isSystem: payload.isSystem || false,
+            reqThumbnail: payload.requiredRenditions?.thumbnail ?? true,
+            reqFeedImage: payload.requiredRenditions?.feedImage ?? false,
+            reqHls: payload.requiredRenditions?.hls ?? false,
+            reqLowQuality: payload.requiredRenditions?.lowQuality ?? false,
+        } as any) })
+        return { id: created.id, name: created.name, description: created.description, isSystem: created.isSystem, requiredRenditions: { thumbnail: created.reqThumbnail, feedImage: created.reqFeedImage, hls: created.reqHls, lowQuality: created.reqLowQuality } }
+    }
+
+    async logActivity(entry: { type: string; title: string; description: string; metadata?: any }) {
+        try {
+            const created = await prisma.activityLog.create({ data: { type: entry.type as any, title: entry.title, description: entry.description, metadata: entry.metadata ? entry.metadata : undefined } })
+            return { id: created.id, type: created.type, title: created.title, description: created.description, metadata: created.metadata, timestamp: created.timestamp.toISOString() }
+        } catch (e) {
+            this.recentActivity.unshift({ id: `act-${Date.now()}`, type: entry.type as any, title: entry.title, description: entry.description, timestamp: new Date().toISOString() })
+            return this.recentActivity[0]
         }
     }
 

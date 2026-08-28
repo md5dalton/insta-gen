@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from "react"
 import { LibraryStats } from "@/types/types"
 import {
@@ -10,15 +5,12 @@ import {
     CheckCircle2,
     AlertTriangle,
     Cpu,
-    Layers,
     Sparkles,
     ShieldAlert,
     Trash2,
-    ArrowRight,
     FolderTree,
     Film,
     Clock,
-    ExternalLink,
     ChevronRight,
 } from "lucide-react"
 

@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { db } from "./db"
+import prisma from "@/lib/prisma"
 import { AdminUser } from "@/types/types"
 
 export function hashPassword(password: string): string {
@@ -15,11 +15,23 @@ export function generateToken(): string {
     return crypto.randomBytes(32).toString("hex")
 }
 
-export function authenticateRequest(authHeader?: string): AdminUser | null {
+export async function authenticateRequest(authHeader?: string): Promise<AdminUser | null> {
     if (!authHeader) return null
     const token = authHeader.replace(/^Bearer\s+/i, "").trim()
-    if (db.tokens.has(token) && db.admin) {
-        return db.admin
+
+    try {
+        const session = await prisma.adminSession.findUnique({ where: { token }, include: { adminUser: true } })
+        if (!session || !session.adminUser) return null
+
+        const adminRec = session.adminUser
+        return {
+            id: adminRec.id,
+            name: adminRec.name,
+            email: adminRec.email,
+            createdAt: adminRec.createdAt.toISOString(),
+        }
+    } catch (e) {
+        // If DB call fails, treat as unauthorized rather than using an in-memory cache
+        return null
     }
-    return null
 }

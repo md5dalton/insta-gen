@@ -4,7 +4,7 @@ import { authenticateRequest } from "@/server/auth"
 
 export async function POST(request: Request) {
     const auth = request.headers.get("authorization") || undefined
-    const admin = authenticateRequest(auth)
+    const admin = await authenticateRequest(auth)
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const { ids, action, payload } = await request.json()
@@ -14,48 +14,39 @@ export async function POST(request: Request) {
 
     let updatedCount = 0
     for (const id of ids) {
-        const item = db.media.find((m) => m.id === id)
+        const item = await db.findMediaById(id)
         if (!item) continue
-        if (action === "PROCESS") {
-            item.processingStatus = "PROCESSING"
-            item.processingStatus = "READY"
-            updatedCount++
-        } else if (action === "RETRY") {
-            item.processingStatus = "READY"
+        if (action === "PROCESS" || action === "RETRY") {
+            await db.updateMedia(id, { processingStatus: "READY" } as any)
             updatedCount++
         } else if (action === "SET_PROFILE") {
-            item.processingProfileId = payload?.profileId || null
+            await db.updateMedia(id, { processingProfileId: payload?.profileId || null } as any)
             updatedCount++
         } else if (action === "SET_VISIBILITY") {
-            item.visibility = payload?.visibility || null
-            if (payload?.allowedUserIds !== undefined) item.allowedUserIds = payload.allowedUserIds
+            await db.updateMedia(id, { visibility: payload?.visibility || null, allowedUserIds: payload?.allowedUserIds !== undefined ? payload.allowedUserIds : undefined } as any)
             updatedCount++
         } else if (action === "ADD_TAG") {
-            if (payload?.tag && !item.tags.includes(payload.tag)) {
-                item.tags.push(payload.tag)
+            if (payload?.tag) {
+                const tags = Array.from(new Set([...(item.tags || []), payload.tag]))
+                await db.updateMedia(id, { tags } as any)
                 updatedCount++
             }
         } else if (action === "REMOVE_TAG") {
             if (payload?.tag) {
-                item.tags = item.tags.filter((t) => t !== payload.tag)
+                const tags = (item.tags || []).filter((t: string) => t !== payload.tag)
+                await db.updateMedia(id, { tags } as any)
                 updatedCount++
             }
         } else if (action === "DELETE") {
-            item.deletedAt = new Date().toISOString()
+            await db.softDeleteMedia(id)
             updatedCount++
         } else if (action === "RESTORE") {
-            item.deletedAt = null
+            await db.updateMedia(id, { deletedAt: null } as any)
             updatedCount++
         }
     }
 
-    db.recentActivity.unshift({
-        id: `act-${Date.now()}`,
-        type: "PROCESSED",
-        title: `Bulk Action: ${action}`,
-        description: `Applied ${action} across ${updatedCount} media items`,
-        timestamp: new Date().toISOString(),
-    })
+    await db.logActivity({ type: "PROCESSED", title: `Bulk Action: ${action}`, description: `Applied ${action} across ${updatedCount} media items` })
 
     return NextResponse.json({ success: true, count: updatedCount })
 }
