@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, FC, ReactNode } from "react"
+import { useRouter, usePathname } from "next/navigation"
 import { api, setAuthToken, clearAuthToken, getAuthToken } from "@/lib/api"
 import { AdminUser } from "@/types/types"
 
@@ -25,6 +26,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<AdminUser | null>(null)
     const [isConfigured, setIsConfigured] = useState<boolean>(false)
     const [loading, setLoading] = useState<boolean>(true)
+    const router = useRouter()
+    const pathname = usePathname()
 
     const checkAuth = async () => {
         try {
@@ -49,6 +52,47 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     useEffect(() => {
         checkAuth()
     }, [])
+
+    useEffect(() => {
+        if (loading) return
+
+        ;(async () => {
+            // If system not configured, ensure admin setup page
+            if (!isConfigured) {
+                if (!pathname?.startsWith("/auth/setup")) {
+                    router.replace("/auth/setup")
+                }
+                return
+            }
+
+            // If configured but not authenticated, ensure login page
+            if (!user) {
+                if (!pathname?.startsWith("/auth/login")) {
+                    router.replace("/auth/login")
+                }
+                return
+            }
+
+            // Authenticated and configured: ensure settings/media root is present or route accordingly
+            try {
+                const settings = await api.getSettings()
+                if (!settings?.mediaRoot) {
+                    if (!pathname?.startsWith("/settings-setup")) router.replace("/settings-setup")
+                    return
+                }
+
+                // If on a public/auth page, move to dashboard
+                if (pathname === "/" || pathname?.startsWith("/auth") || pathname?.startsWith("/settings-setup")) {
+                    router.replace("/dashboard")
+                }
+            } catch (err: any) {
+                if (err?.data?.code === "MEDIA_ROOT_NOT_CONFIGURED") {
+                    if (!pathname?.startsWith("/settings-setup")) router.replace("/settings-setup")
+                    return
+                }
+            }
+        })()
+    }, [loading, isConfigured, user, pathname, router])
 
     const login = async (data: { email: string; password: string }) => {
         const res = await api.login(data)

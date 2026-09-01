@@ -12,6 +12,8 @@ import {
 } from "react"
 import { api } from "@/lib/api"
 import type { SystemSettings } from "@/types/types"
+import { useRouter, usePathname } from "next/navigation"
+import { useAuth } from "@/context/AuthContext"
 
 const DEFAULT_SETTINGS: SystemSettings = {
     mediaRoot: "",
@@ -44,6 +46,9 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [settings, setSettings] = useState<SystemSettings>(DEFAULT_SETTINGS)
     const [loading, setLoading] = useState(true)
+    const router = useRouter()
+    const pathname = usePathname()
+    const { user } = useAuth()
 
     const refreshSettings = useCallback(async () => {
         try {
@@ -75,6 +80,23 @@ export const SettingsProvider: FC<{ children: ReactNode }> = ({ children }) => {
     useEffect(() => {
         void refreshSettings()
     }, [refreshSettings])
+
+    useEffect(() => {
+        if (loading) return
+        if (!user) return
+
+        if (!settings.mediaRoot) {
+            if (!pathname?.startsWith("/settings-setup")) {
+                router.replace("/settings-setup")
+            }
+            return
+        }
+
+        // If settings ready and we're on settings-setup, go to dashboard
+        if (settings.mediaRoot && pathname?.startsWith("/settings-setup")) {
+            router.replace("/dashboard")
+        }
+    }, [loading, user, settings.mediaRoot, pathname, router])
 
     const value = useMemo<SettingsContextType>(
         () => ({
