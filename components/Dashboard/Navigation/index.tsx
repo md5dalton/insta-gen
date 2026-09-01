@@ -25,7 +25,7 @@ export default ({ isOpen, stats, closeMenu }: Props) => {
     const navItems = [
         {
             id: "dashboard" as const,
-            href: "/dashboard",
+            href: "",
             label: "Dashboard",
             icon: <LayoutDashboard className="w-4 h-4" />,
             description: "Overview & Attention",
@@ -65,7 +65,7 @@ export default ({ isOpen, stats, closeMenu }: Props) => {
         },
         {
             id: "settings" as const,
-            href: "/settings-setup",
+            href: "/settings",
             label: "Settings",
             icon: <Settings className="w-4 h-4" />,
             description: "Media Root & Profiles",
@@ -80,12 +80,13 @@ export default ({ isOpen, stats, closeMenu }: Props) => {
         >
             <div className="p-4 space-y-1.5">
                 {navItems.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+                    const href = `/dashboard${item.href}`
+                    const isActive = pathname === href
 
                     return (
                         <Link
                             key={item.id}
-                            href={item.href}
+                            href={href}
                             onClick={closeMenu}
                             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                                 isActive

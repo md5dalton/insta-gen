@@ -89,7 +89,7 @@ export default class DebouncedMediaProcessor {
     // 🧠 INITIAL SCAN (BATCHED + OPTIMIZED)
     // =========================================================
 
-    private async initialScan(): Promise<void> {
+    async initialScan(): Promise<void> {
         console.log("🔍 Starting initial media scan...")
 
         const files: string[] = []

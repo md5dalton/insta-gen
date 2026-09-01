@@ -208,30 +208,31 @@ export interface PaginatedResponse<T> {
 }
 
 export interface LibraryStats {
-    totalFiles?: number
-    readyFiles?: number
-    processingFiles?: number
-    errorFiles?: number
-    totalStorageBytes?: number
-    totalRootCollections?: number
-    totalCollections?: number
-    totalMediaUsers?: number
-    totalMedia?: number
-    imageCount?: number
-    videoCount?: number
-    newMediaCount?: number
-    needsProcessingCount?: number
-    processingFailuresCount?: number
-    markedDeletedCount?: number
-    readyCount?: number
-    processingCount?: number
-    renditions?: {
+    watcherStatus: WatcherStatus;
+    totalFiles: number
+    readyFiles: number
+    processingFiles: number
+    errorFiles: number
+    totalStorageBytes: number
+    totalRootCollections: number
+    totalCollections: number
+    totalMediaUsers: number
+    totalMedia: number
+    imageCount: number
+    videoCount: number
+    newMediaCount: number
+    needsProcessingCount: number
+    processingFailuresCount: number
+    markedDeletedCount: number
+    readyCount: number
+    processingCount: number
+    renditions: {
         total: number
         ready: number
         missing: number
         failed: number
     }
-    recentActivity?: {
+    recentActivity: {
         id: string
         type: "DISCOVERY" | "PROCESSED" | "FAILED" | "POLICY_CHANGE" | "DELETED" | "SETTINGS_UPDATE"
         title: string
@@ -248,6 +249,7 @@ export interface SystemSettings {
         writable: boolean
         path: string
     }
+    watcherStatus?: WatcherStatus;
     databaseStatus: {
         connected: boolean
         latencyMs: number
@@ -261,15 +263,28 @@ export interface SystemSettings {
 
 
 export interface PathValidationResult {
-  valid: boolean;
-  path: string;
-  exists: boolean;
-  readable: boolean;
-  writable: boolean;
-  storageType: string;
-  totalSpaceBytes: number;
-  freeSpaceBytes: number;
-  detectedRoots: string[];
-  latencyMs: number;
-  message: string;
+    valid: boolean;
+    path: string;
+    exists: boolean;
+    readable: boolean;
+    writable: boolean;
+    storageType: string;
+    totalSpaceBytes: number;
+    freeSpaceBytes: number;
+    detectedRoots: string[];
+    latencyMs: number;
+    message: string;
+}
+
+
+export interface WatcherStatus {
+    running: boolean;
+    mode: 'INOTIFY' | 'POLLING';
+    status: 'ACTIVE' | 'STOPPED' | 'ERROR';
+    watchedPathsCount: number;
+    lastEventTime?: string | null;
+    lastDiscoveredPath?: string | null;
+    eventsProcessed: number;
+    latencyMs?: number;
+    autoScanOnMount?: boolean;
 }

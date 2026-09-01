@@ -386,4 +386,16 @@ export const api = {
     async getSchema(): Promise<any> {
         return fetchApi("/api/admin/schema")
     },
+    // Watcher control
+    async getWatcherStatus(): Promise<{ running: boolean }> {
+        return fetchApi("/api/admin/watcher/status")
+    },
+
+    async toggleWatcher(): Promise<{ success: boolean; watcherStatus?: any }> {
+        return fetchApi("/api/admin/watcher/toggle", { method: "POST" })
+    },
+
+    async triggerWatcherScan(): Promise<{ success: boolean }> {
+        return fetchApi("/api/admin/watcher/scan", { method: "POST" })
+    },
 }

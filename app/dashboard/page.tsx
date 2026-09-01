@@ -14,6 +14,7 @@ import {
     Clock,
     ChevronRight,
 } from "lucide-react"
+import FilesystemWatcherController from "@/components/FilesystemWatcher/Widget"
 
 export default () => {
     const { settings } = useSettings()
@@ -21,25 +22,16 @@ export default () => {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-300">
-            {/* Page Title & Intro */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            
+            {/* Page Title & Filesystem Watcher Status Control Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
                     <p className="text-sm text-slate-400 mt-1">
                         Media library overview and items requiring administrative attention.
                     </p>
                 </div>
-
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        // onClick={() => onNavigate("processing")}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2"
-                    >
-                        <Cpu className="w-4 h-4" />
-                        Review Processing
-                    </button>
-                </div>
+                <FilesystemWatcherController />
             </div>
 
             {/* Media Root & Connectivity Banner */}
