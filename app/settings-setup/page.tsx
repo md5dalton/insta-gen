@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import {
     AlertTriangle,
     ArrowRight,
@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
-import type { PathValidationResult, ProcessingProfile } from "@/types/types"
+import type { PathValidationResult } from "@/types/types"
 
 const PRESET_PATHS = [
     {
@@ -39,106 +39,35 @@ const PRESET_PATHS = [
     },
 ]
 
-const buildLocalValidation = (targetPath: string): PathValidationResult => {
-    const trimmed = targetPath.trim()
-
-    if (!trimmed) {
-        return {
-            valid: false,
-            path: "",
-            exists: false,
-            readable: false,
-            writable: false,
-            storageType: "Unknown",
-            totalSpaceBytes: 0,
-            freeSpaceBytes: 0,
-            detectedRoots: [],
-            latencyMs: 0,
-            message: "Please specify a valid storage path.",
-        }
-    }
-
-    if (!trimmed.startsWith("/")) {
-        return {
-            valid: false,
-            path: trimmed,
-            exists: false,
-            readable: false,
-            writable: false,
-            storageType: "Unknown",
-            totalSpaceBytes: 0,
-            freeSpaceBytes: 0,
-            detectedRoots: [],
-            latencyMs: 0,
-            message: "Media root must be an absolute filesystem path.",
-        }
-    }
-
-    return {
-        valid: true,
-        path: trimmed,
-        exists: true,
-        readable: true,
-        writable: true,
-        storageType: "Local filesystem mount",
-        totalSpaceBytes: 0,
-        freeSpaceBytes: 0,
-        detectedRoots: ["main-vault", "campaigns"],
-        latencyMs: 24,
-        message: "Absolute path detected and ready for storage setup.",
-    }
-}
-
 export default function MediaRootSetupPage() {
     const router = useRouter()
-    const [pathInput, setPathInput] = useState("/mnt/media/library")
-    const [profiles, setProfiles] = useState<ProcessingProfile[]>([])
-    const [selectedProfileId, setSelectedProfileId] = useState("")
-    const [autoScan, setAutoScan] = useState(true)
+    const [pathInput, setPathInput] = useState("")
     const [validating, setValidating] = useState(false)
     const [validationResult, setValidationResult] = useState<PathValidationResult | null>(null)
     const [validationError, setValidationError] = useState<string | null>(null)
     const [submitting, setSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
 
-    useEffect(() => {
-        const initialize = async () => {
-            try {
-                const [settingsRes, profRes] = await Promise.all([api.getSettings(), api.getProfiles()])
-
-                if (settingsRes.mediaRoot) {
-                    setPathInput(settingsRes.mediaRoot)
-                }
-
-                setProfiles(profRes)
-                if (profRes.length > 0) {
-                    const defaultProfile = profRes.find((profile) => profile.isSystem) || profRes[0]
-                    setSelectedProfileId(defaultProfile.id)
-                }
-
-                const initialValidation = buildLocalValidation(settingsRes.mediaRoot || "/mnt/media/library")
-                setValidationResult(initialValidation)
-                if (!initialValidation.valid) {
-                    setValidationError(initialValidation.message)
-                }
-            } catch (err: any) {
-                console.error("Failed to load initial settings for MediaRoot setup", err)
-            }
-        }
-
-        void initialize()
-    }, [])
-
-    const handleValidate = (targetPath = pathInput) => {
-        const nextResult = buildLocalValidation(targetPath)
-        setValidationResult(nextResult)
-
-        if (!nextResult.valid) {
-            setValidationError(nextResult.message)
-            return
-        }
-
+    const handleValidate = async (targetPath = pathInput) => {
+        setValidating(true)
         setValidationError(null)
+
+        try {
+            const res = await api.validateMediaRoot(targetPath)
+            setValidationResult(res)
+
+            if (!res || !res.valid) {
+                setValidationError(res?.message || "Path validation failed")
+                return
+            }
+
+            setValidationError(null)
+        } catch (err: any) {
+            setValidationError(err?.message || "Validation request failed")
+            setValidationResult(null)
+        } finally {
+            setValidating(false)
+        }
     }
 
     const submitMediaRoot = async (targetPath: string) => {
@@ -254,7 +183,7 @@ export default function MediaRootSetupPage() {
                                 <button
                                     type="button"
                                     onClick={() => handleValidate()}
-                                    disabled={validating || !pathInput.trim()}
+                                    disabled={validating || pathInput.trim().length < 5}
                                     className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 border border-slate-700 font-medium text-sm transition-all disabled:opacity-50 disabled:pointer-events-none shrink-0"
                                 >
                                     <RefreshCw className={`w-4 h-4 ${validating ? "animate-spin" : ""}`} />
@@ -375,106 +304,7 @@ export default function MediaRootSetupPage() {
                         </div>
                     </div>
 
-                    <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800 p-6 sm:p-8 shadow-2xl space-y-5">
-                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
-                            <div className="flex items-center gap-3">
-                                <FolderTree className="w-5 h-5 text-indigo-400" />
-                                <h3 className="text-base font-semibold text-white">4-Tier Storage Hierarchy Resolution</h3>
-                            </div>
-                            <span className="text-xs text-slate-400 bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800 font-mono">
-                                Deterministic Path Mapping
-                            </span>
-                        </div>
-
-                        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 font-mono text-xs text-slate-300 space-y-1.5 leading-relaxed overflow-x-auto">
-                            <div className="text-cyan-400 font-semibold flex items-center gap-1.5">
-                                <HardDrive className="w-3.5 h-3.5" />
-                                <span>{pathInput || "/mnt/media/library"} (MediaRoot Base Mount)</span>
-                            </div>
-                            <div className="text-indigo-300 pl-4 flex items-center gap-1.5">
-                                <span>├── 📁 main-vault/</span>
-                                <span className="text-slate-500 font-sans text-[11px]">(Tier 1: Root Collection)</span>
-                            </div>
-                            <div className="text-sky-300 pl-8 flex items-center gap-1.5">
-                                <span>│   ├── 📂 2026-campaigns/</span>
-                                <span className="text-slate-500 font-sans text-[11px]">(Tier 2: Collection)</span>
-                            </div>
-                            <div className="text-emerald-300 pl-12 flex items-center gap-1.5">
-                                <span>│   │   ├── 👤 @jordan_reels/</span>
-                                <span className="text-slate-500 font-sans text-[11px]">(Tier 3: User/Creator Vault)</span>
-                            </div>
-                            <div className="text-amber-300 pl-16 flex items-center gap-1.5">
-                                <span>│   │   │   ├── 🎬 REEL_URBAN_SKATE_4K.mp4</span>
-                                <span className="text-slate-500 font-sans text-[11px]">(Tier 4: Media Item)</span>
-                            </div>
-                            <div className="text-slate-400 pl-16 text-[11px]">
-                                │   │   │   ├── 🖼️ REEL_URBAN_SKATE_4K.thumb.jpg
-                            </div>
-                            <div className="text-slate-400 pl-16 text-[11px]">
-                                │   │   │   └── 📺 REEL_URBAN_SKATE_4K.hls/master.m3u8
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                            <div className="space-y-2">
-                                <label htmlFor="default-profile-select" className="block text-xs font-semibold text-slate-300">
-                                    Default Processing Profile
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        id="default-profile-select"
-                                        value={selectedProfileId}
-                                        onChange={(event) => setSelectedProfileId(event.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
-                                    >
-                                        {profiles.map((profile) => (
-                                            <option key={profile.id} value={profile.id}>
-                                                {profile.name} {profile.isSystem ? "(System Default)" : ""}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <p className="text-[11px] text-slate-400">
-                                    Applied to newly discovered collections that do not specify an override profile.
-                                </p>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-slate-300">
-                                    Discovery & Ingest Policy
-                                </label>
-                                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-                                    <div className="space-y-0.5 pr-2">
-                                        <span className="text-xs font-medium text-slate-200 block">Initial Discovery Scan</span>
-                                        <span className="text-[11px] text-slate-400 block">
-                                            Auto-scan and catalog existing media upon completion
-                                        </span>
-                                    </div>
-                                    <input
-                                        id="auto-scan-checkbox"
-                                        type="checkbox"
-                                        checked={autoScan}
-                                        onChange={(event) => setAutoScan(event.target.checked)}
-                                        className="w-4 h-4 rounded text-cyan-500 bg-slate-900 border-slate-700 focus:ring-cyan-500/40 cursor-pointer"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setPathInput("/mnt/media/library")
-                                void submitMediaRoot("/mnt/media/library")
-                            }}
-                            disabled={submitting}
-                            className="text-xs text-slate-400 hover:text-slate-200 underline underline-offset-4 transition-colors"
-                        >
-                            Skip and use default path (/mnt/media/library)
-                        </button>
-
+                    <div className="flex flex-col sm:flex-row items-center justify-end gap-4 pt-2">
                         <button
                             type="submit"
                             disabled={submitting}

@@ -104,12 +104,20 @@ export const api = {
         return fetchApi("/api/admin/settings")
     },
 
+    // Media-root
     async updateMediaRoot(
         mediaRoot: string
     ): Promise<{ success: boolean; settings: SystemSettings; message: string }> {
-        return fetchApi("/api/admin/settings/media-root", {
+        return fetchApi("/api/admin/media-root", {
             method: "POST",
             body: JSON.stringify({ mediaRoot }),
+        })
+    },
+
+    async validateMediaRoot(path: string): Promise<any> {
+        return fetchApi("/api/admin/media-root/validate", {
+            method: "POST",
+            body: JSON.stringify({ path }),
         })
     },
 

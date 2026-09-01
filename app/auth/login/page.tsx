@@ -1,8 +1,9 @@
+"use client"
 import React, { useState } from "react"
 import { Lock, Mail, ArrowRight, AlertCircle, HardDrive } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 
-export const LoginPage: React.FC = () => {
+export default () => {
     const { login } = useAuth()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
