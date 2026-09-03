@@ -1,44 +1,62 @@
-import { extname } from "node:path"
+import { extname, join, sep } from "node:path"
 import { PrismaClient } from "@/prisma/generated/client"
 import { generateId } from "@/lib/path"
-import { File } from "@/types/type"
 import { Storage } from "@/lib/storage"
 import { ImageProcessor } from "@/lib/imageProcessor"
 import { VideoProcessor } from "@/lib/videoProcessor"
 import { MediaConfig } from "@/lib/config"
 import { logger } from "@/lib/logger"
+import { DBcache } from "@/lib/DBcache"
 
 const CONFIG = MediaConfig
 
 export class MediaService {
-    private userCache = new Map<string, unknown>()
+    private DBcache: DBcache
     private readonly storage: Storage
 
+    private mediaRoot: string
+
     constructor(private prisma: PrismaClient) {
+        this.DBcache = new DBcache()
         this.storage = new Storage(CONFIG.ASSETS_ROOT)
+
+        this.mediaRoot = CONFIG.MEDIA_ROOT
     }
 
-    async handleAddOrChange(file: File, userId: string, tags: string[]) {
-        const { id, path } = file
-        const ext = extname(path).toLowerCase()
+    async handleAdd(filePath: string) {
+
+        const id = generateId(filePath)
+        
+        const {
+            relativePath,
+            user,
+            tags
+        } = await this.resolveContext(filePath)
+
+        const ext = extname(filePath).toLowerCase()
         const isVideo = CONFIG.VIDEO_EXTENSIONS.includes(ext)
-        const relativePath = path.replace(CONFIG.MEDIA_ROOT, "").replace(/^\/+/, "")
 
         try {
-            const stats = await this.storage.stat(path)
+            const stats = await this.storage.stat(filePath)
             let metadata: { width: number; height: number; duration?: string } | null = null
 
             if (isVideo) {
-                const video = new VideoProcessor(this.storage, path, id)
-                const result = await video.process()
+                const video = new VideoProcessor(this.storage, filePath, id)
+                const result = await video.probe()
+
+                await video.generatePoster()
+
                 metadata = {
                     width: result.width,
                     height: result.height,
                     duration: result.duration,
                 }
             } else {
-                const image = new ImageProcessor(this.storage)
-                const result = await image.process(path, id)
+                const image = new ImageProcessor(this.storage, filePath)
+                const result = await image.probe()
+
+                await image.generateThumb()
+
                 metadata = {
                     width: result.width,
                     height: result.height,
@@ -46,20 +64,20 @@ export class MediaService {
             }
 
             if (metadata) {
-                const media = await this.prisma.media.create({
+                const media = await this.prisma.mediaItem.create({
                     data: {
                         id,
-                        path: relativePath,
                         type: isVideo ? "VIDEO" : "IMAGE",
-                        ownerId: userId,
-                        height: metadata.height,
-                        width: metadata.width,
+                        path: relativePath,
                         size: stats.size,
-                        duration: isVideo ? metadata.duration : null,
-                        mktime: String(Date.now()),
+                        width: metadata.width,
+                        height: metadata.height,
+                        duration: isVideo ? Number(metadata.duration) : null,
+                        mktime: stats.mtimeMs,
+                        userId: user.id,
                     },
                 })
-
+                
                 if (media) await this.processTags(id, tags)
 
                 logger.info("Processed watched media", { mediaId: id, path: relativePath })
@@ -70,36 +88,16 @@ export class MediaService {
                 path: relativePath,
                 error: error instanceof Error ? error.message : String(error),
             })
-            throw error
+            // throw error
         }
     }
 
     async handleDelete(id: string) {
-        const media = await this.prisma.media.delete({
+        const media = await this.prisma.mediaItem.delete({
             where: { id },
         })
 
         logger.info("Deleted watched media", { mediaId: id, path: media.path })
-    }
-
-    private async setUserPicture(userId: string, mediaId: string) {
-        if (this.userCache.has(userId)) return
-
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                picture: true,
-            },
-        })
-
-        if (user && !user.picture) {
-            await this.prisma.user.update({
-                where: { id: userId },
-                data: { picture: mediaId },
-            })
-
-            this.userCache.set(userId, user)
-        }
     }
 
     private async processTags(mediaId: string, tags: string[]) {
@@ -115,4 +113,40 @@ export class MediaService {
             })
         )
     }
+
+    private async resolveContext(directory: string) {
+        const relativePath = directory.replace(this.mediaRoot, "")
+        const parts = relativePath.split(sep).filter(Boolean)
+        parts.pop()
+
+        const tags = []
+
+        const [root, col, usr] = parts
+
+        const userPath = join(root, col, usr)
+
+        for (let i = 0; i < parts.length; i++) {
+            const tagPath = join(...parts.slice(0, i + 1))
+
+            if (userPath !== tagPath) {
+                const tag = await this.DBcache.ensureTag(tagPath)
+                tags.push(tag.id)
+            }
+        }
+
+        const {
+            rootCollection,
+            collection,
+            user
+        } = await this.DBcache.ensureParents(root, col, usr)
+
+        return {
+            relativePath,
+            rootCollection,
+            collection,
+            user,
+            tags
+        }
+    }
+
 }

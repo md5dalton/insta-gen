@@ -17,23 +17,35 @@ export async function workerLoop() {
         try {
             const payload = job.payload as any
 
-            if (payload.event === "delete") {
-                await mediaService.handleDelete(payload.id)
-            } else {
-                await mediaService.handleAddOrChange(
-                    {
-                        id: payload.id,
-                        path: payload.path
-                    },
-                    payload.userId,
-                    payload.tags
-                )
+            switch (payload.event) {
+                case "add":
+                    await mediaService.handleAdd(payload.path)
+                    
+                    break;
+
+                case "delete":
+                    await mediaService.handleDelete(payload.path)
+                    break;
+            
+                default:
+                    await markFailed(job)
+                    break;
             }
 
             await markDone(job.id)
+
 
         } catch (err) {
             await markFailed(job)
         }
     }
 }
+
+
+const WORKER_CONCURRENCY = 1
+
+// 🔥 run multiple workers in same process
+for (let i = 0; i < WORKER_CONCURRENCY; i++) {
+    workerLoop()
+}
+

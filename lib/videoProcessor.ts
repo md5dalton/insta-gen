@@ -33,16 +33,7 @@ export class VideoProcessor {
         this.ffprobe = ffprobe
     }
 
-    async process(): Promise<VideoAssetMetadata> {
-        const posterPath = `videos/${this.id}/poster.webp`
-
-        const metadataPath = `videos/${this.id}/metadata.json`
-
-        const masterPlaylistPath = `videos/${this.id}/hls/master.m3u8`
-
-        const hlsDirectory = `videos/${this.id}/hls/1080`
-
-        await this.storage.mkdir(hlsDirectory)
+    async probe(): Promise<VideoAssetMetadata> {
 
         const probe = await this.ffprobe.probe(this.path)
 
@@ -54,24 +45,27 @@ export class VideoProcessor {
 
         const normalizedDimensions = this.normalizeDimensions(videoStream)
 
-        const metadata = {
-            id: this.id,
+        return {
             width: normalizedDimensions.width,
             height: normalizedDimensions.height,
             duration: probe.format.duration ?? "0",
-            createdAt: new Date().toISOString(),
         }
+    }
 
-        if (!(await this.storage.exists(posterPath))) {
-            await this.generatePoster(posterPath)
-        }
+    async process(): Promise<void> {
 
-        if (!(await this.storage.exists(metadataPath))) {
-            await this.storage.saveFile(
-                metadataPath,
-                Buffer.from(JSON.stringify(metadata, null, 2))
-            )
-        }
+        const masterPlaylistPath = `videos/${this.id}/hls/master.m3u8`
+
+        const hlsDirectory = `videos/${this.id}/hls/1080`
+
+        await this.storage.mkdir(hlsDirectory)
+
+        // if (!(await this.storage.exists(metadataPath))) {
+        //     await this.storage.saveFile(
+        //         metadataPath,
+        //         Buffer.from(JSON.stringify(metadata, null, 2))
+        //     )
+        // }
 
         /*
          * Process the ENTIRE video.
@@ -89,12 +83,6 @@ export class VideoProcessor {
                 masterPlaylistPath,
                 Buffer.from(this.renderMasterPlaylist())
             )
-        }
-
-        return {
-            width: normalizedDimensions.width,
-            height: normalizedDimensions.height,
-            duration: metadata.duration,
         }
     }
 
@@ -129,7 +117,13 @@ export class VideoProcessor {
         }
     }
 
-    private async generatePoster(posterPath: string): Promise<void> {
+    async generatePoster(): Promise<void> {
+        const posterPath = `videos/${this.id}/poster.webp`
+
+        if (await this.storage.exists(posterPath)) return
+        
+        await this.storage.mkdir(`videos/${this.id}`)
+
         const tempPosterRel = posterPath.replace(/\.webp$/, ".tmp.webp")
 
         const tempPosterAbs = this.storage.resolve(tempPosterRel)
