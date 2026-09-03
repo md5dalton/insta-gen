@@ -1,3 +1,4 @@
+
 import { dirname, extname, sep, join } from "path"
 import chokidar, { FSWatcher } from "chokidar"
 import { readdir, realpath, stat } from "fs/promises"
@@ -33,20 +34,24 @@ export default class DebouncedMediaProcessor {
     private userCache = new Map<string, any>()
     private tagCache = new Map<string, any>()
 
-    constructor() {
-        this.root = CONFIG.MEDIA_ROOT
+    constructor(mediaRoot: string) {
+        this.root = mediaRoot
         this.prisma = prisma
         this.isProcessing = false
         this.watcher = null
         this.pendingUpdates = new Map()
         this.mediaService = new MediaService(prisma)
 
-        this.exts = new Set([...CONFIG.IMAGE_EXTENSIONS, ...CONFIG.VIDEO_EXTENSIONS])
+        this.exts = new Set([
+            ...CONFIG.IMAGE_EXTENSIONS,
+            ...CONFIG.VIDEO_EXTENSIONS
+        ])
 
-        this.processThrottled = throttle(() => this.processPending(), CONFIG.DEBOUNCE_MS, {
-            leading: false,
-            trailing: true,
-        })
+        this.processThrottled = throttle(
+            () => this.processPending(),
+            CONFIG.DEBOUNCE_MS,
+            { leading: false, trailing: true }
+        )
     }
 
     async initialize(): Promise<void> {
@@ -60,8 +65,8 @@ export default class DebouncedMediaProcessor {
                 stats: {
                     processed: 0,
                     errors: 0,
-                    queued: 0,
-                },
+                    queued: 0
+                }
             }
         }
 
@@ -72,7 +77,7 @@ export default class DebouncedMediaProcessor {
             ignored: /(^|[\/\\])\../,
             persistent: true,
             ignoreInitial: true,
-            depth: 10,
+            depth: 10
         })
 
         this.watcher
@@ -89,16 +94,20 @@ export default class DebouncedMediaProcessor {
     // 🧠 INITIAL SCAN (BATCHED + OPTIMIZED)
     // =========================================================
 
-    async initialScan(): Promise<void> {
+    private async initialScan(): Promise<void> {
         console.log("🔍 Starting initial media scan...")
 
         const files: string[] = []
 
-        const extensions = new Set([...CONFIG.IMAGE_EXTENSIONS, ...CONFIG.VIDEO_EXTENSIONS])
-
+        const extensions = new Set([
+            ...CONFIG.IMAGE_EXTENSIONS,
+            ...CONFIG.VIDEO_EXTENSIONS
+        ])
+        
         const seen = new Set<string>()
 
         const walk = async (dir: string) => {
+
             const real = await realpath(dir)
             if (seen.has(real)) return
             seen.add(real)
@@ -126,6 +135,7 @@ export default class DebouncedMediaProcessor {
                         // broken symlink or permission issue
                         console.warn("Skipping symlink:", fullPath)
                     }
+
                 } else {
                     const ext = extname(entry.name).toLowerCase()
                     if (extensions.has(ext)) {
@@ -134,16 +144,16 @@ export default class DebouncedMediaProcessor {
                 }
             }
         }
-
+        
         await walk(this.root)
 
         console.log(`📂 Found ${files.length} media files`)
 
         const existing = await this.prisma.media.findMany({
-            select: { id: true },
+            select: {id: true}
         })
 
-        const existingIds = new Set(existing.map((e) => e.id))
+        const existingIds = new Set(existing.map(e => e.id))
 
         const newFiles: File[] = []
 
@@ -183,6 +193,7 @@ export default class DebouncedMediaProcessor {
             const { userId, tags } = context
 
             for (const file of files) await this.enqueue(file, "add", userId, tags)
+
         } catch (err) {
             console.error(`❌ Initial scan error in ${directory}`, err)
         }
@@ -200,7 +211,7 @@ export default class DebouncedMediaProcessor {
         this.pendingUpdates.set(filepath, {
             event,
             file: { path: filepath, id: this.generateId(filepath) },
-            timestamp: Date.now(),
+            timestamp: Date.now()
         })
 
         this.processThrottled()
@@ -226,6 +237,7 @@ export default class DebouncedMediaProcessor {
 
             global.syncState.lastSync = new Date()
             global.syncState.stats.processed += updates.length
+
         } catch (error) {
             console.error("❌ Error queuing updates:", error)
             global.syncState.stats.errors += updates.length
@@ -252,6 +264,7 @@ export default class DebouncedMediaProcessor {
             for (const update of updates) {
                 await this.enqueue(update.file, update.event, userId, tags)
             }
+
         } catch (error) {
             console.error(`❌ Error processing directory ${directory}:`, error)
         }
@@ -303,7 +316,7 @@ export default class DebouncedMediaProcessor {
             await this.mediaService.handleAddOrChange(
                 {
                     id,
-                    path,
+                    path
                 },
                 userId,
                 tags
@@ -324,7 +337,9 @@ export default class DebouncedMediaProcessor {
         return map
     }
 
-    private groupUpdatesByDirectory(updates: [string, FileUpdate][]) {
+    private groupUpdatesByDirectory(
+        updates: [string, FileUpdate][]
+    ) {
         const map = new Map<string, Array<FileUpdate>>()
 
         for (const [filePath, update] of updates) {
@@ -353,7 +368,7 @@ export default class DebouncedMediaProcessor {
         const record = await this.prisma.rootCollection.upsert({
             where: { id },
             update: { name },
-            create: { id, name, path },
+            create: { id, name, path }
         })
 
         this.rootCache.set(name, record)
@@ -370,7 +385,7 @@ export default class DebouncedMediaProcessor {
         const record = await this.prisma.collection.upsert({
             where: { id },
             update: { name },
-            create: { id, name, path, ownerId: root.id },
+            create: { id, name, path, ownerId: root.id }
         })
 
         this.collectionCache.set(key, record)
@@ -387,7 +402,7 @@ export default class DebouncedMediaProcessor {
         const record = await this.prisma.user.upsert({
             where: { id },
             update: { name },
-            create: { id, name, path, ownerId: collection.id },
+            create: { id, name, path, ownerId: collection.id }
         })
 
         this.userCache.set(key, record)
@@ -402,7 +417,7 @@ export default class DebouncedMediaProcessor {
         const tag = await this.prisma.tag.upsert({
             where: { id },
             update: { name },
-            create: { name, id },
+            create: { name, id }
         })
 
         this.tagCache.set(path, tag)

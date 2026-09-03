@@ -385,3 +385,22 @@ model AdminSession {
 
   @@map("admin_sessions")
 }
+
+model Job {
+    id          String   @id @default(uuid())
+    type        String   // "media"
+    payload     Json
+
+    status      String   @default("pending") // pending | processing | done | failed
+    attempts    Int      @default(0)
+
+    dedupeKey   String?  @unique
+
+    lockedAt    DateTime?
+    availableAt DateTime @default(now())
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([status, availableAt])
+}

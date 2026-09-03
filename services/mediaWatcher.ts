@@ -1,34 +1,46 @@
-import DebouncedMediaProcessor from "./DebouncedMediaProcessor"
+import prisma from "@/lib/prisma"
+import Watcher from "./Watcher"
+import { MediaConfig } from "@/lib/config"
 
-let processor: DebouncedMediaProcessor | null = null
+let watcher: Watcher | null = null
 
 export async function startMediaWatcher() {
-    if (processor) return
+    if (watcher) return
 
-    processor = new DebouncedMediaProcessor()
-    await processor.initialize()
+    const setting = await prisma.systemSetting.findFirst({
+        where: { id: "singleton" },
+    })
 
-    console.log("👀 Media watcher started")
+    if (!setting?.mediaRoot) return
+
+    watcher = new Watcher(setting.mediaRoot, [
+        ...MediaConfig.IMAGE_EXTENSIONS,
+        ...MediaConfig.VIDEO_EXTENSIONS
+    ])
+
+    await watcher.initialize()
+
+    console.log(`👀 Media watcher started at ${setting.mediaRoot}`)
 }
 
 // graceful shutdown
 export async function stopMediaWatcher() {
-    if (processor) {
-        await processor.dispose()
-        processor = null
+    if (watcher) {
+        await watcher.dispose()
+        watcher = null
     }
 }
 
 export function isMediaWatcherRunning() {
-    return !!processor
+    return !!watcher
 }
 
 export async function triggerManualScan() {
-    if (!processor) return false
+    if (!watcher) return false
     try {
         // call initialScan (now public) to perform manual discovery
         // @ts-ignore
-        await processor.initialScan()
+        await watcher.initialScan()
         return true
     } catch (e) {
         console.error("Manual scan failed", e)
@@ -37,11 +49,11 @@ export async function triggerManualScan() {
 }
 
 export async function toggleMediaWatcher() {
-    if (processor) {
+    if (watcher) {
         await stopMediaWatcher()
         return { running: false }
     }
 
     await startMediaWatcher()
-    return { running: !!processor }
+    return { running: !!watcher }
 }
