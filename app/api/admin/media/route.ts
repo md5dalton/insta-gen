@@ -7,7 +7,11 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const q = Object.fromEntries(url.searchParams.entries())
 
-    let results = await Promise.all((await db.listMedia()).map((m) => enrichMediaItem(m)))
+    let results = await Promise.all((await db.listMedia()).map((m) => enrichMediaItem({
+        ...m,
+        mktime: String(m.mktime),
+        size: String(m.size),
+    })))
 
     // Soft deletion filtering
     if (q.includeDeleted !== "true") {
@@ -58,6 +62,7 @@ export async function GET(request: Request) {
     const offset = (pageNum - 1) * limitNum
     const paginated = results.slice(offset, offset + limitNum)
 
+    console.log(paginated)
     return NextResponse.json({
         items: paginated,
         total,
