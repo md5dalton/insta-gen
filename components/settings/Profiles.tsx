@@ -1,3 +1,4 @@
+"use client"
 import { api } from "@/lib/api"
 import { ProcessingProfile } from "@/types/types"
 import { Info, Layers, Plus } from "lucide-react"
