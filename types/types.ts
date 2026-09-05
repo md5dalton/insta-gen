@@ -85,11 +85,11 @@ export interface Collection {
 
 export interface MediaUser {
     id: string
+    path: string
     collectionId: string
     collectionName?: string
     rootCollectionId?: string
     rootCollectionName?: string
-    username: string
     displayName: string
     avatarUrl?: string
     processingProfileId?: string | null

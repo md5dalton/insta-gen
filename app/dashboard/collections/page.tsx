@@ -1,10 +1,5 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from "react"
-import { api } from "../lib/api"
+"use client"
+import { useState, useEffect } from "react"
 import {
     RootCollection,
     Collection,
@@ -13,10 +8,6 @@ import {
     ProfileUser,
     VisibilityType,
 } from "@/types/types"
-import { StatusBadge } from "./StatusBadge"
-import { PolicySelector } from "./PolicySelector"
-import { AccessPolicyEditor } from "./AccessPolicyEditor"
-import { ConfirmDialog } from "./ConfirmDialog"
 import {
     FolderTree,
     Folder,
@@ -33,8 +24,13 @@ import {
     AlertCircle,
     Sparkles,
 } from "lucide-react"
+import { api } from "@/lib/api"
+import { AccessPolicyEditor } from "@/components/AccessPolicyEditor"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
+import { PolicySelector } from "@/components/PolicySelector"
+import RootCollectionComponent from "@/components/collections/rootCollection"
 
-export const CollectionsPage: React.FC = () => {
+export default () => {
     const [hierarchy, setHierarchy] = useState<RootCollection[]>([])
     const [profiles, setProfiles] = useState<ProcessingProfile[]>([])
     const [users, setUsers] = useState<ProfileUser[]>([])
@@ -271,179 +267,22 @@ export const CollectionsPage: React.FC = () => {
                         </span>
                     </div>
 
-                    <div className="space-y-1.5 max-h-[600px] overflow-y-auto pr-1">
-                        {hierarchy.map((root) => {
-                            const isRootExpanded = expandedNodes[root.id] ?? true
-                            const isRootSelected =
-                                selectedEntity?.type === "root" && selectedEntity?.id === root.id
-                            const isRootDeleted = Boolean(root.deletedAt)
-
-                            return (
-                                <div key={root.id} className="space-y-1">
-                                    {/* Root Collection Node */}
-                                    <div
-                                        onClick={() => selectRoot(root)}
-                                        className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
-                                            isRootSelected
-                                                ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-900/40"
-                                                : isRootDeleted
-                                                  ? "bg-rose-950/20 text-rose-300 border border-rose-900/40"
-                                                  : "hover:bg-slate-900 text-slate-200"
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-2 truncate">
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    toggleExpand(root.id)
-                                                }}
-                                                className="p-1 text-slate-400 hover:text-white"
-                                            >
-                                                {isRootExpanded ? (
-                                                    <ChevronDown className="w-3.5 h-3.5" />
-                                                ) : (
-                                                    <ChevronRight className="w-3.5 h-3.5" />
-                                                )}
-                                            </button>
-                                            <FolderTree className="w-4 h-4 shrink-0 text-amber-400" />
-                                            <span className="truncate">{root.name}</span>
-                                        </div>
-
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                            {isRootDeleted && (
-                                                <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-rose-900/80 text-rose-200 border border-rose-700">
-                                                    Deleted
-                                                </span>
-                                            )}
-                                            <span className="text-[10px] font-mono opacity-70">
-                                                {root.mediaCount || 0} media
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Collections List */}
-                                    {isRootExpanded && (
-                                        <div className="pl-6 space-y-1 border-l border-slate-800/80 ml-4">
-                                            {root.collections?.map((col) => {
-                                                const isColExpanded = expandedNodes[col.id] ?? false
-                                                const isColSelected =
-                                                    selectedEntity?.type === "collection" &&
-                                                    selectedEntity?.id === col.id
-                                                const isColDeleted =
-                                                    Boolean(col.deletedAt) || isRootDeleted
-
-                                                return (
-                                                    <div key={col.id} className="space-y-1">
-                                                        {/* Collection Node */}
-                                                        <div
-                                                            onClick={() =>
-                                                                selectCollection(col, root)
-                                                            }
-                                                            className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
-                                                                isColSelected
-                                                                    ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-900/40"
-                                                                    : isColDeleted
-                                                                      ? "bg-rose-950/20 text-rose-300 border border-rose-900/40"
-                                                                      : "hover:bg-slate-900 text-slate-300"
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center gap-2 truncate">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        toggleExpand(col.id)
-                                                                    }}
-                                                                    className="p-0.5 text-slate-400 hover:text-white"
-                                                                >
-                                                                    {isColExpanded ? (
-                                                                        <ChevronDown className="w-3.5 h-3.5" />
-                                                                    ) : (
-                                                                        <ChevronRight className="w-3.5 h-3.5" />
-                                                                    )}
-                                                                </button>
-                                                                <Folder className="w-3.5 h-3.5 shrink-0 text-indigo-400" />
-                                                                <span className="truncate">
-                                                                    {col.name}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                                {isColDeleted && (
-                                                                    <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-rose-900/80 text-rose-200">
-                                                                        Deleted
-                                                                    </span>
-                                                                )}
-                                                                <span className="text-[10px] font-mono opacity-70">
-                                                                    {col.mediaCount || 0}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Users in Collection */}
-                                                        {isColExpanded && (
-                                                            <div className="pl-6 space-y-1 border-l border-slate-800/60 ml-3">
-                                                                {col.users?.map((user) => {
-                                                                    const isUserSelected =
-                                                                        selectedEntity?.type ===
-                                                                            "user" &&
-                                                                        selectedEntity?.id ===
-                                                                            user.id
-                                                                    const isUserDeleted =
-                                                                        Boolean(user.deletedAt) ||
-                                                                        isColDeleted
-
-                                                                    return (
-                                                                        <div
-                                                                            key={user.id}
-                                                                            onClick={() =>
-                                                                                selectUser(
-                                                                                    user,
-                                                                                    col,
-                                                                                    root
-                                                                                )
-                                                                            }
-                                                                            className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
-                                                                                isUserSelected
-                                                                                    ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-900/40"
-                                                                                    : isUserDeleted
-                                                                                      ? "bg-rose-950/20 text-rose-300 border border-rose-900/40"
-                                                                                      : "hover:bg-slate-900 text-slate-400 hover:text-slate-200"
-                                                                            }`}
-                                                                        >
-                                                                            <div className="flex items-center gap-2 truncate">
-                                                                                <User className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
-                                                                                <span className="truncate">
-                                                                                    @{user.username}
-                                                                                </span>
-                                                                            </div>
-
-                                                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                                                {isUserDeleted && (
-                                                                                    <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-rose-900/80 text-rose-200">
-                                                                                        Deleted
-                                                                                    </span>
-                                                                                )}
-                                                                                <span className="text-[10px] font-mono opacity-70">
-                                                                                    {user.mediaCount ||
-                                                                                        0}{" "}
-                                                                                    media
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    )
-                                                                })}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        })}
+                    <div className="space-y-1.5 max-h-150 overflow-y-auto pr-1">
+                        {hierarchy.map((root) => (
+                            <RootCollectionComponent
+                                key={root.id}
+                                root={root}
+                                isDeleted={Boolean(root.deletedAt)}
+                                isSelected={selectedEntity?.type === "root" && selectedEntity?.id === root.id}
+                                isExpanded={expandedNodes[root.id] ?? true}
+                                expandedNodes={expandedNodes}
+                                selectHandler={(r) => selectRoot(r)}
+                                toggleExpandHandler={toggleExpand}
+                                selectedEntity={selectedEntity}
+                                selectCollection={selectCollection}
+                                selectUser={selectUser}
+                            />
+                        ))}
                     </div>
                 </div>
 
