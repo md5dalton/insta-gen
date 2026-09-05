@@ -25,7 +25,6 @@ export async function GET(request: Request) {
             missingRenditions,
             failedRenditions,
             mediaSum,
-            assetSum,
             totalRootCollections,
             totalCollections,
             totalMediaUsers,
