@@ -15,9 +15,9 @@ export async function DELETE(request: any, context: any) {
     const item = await db.findMediaById(id)
     if (!item) return NextResponse.json({ error: "Media not found" }, { status: 404 })
 
-    const asset = (item.assets || []).find((a: any) => a.id === assetId || a.type === assetId)
+    const asset = (item.assets || []).find((a: any) => a.type === assetId)
     if (!asset) return NextResponse.json({ error: "Asset not found" }, { status: 404 })
-    await prisma.mediaAsset.delete({ where: { id: asset.id } })
+    await prisma.mediaAsset.delete({ where: { mediaId_type: { mediaId: id, type: asset.type } } })
     const updated = await db.findMediaById(id)
     return NextResponse.json({ success: true, deleted: asset, media: updated })
 }

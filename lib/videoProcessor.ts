@@ -3,6 +3,8 @@ import { Storage } from "./storage"
 import { FFmpeg } from "./ffmpeg"
 import { FFprobe } from "./ffprobe"
 import { TranscodeError } from "./errors"
+import { updateMediaAsset } from "@/lib/db/admin/mediaAsset"
+import { AssetType } from "@/prisma/generated/client"
 
 export interface VideoAssetMetadata {
     width: number
@@ -117,10 +119,10 @@ export class VideoProcessor {
         }
     }
 
-    async generatePoster(): Promise<void> {
+    async generatePoster(): Promise<string> {
         const posterPath = `videos/${this.id}/poster.webp`
 
-        if (await this.storage.exists(posterPath)) return
+        if (await this.storage.exists(posterPath)) return posterPath
         
         await this.storage.mkdir(`videos/${this.id}`)
 
@@ -160,6 +162,8 @@ export class VideoProcessor {
             })
 
             await this.storage.move(tempPosterRel, posterPath)
+
+            return posterPath
         } catch (error) {
             try {
                 await this.storage.delete(tempPosterRel)

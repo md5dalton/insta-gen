@@ -500,7 +500,7 @@ export class DatabaseStore {
                 collection: payload.collectionId ? { connect: { id: payload.collectionId } } : undefined,
                 rootCollection: payload.rootCollectionId ? { connect: { id: payload.rootCollectionId } } : undefined,
                 processingProfile: payload.processingProfileId ? { connect: { id: payload.processingProfileId } } : undefined,
-                assets: payload.assets && payload.assets.length ? { create: payload.assets.map((a) => ({ type: (a.type as any), status: (a.status as any), path: (a.path as any) || undefined, size: a.size ? BigInt(a.size as any) : undefined, width: (a.width as any) || undefined, height: (a.height as any) || undefined, error: (a as any).error || undefined, generatedAt: a.generatedAt ? new Date(a.generatedAt as any) : undefined })) } : undefined,
+                assets: payload.assets && payload.assets.length ? { create: payload.assets.map((a) => ({ type: (a.type as any), status: (a.status as any), path: (a.path as any) || undefined, error: (a as any).error || undefined, generatedAt: a.generatedAt ? new Date(a.generatedAt as any) : undefined })) } : undefined,
             } as any),
             include: { assets: true },
         })
@@ -539,7 +539,7 @@ export class DatabaseStore {
         if (updates.assets && updates.assets.length) {
             // Upsert assets by unique constraint (mediaId + type). Simpler: delete existing assets for this media and recreate.
                 await prisma.mediaAsset.deleteMany({ where: { mediaId: id } })
-                await prisma.mediaAsset.createMany({ data: updates.assets.map((a) => ({ mediaId: id, type: (a.type as any), status: (a.status as any), path: (a.path as any) || undefined, size: a.size ? BigInt(a.size as any) : undefined, width: (a.width as any) || undefined, height: (a.height as any) || undefined, error: (a as any).error || undefined, generatedAt: a.generatedAt ? new Date(a.generatedAt as any) : undefined })) })
+                await prisma.mediaAsset.createMany({ data: updates.assets.map((a) => ({ mediaId: id, type: (a.type as any), status: (a.status as any), path: (a.path as any) || undefined, error: (a as any).error || undefined, generatedAt: a.generatedAt ? new Date(a.generatedAt as any) : undefined })) })
         }
 
             await prisma.mediaItem.update({ where: { id }, data: data as any })

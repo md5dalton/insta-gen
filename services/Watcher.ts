@@ -29,6 +29,8 @@ export default class Watcher {
 
     public pendingUpdates: Map<string, FileUpdate>
 
+    files: string[] = []
+
     constructor(mediaRoot: string, extensions: string[]) {
         this.root = mediaRoot
         this.watcher = null
@@ -53,6 +55,7 @@ export default class Watcher {
             .on("change", (filePath) => this.queueUpdate("change", filePath))
             .on("unlink", (filePath) => this.queueUpdate("delete", filePath))
 
+            
         console.log("✅ Watcher ready")
     }
 
@@ -83,6 +86,7 @@ export default class Watcher {
             })
             
         } catch {
+            // console.count("error")
             // duplicate job → ignore
         }
     }

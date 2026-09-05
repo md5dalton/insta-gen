@@ -20,25 +20,25 @@ export async function workerLoop() {
             switch (payload.event) {
                 case "add":
                     await mediaService.handleAdd(payload.path)
-                    
+                    await markDone(job.id)
                     break;
 
                 case "delete":
                     await mediaService.handleDelete(payload.path)
+                    await markDone(job.id)
                     break;
             
                 default:
-                    await markFailed(job)
                     break;
             }
 
-            await markDone(job.id)
 
 
         } catch (err) {
             await markFailed(job)
         }
     }
+
 }
 
 
@@ -49,3 +49,6 @@ for (let i = 0; i < WORKER_CONCURRENCY; i++) {
     workerLoop()
 }
 
+
+// const jobs = await prisma.job.count()
+// console.log(jobs)

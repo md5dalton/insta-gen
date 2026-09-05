@@ -442,10 +442,6 @@ export function processMediaItemSync(media: MediaItem): MediaItem {
             type: assetType,
             status: "READY" as const,
             path: `${media.path}_${assetType.toLowerCase()}.${assetType === "HLS" ? "m3u8" : "webp"}`,
-            size: Math.round(
-                media.size *
-                    (assetType === "THUMBNAIL" ? 0.05 : assetType === "FEED_IMAGE" ? 0.35 : 0.7)
-            ),
             generatedAt: new Date().toISOString(),
         }
 

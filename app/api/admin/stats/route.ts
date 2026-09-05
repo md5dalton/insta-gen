@@ -48,14 +48,13 @@ export async function GET(request: Request) {
             prisma.mediaAsset.count({ where: { status: "MISSING", media: { deletedAt: null } } }),
             prisma.mediaAsset.count({ where: { status: "FAILED", media: { deletedAt: null } } }),
             prisma.mediaItem.aggregate({ _sum: { size: true }, where: { deletedAt: null } }).then((r) => (r._sum.size as any) ?? 0n),
-            prisma.mediaAsset.aggregate({ _sum: { size: true }, where: { media: { deletedAt: null } } }).then((r) => (r._sum.size as any) ?? 0n),
             prisma.rootCollection.count({ where: { deletedAt: null } }),
             prisma.collection.count({ where: { deletedAt: null } }),
             prisma.mediaUser.count({ where: { deletedAt: null } }),
             prisma.activityLog.findMany({ orderBy: { timestamp: "desc" }, take: 10 }),
         ])
 
-        const totalStorageBytes = Number(mediaSum + assetSum)
+        const totalStorageBytes = Number(mediaSum)
 
         const stats = {
             totalFiles,

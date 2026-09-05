@@ -315,26 +315,19 @@ model MediaItemAllowedUser {
 
 /// Rendition assets generated for a MediaItem
 model MediaAsset {
-    id          String      @id @default(cuid())
-    type        AssetType
-    status      AssetStatus @default(MISSING)
-    path        String?
-    size        BigInt?
-    width       Int?
-    height      Int?
-    error       String?
-    generatedAt DateTime?
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
+    type      AssetType
+    status    AssetStatus @default(MISSING)
+    path      String
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     // Parent Media Item
     mediaId String
     media   MediaItem @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
-    @@unique([mediaId, type])
-    @@index([mediaId])
+    @@id([mediaId, type])
     @@index([status])
-    @@index([type])
     @@map("media_assets")
 }
 

@@ -31,9 +31,9 @@ export async function POST(request: any, context: any) {
     if (!type) return NextResponse.json({ error: "Asset type is required" }, { status: 400 })
 
     const existing = (item.assets || []).find((a: any) => a.type === type)
-    const assetPayload: any = { type, status, path, size: size ? BigInt(size) : undefined, error }
+    const assetPayload: any = { type, status, path, error }
     if (existing) {
-        await prisma.mediaAsset.update({ where: { id: existing.id }, data: ({ ...assetPayload, generatedAt: status === "READY" ? new Date() : undefined } as any) })
+        await prisma.mediaAsset.update({ where: { mediaId_type: { mediaId: id, type } }, data: ({ ...assetPayload, generatedAt: status === "READY" ? new Date() : undefined } as any) })
     } else {
         await prisma.mediaAsset.create({ data: ({ mediaId: id, ...assetPayload, generatedAt: status === "READY" ? new Date() : undefined } as any) })
     }

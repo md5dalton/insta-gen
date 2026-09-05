@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { db } from "@/server/db"
+import { getMedia } from "@/lib/db/admin/media"
 import { enrichMediaItem } from "@/server/policy"
 import { authenticateRequest } from "@/server/auth"
 
@@ -7,68 +8,26 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const q = Object.fromEntries(url.searchParams.entries())
 
-    let results = await Promise.all((await db.listMedia()).map((m) => enrichMediaItem({
-        ...m,
-        mktime: String(m.mktime),
-        size: String(m.size),
-    })))
+    // Use DB helper to fetch paginated, filtered media
+    const result = await getMedia(q as any)
 
-    // Soft deletion filtering
-    if (q.includeDeleted !== "true") {
-        results = results.filter((m) => !m.isEffectivelyDeleted)
-    }
-
-    // Text search
-    if (q.query) {
-        const term = (q.query as string).toLowerCase()
-        results = results.filter(
-            (m) =>
-                m.name.toLowerCase().includes(term) ||
-                m.path.toLowerCase().includes(term) ||
-                (m.userName || "").toLowerCase().includes(term) ||
-                (m.tags || []).some((t: string) => t.toLowerCase().includes(term))
+    // Enrich each media item with policy/access info
+    const items = await Promise.all(
+        (result.items || []).map((m: any) =>
+            enrichMediaItem({
+                ...m,
+                mktime: String(m.mktime),
+                size: String(m.size),
+            })
         )
-    }
+    )
 
-    // Basic filters (type, status, collection, user, profile, tag)
-    if (q.type) results = results.filter((m) => m.type === q.type)
-    if (q.status) results = results.filter((m) => m.processingStatus === q.status)
-    if (q.rootCollectionId)
-        results = results.filter((m) => m.rootCollectionId === q.rootCollectionId)
-    if (q.collectionId) results = results.filter((m) => m.collectionId === q.collectionId)
-    if (q.userId) results = results.filter((m) => m.userId === q.userId)
-    if (q.profileId) results = results.filter((m) => m.effectivePolicy?.profile.id === q.profileId)
-    if (q.tag) results = results.filter((m) => (m.tags || []).includes(q.tag as string))
-
-    // Sorting
-    const sortBy = (q.sortBy as string) || "createdAt"
-    const sortOrder = (q.sortOrder as string) || "desc"
-    results.sort((a: any, b: any) => {
-        let valA = a[sortBy] ?? ""
-        let valB = b[sortBy] ?? ""
-        if (sortBy === "likes") {
-            valA = a.likesCount
-            valB = b.likesCount
-        }
-        if (valA < valB) return sortOrder === "asc" ? -1 : 1
-        if (valA > valB) return sortOrder === "asc" ? 1 : -1
-        return 0
-    })
-
-    const pageNum = parseInt((q.page as string) || "1", 10) || 1
-    const limitNum = parseInt((q.limit as string) || "24", 10) || 24
-    const total = results.length
-    const totalPages = Math.ceil(total / limitNum)
-    const offset = (pageNum - 1) * limitNum
-    const paginated = results.slice(offset, offset + limitNum)
-
-    console.log(paginated)
     return NextResponse.json({
-        items: paginated,
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages,
+        items,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
     })
 }
 

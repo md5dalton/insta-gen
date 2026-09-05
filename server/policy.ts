@@ -469,10 +469,6 @@ export async function processMediaItemSync(media: MediaItem): Promise<MediaItem>
             type: assetType,
             status: "READY",
             path: `${media.path}_${assetType.toLowerCase()}.${assetType === "HLS" ? "m3u8" : "webp"}`,
-            size: Math.round(
-                media.size *
-                    (assetType === "THUMBNAIL" ? 0.05 : assetType === "FEED_IMAGE" ? 0.35 : 0.7)
-            ),
             generatedAt: new Date().toISOString(),
         }
         if (existingIdx >= 0) media.assets[existingIdx] = newAsset

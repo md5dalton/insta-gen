@@ -37,14 +37,10 @@ export interface ProcessingProfile {
 }
 
 export interface MediaAsset {
-    id: string
     mediaId: string
     type: AssetType
     status: AssetStatus
     path?: string
-    size?: number
-    width?: number
-    height?: number
     error?: string
     generatedAt?: string
 }

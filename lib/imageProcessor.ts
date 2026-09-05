@@ -2,6 +2,8 @@ import sharp from "sharp"
 import { mediaEngineConfig } from "./config"
 import { Storage } from "./storage"
 import { generateId } from "./path"
+import { updateMediaAsset } from "@/lib/db/admin/mediaAsset"
+import { AssetType } from "@/prisma/generated/client"
 
 export interface ImageAssetMetadata {
     width: number
@@ -88,25 +90,26 @@ export class ImageProcessor {
 
     }
     
-    async generateThumb(): Promise<void> {
+    async generateThumb(): Promise<string> {
 
         const thumbPath = `images/${this.id}/thumb.webp`
 
+        if (await this.storage.exists(thumbPath)) return thumbPath
+
         await this.storage.mkdir(`images/${this.id}`)
 
-        if (!(await this.storage.exists(thumbPath))) {
-            await sharp(this.imagePath)
-                .rotate()
-                .resize({
-                    width: mediaEngineConfig.thumbWidth,
-                    height: mediaEngineConfig.thumbWidth,
-                    fit: "inside",
-                    withoutEnlargement: true,
-                })
-                .webp({ quality: mediaEngineConfig.thumbQuality })
-                .toFile(this.storage.resolve(thumbPath))
-        }
+        await sharp(this.imagePath)
+            .rotate()
+            .resize({
+                width: mediaEngineConfig.thumbWidth,
+                height: mediaEngineConfig.thumbWidth,
+                fit: "inside",
+                withoutEnlargement: true,
+            })
+            .webp({ quality: mediaEngineConfig.thumbQuality })
+            .toFile(this.storage.resolve(thumbPath))
 
+        return thumbPath
     }
 
     async probe(): Promise<ImageAssetMetadata> {

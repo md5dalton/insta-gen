@@ -1,5 +1,5 @@
 import { extname, join, sep } from "node:path"
-import { PrismaClient } from "@/prisma/generated/client"
+import { AssetType, PrismaClient } from "@/prisma/generated/client"
 import { generateId } from "@/lib/path"
 import { Storage } from "@/lib/storage"
 import { ImageProcessor } from "@/lib/imageProcessor"
@@ -7,6 +7,8 @@ import { VideoProcessor } from "@/lib/videoProcessor"
 import { MediaConfig } from "@/lib/config"
 import { logger } from "@/lib/logger"
 import { DBcache } from "@/lib/DBcache"
+import { updateMediaAsset } from "@/lib/db/admin/mediaAsset"
+import { exists } from "@/lib/db/admin/media"
 
 const CONFIG = MediaConfig
 
@@ -27,6 +29,8 @@ export class MediaService {
 
         const id = generateId(filePath)
         
+        if ((await exists(id))) return
+        
         const {
             relativePath,
             user,
@@ -44,7 +48,9 @@ export class MediaService {
                 const video = new VideoProcessor(this.storage, filePath, id)
                 const result = await video.probe()
 
-                await video.generatePoster()
+                const poster = await video.generatePoster()
+
+                if (poster) await updateMediaAsset(id, poster, AssetType.THUMBNAIL)
 
                 metadata = {
                     width: result.width,
@@ -55,7 +61,9 @@ export class MediaService {
                 const image = new ImageProcessor(this.storage, filePath)
                 const result = await image.probe()
 
-                await image.generateThumb()
+                const thumb = await image.generateThumb()
+
+                if (thumb) await updateMediaAsset(id, thumb, AssetType.THUMBNAIL)
 
                 metadata = {
                     width: result.width,
