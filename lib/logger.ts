@@ -17,7 +17,8 @@ class Logger {
             return
         }
 
-        console.log(JSON.stringify(payload))
+        // console.log(JSON.stringify(payload))
+        console.log(payload)
     }
 
     debug(message: string, fields?: LogFields): void {
