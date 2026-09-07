@@ -1,12 +1,12 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 generator client {
-  provider = "prisma-client"
-  output   = "./generated"
+    provider = "prisma-client"
+    output   = "./generated"
 }
 
 datasource db {
-  provider = "postgresql"
+    provider = "postgresql"
 }
 
 // ==========================================
@@ -14,64 +14,64 @@ datasource db {
 // ==========================================
 
 enum MediaType {
-  IMAGE
-  VIDEO
+    IMAGE
+    VIDEO
 }
 
 enum ProcessingStatus {
-  NEW
-  NEEDS_PROCESSING
-  PROCESSING
-  READY
-  FAILED
+    NEW
+    NEEDS_PROCESSING
+    PROCESSING
+    READY
+    FAILED
 }
 
 enum AssetType {
-  THUMBNAIL
-  FEED_IMAGE
-  HLS
-  LOW_QUALITY
+    THUMBNAIL
+    FEED_IMAGE
+    HLS
+    LOW_QUALITY
 }
 
 enum AssetStatus {
-  READY
-  MISSING
-  PROCESSING
-  FAILED
+    READY
+    MISSING
+    PROCESSING
+    FAILED
 }
 
 enum VisibilityType {
-  INHERIT
-  ALL_USERS
-  RESTRICTED
-  PRIVATE
+    INHERIT
+    ALL_USERS
+    RESTRICTED
+    PRIVATE
 }
 
 enum RootVisibilityType {
-  ALL_USERS
-  RESTRICTED
-  PRIVATE
+    ALL_USERS
+    RESTRICTED
+    PRIVATE
 }
 
 enum UserRole {
-  ADMIN
-  USER
+    ADMIN
+    USER
 }
 
 enum UserCapability {
-  VIEW // View, like, and save media
-  DOWNLOAD // View + like + save + download original media file
-  MANAGE // Manage content within granted hierarchies
-  ADMIN // Full administrative privileges
+    VIEW // View, like, and save media
+    DOWNLOAD // View + like + save + download original media file
+    MANAGE // Manage content within granted hierarchies
+    ADMIN // Full administrative privileges
 }
 
 enum ActivityType {
-  DISCOVERY
-  PROCESSED
-  FAILED
-  POLICY_CHANGE
-  DELETED
-  SETTINGS_UPDATE
+    DISCOVERY
+    PROCESSED
+    FAILED
+    POLICY_CHANGE
+    DELETED
+    SETTINGS_UPDATE
 }
 
 // ==========================================
@@ -80,37 +80,37 @@ enum ActivityType {
 
 /// Single administrative operator account with root authentication
 model AdminUser {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+    id           String   @id @default(cuid())
+    name         String
+    email        String   @unique
+    passwordHash String
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
 
-  // Back-relation to persisted admin sessions
-  adminSessions AdminSession[]
+    // Back-relation to persisted admin sessions
+    adminSessions AdminSession[]
 
-  @@map("admin_users")
+    @@map("admin_users")
 }
 
 /// End-users who can view/download media based on permissions
 model ProfileUser {
-  id         String         @id @default(cuid())
-  name       String
-  email      String         @unique
-  role       UserRole       @default(USER)
-  capability UserCapability @default(VIEW)
-  picture    String?
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+    id         String         @id @default(cuid())
+    name       String
+    email      String         @unique
+    role       UserRole       @default(USER)
+    capability UserCapability @default(VIEW)
+    picture    String?
+    createdAt  DateTime       @default(now())
+    updatedAt  DateTime       @updatedAt
 
-  // Allowed access relations across hierarchy levels
-  allowedRootCollections RootCollectionAllowedUser[]
-  allowedCollections     CollectionAllowedUser[]
-  allowedMediaUsers      MediaUserAllowedUser[]
-  allowedMediaItems      MediaItemAllowedUser[]
+    // Allowed access relations across hierarchy levels
+    allowedRootCollections RootCollectionAllowedUser[]
+    allowedCollections     CollectionAllowedUser[]
+    allowedMediaUsers      MediaUserAllowedUser[]
+    allowedMediaItems      MediaItemAllowedUser[]
 
-  @@map("profile_users")
+    @@map("profile_users")
 }
 
 /// Deterministic transcoding profile defining required renditions
@@ -202,14 +202,14 @@ model Collection {
 }
 
 model CollectionAllowedUser {
-  collectionId String
-  userId       String
+    collectionId String
+    userId       String
 
-  collection Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  user       ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    collection Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+    user       ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([collectionId, userId])
-  @@map("collection_allowed_users")
+    @@id([collectionId, userId])
+    @@map("collection_allowed_users")
 }
 
 /// Level 3: Content creator / user handle folder within a Collection
@@ -243,14 +243,14 @@ model MediaUser {
 }
 
 model MediaUserAllowedUser {
-  mediaUserId String
-  userId      String
+    mediaUserId String
+    userId      String
 
-  mediaUser MediaUser   @relation(fields: [mediaUserId], references: [id], onDelete: Cascade)
-  user      ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    mediaUser MediaUser   @relation(fields: [mediaUserId], references: [id], onDelete: Cascade)
+    user      ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([mediaUserId, userId])
-  @@map("media_user_allowed_users")
+    @@id([mediaUserId, userId])
+    @@map("media_user_allowed_users")
 }
 
 /// Level 4: Core Media Item catalog record
@@ -303,14 +303,14 @@ model MediaItem {
 }
 
 model MediaItemAllowedUser {
-  mediaItemId String
-  userId      String
+    mediaItemId String
+    userId      String
 
-  mediaItem MediaItem   @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
-  user      ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    mediaItem MediaItem   @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+    user      ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([mediaItemId, userId])
-  @@map("media_item_allowed_users")
+    @@id([mediaItemId, userId])
+    @@map("media_item_allowed_users")
 }
 
 /// Rendition assets generated for a MediaItem
@@ -359,45 +359,64 @@ model SystemSetting {
 
 /// Audit log and processing activity feed
 model ActivityLog {
-  id          String       @id @default(cuid())
-  type        ActivityType
-  title       String
-  description String
-  metadata    Json?
-  timestamp   DateTime     @default(now())
+    id          String       @id @default(cuid())
+    type        ActivityType
+    title       String
+    description String
+    metadata    Json?
+    timestamp   DateTime     @default(now())
 
-  @@index([timestamp])
-  @@index([type])
-  @@map("activity_logs")
+    @@index([timestamp])
+    @@index([type])
+    @@map("activity_logs")
 }
 
 /// Persisted admin sessions (Bearer tokens)
 model AdminSession {
-  token       String    @id
-  adminUserId String
-  createdAt   DateTime  @default(now())
-  expiresAt   DateTime?
+    token       String    @id
+    adminUserId String
+    createdAt   DateTime  @default(now())
+    expiresAt   DateTime?
 
-  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+    adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
 
-  @@map("admin_sessions")
+    @@map("admin_sessions")
 }
 
+enum JobType {
+    ROOT_COLLECTION
+    COLLECTION
+    USER
+    TAG
+    MEDIA
+}
+enum JobEvent {
+    ADD
+    DELETE
+    UPDATE
+}
+enum JobStatus {
+    PENDING
+    PROCESSING
+    DONE
+    FAILED
+}
 model Job {
-    id          String   @id @default(uuid())
-    type        String   // "media"
+    id          String      @id @default(uuid())
+    type        JobType
+    event       JobEvent
     payload     Json
 
-    status      String   @default("pending") // pending | processing | done | failed
-    attempts    Int      @default(0)
+    status      JobStatus   @default(PENDING) // pending | processing | done | failed
+    attempts    Int         @default(0)
 
-    dedupeKey   String?  @unique
+    dedupeKey   String?     @unique
 
     lockedAt    DateTime?
-    availableAt DateTime @default(now())
+    availableAt DateTime    @default(now())
 
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
 
     @@index([status, availableAt])
 }
