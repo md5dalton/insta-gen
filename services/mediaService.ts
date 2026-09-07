@@ -25,6 +25,9 @@ export class MediaService {
         this.mediaRoot = CONFIG.MEDIA_ROOT
     }
 
+    async handleUpdate(fileId: string) {
+    }
+    
     async handleAdd(filePath: string) {
 
         const id = generateId(filePath)

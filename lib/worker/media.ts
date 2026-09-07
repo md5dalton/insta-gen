@@ -25,7 +25,8 @@ export const process = async (job: Job) => {
                 await markDone(job.id)
                 break;
             case "UPDATE":
-                console.log(job)
+                await mediaService.handleUpdate(payload.id)
+                await markDone(job.id)
                 break;
             default:
                 await markFailed(job)

@@ -5,16 +5,17 @@ import prisma from "../prisma"
 export const process = async (job: Job) => {
 
     const {
-        type,
-        id
+        type
     } = job
 
     try {
         let where: any = {}
+        const payload = job.payload as any
+        const parentId = payload.id
 
-        if (type === "ROOT_COLLECTION") where = { user: { collection: { rootCollectionId: id } } }
-        else if (type === "COLLECTION") where = { user: { collectionId: id } }
-        else if (type === "USER") where = { userId: id }
+        if (type === "ROOT_COLLECTION") where = { user: { collection: { rootCollectionId: parentId } } }
+        else if (type === "COLLECTION") where = { user: { collectionId: parentId } }
+        else if (type === "USER") where = { userId: parentId }
 
         const medias = await prisma.mediaItem.findMany({ where, select: { id: true } })
 

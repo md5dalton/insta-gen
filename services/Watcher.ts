@@ -282,11 +282,11 @@ export default class Watcher {
 
             "Files:",
 
-            `  ADD:    ${this.formatNumber(
+            `  ADDED:    ${this.formatNumber(
                 this.stats.files.add
             )}`,
 
-            `  DEL: ${this.formatNumber(
+            `  DELETED: ${this.formatNumber(
                 this.stats.files.delete
             )}`,
 

@@ -5,7 +5,7 @@ export async function fetchAndLockJob() {
 
     const job = await prisma.job.findFirst({
         where: {
-            status: "pending",
+            status: "PENDING",
             availableAt: { lte: now },
         },
         orderBy: [
@@ -18,10 +18,10 @@ export async function fetchAndLockJob() {
     const updated = await prisma.job.updateMany({
         where: {
             id: job.id,
-            status: "pending",
+            status: "PENDING",
         },
         data: {
-            status: "processing",
+            status: "PROCESSING",
             lockedAt: now,
         },
     })

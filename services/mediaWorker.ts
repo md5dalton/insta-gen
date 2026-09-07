@@ -28,8 +28,6 @@ export async function workerLoop() {
                 default:
                     break;
             }
-            await markDone(job.id)
-
         } catch (err) {
             await markFailed(job)
         }
