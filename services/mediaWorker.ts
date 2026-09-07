@@ -1,9 +1,7 @@
-import { MediaService } from "@/services/mediaService"
-import prisma from "@/lib/prisma"
 import { fetchAndLockJob } from "./fetchAndLockJob"
 import { markDone, markFailed } from "./jobLifecycle"
-
-const mediaService = new MediaService(prisma)
+import { process as processMedia } from "@/lib/worker/media"
+import { process as processParent} from "@/lib/worker/mediaParent"
 
 export async function workerLoop() {
     while (true) {
@@ -15,24 +13,22 @@ export async function workerLoop() {
         }
 
         try {
-            const payload = job.payload as any
-
-            switch (payload.event) {
-                case "add":
-                    await mediaService.handleAdd(payload.path)
-                    await markDone(job.id)
+            switch (job.type) {
+                case "MEDIA":
+                    await processMedia(job)
                     break;
 
-                case "delete":
-                    await mediaService.handleDelete(payload.path)
-                    await markDone(job.id)
+                case "ROOT_COLLECTION":
+                case "COLLECTION":
+                case "USER":
+                case "TAG":
+                    await processParent(job)
                     break;
             
                 default:
                     break;
             }
-
-
+            await markDone(job.id)
 
         } catch (err) {
             await markFailed(job)

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { db } from "@/server/db"
+import prisma from "@/lib/prisma"
 import { authenticateRequest } from "@/server/auth"
+import { JobEvent, JobType } from "@/prisma/generated/enums"
 
 export async function PUT(request: any, context: any) {
     const params =
@@ -29,6 +31,15 @@ export async function PUT(request: any, context: any) {
             if (type === "root") await db.updateRootCollection(id, { processingProfileId } as any)
             else if (type === "collection") await db.updateCollection(id, { processingProfileId } as any)
             else if (type === "user") await db.updateMediaUser(id, { processingProfileId } as any)
+
+            // enqueue a deduplicated profile-update job. job.type uses the entity kind.
+            try {
+                const jobType = type === "root" ? JobType.ROOT_COLLECTION : type === "collection" ? JobType.COLLECTION : JobType.USER
+                const dedupeKey = `profile-update:${jobType}:${id}`
+                await prisma.job.create({ data: { type: jobType, event: JobEvent.ADD, payload: { id }, dedupeKey } })
+            } catch (e) {
+                // ignore duplicate job errors
+            }
         }
         if (visibility !== undefined) {
             if (type === "root") await db.updateRootCollection(id, { visibility } as any)
