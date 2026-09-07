@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger"
 import { DBcache } from "@/lib/DBcache"
 import { updateMediaAsset } from "@/lib/db/admin/mediaAsset"
 import { exists } from "@/lib/db/admin/media"
+import { resolveEffectiveProcessingPolicy } from "@/server/policy"
 
 const CONFIG = MediaConfig
 
@@ -26,6 +27,83 @@ export class MediaService {
     }
 
     async handleUpdate(fileId: string) {
+        const media = await this.prisma.mediaItem.findUnique({ where: { id: fileId }, include: { assets: true } })
+        if (!media) return
+
+        const absPath = join(this.mediaRoot, media.path)
+
+        try {
+            await this.reconcileMediaAssets(fileId, media.type, absPath)
+        } catch (error) {
+            logger.error("Failed handling media update", { mediaId: fileId, error: error instanceof Error ? error.message : String(error) })
+            try {
+                await this.prisma.mediaItem.update({ where: { id: fileId }, data: { processingStatus: "FAILED" } as any })
+            } catch {}
+        }
+    }
+
+    private async reconcileMediaAssets(mediaId: string, mediaType: "IMAGE" | "VIDEO", sourcePath: string) {
+        const media = await this.prisma.mediaItem.findUnique({ where: { id: mediaId }, include: { assets: true } })
+        if (!media) return
+
+        await this.prisma.mediaItem.update({
+            where: { id: mediaId },
+            data: { processingStatus: "PROCESSING" },
+        })
+
+        const policy = await resolveEffectiveProcessingPolicy(media as any)
+
+        for (const assetType of policy.missingAssets) {
+            try {
+                if (assetType === "THUMBNAIL") {
+                    if (mediaType === "VIDEO") {
+                        const video = new VideoProcessor(this.storage, sourcePath, mediaId)
+                        const poster = await video.generatePoster()
+                        if (poster) await updateMediaAsset(mediaId, poster, AssetType.THUMBNAIL)
+                    } else {
+                        const image = new ImageProcessor(this.storage, sourcePath)
+                        const thumb = await image.generateThumb()
+                        if (thumb) await updateMediaAsset(mediaId, thumb, AssetType.THUMBNAIL)
+                    }
+                } else if (assetType === "FEED_IMAGE") {
+                    if (mediaType === "IMAGE") {
+                        const image = new ImageProcessor(this.storage, sourcePath)
+                        await image.generateFeed()
+                        const feedPath = `images/${mediaId}/feed.webp`
+                        await updateMediaAsset(mediaId, feedPath, AssetType.FEED_IMAGE)
+                    }
+                } else if (assetType === "HLS") {
+                    if (mediaType === "VIDEO") {
+                        const video = new VideoProcessor(this.storage, sourcePath, mediaId)
+                        await video.process()
+                        const master = `videos/${mediaId}/hls/master.m3u8`
+                        await updateMediaAsset(mediaId, master, AssetType.HLS)
+                    }
+                } else if (assetType === "LOW_QUALITY") {
+                    if (mediaType === "VIDEO") {
+                        const video = new VideoProcessor(this.storage, sourcePath, mediaId)
+                        await video.process()
+                        const lowPath = `videos/${mediaId}/hls/master.m3u8`
+                        await updateMediaAsset(mediaId, lowPath, AssetType.LOW_QUALITY)
+                    }
+                }
+            } catch (err) {
+                logger.error("Failed generating asset", {
+                    mediaId,
+                    asset: assetType,
+                    err: err instanceof Error ? err.message : String(err),
+                })
+            }
+        }
+
+        const refreshed = await this.prisma.mediaItem.findUnique({ where: { id: mediaId }, include: { assets: true } })
+        const nextPolicy = refreshed ? await resolveEffectiveProcessingPolicy(refreshed as any) : policy
+        const nextStatus = nextPolicy.needsProcessing ? "NEEDS_PROCESSING" : "READY"
+
+        await this.prisma.mediaItem.update({
+            where: { id: mediaId },
+            data: { processingStatus: nextStatus },
+        })
     }
     
     async handleAdd(filePath: string) {
@@ -88,8 +166,11 @@ export class MediaService {
                         userId: user.id,
                     },
                 })
-                
-                if (media) await this.processTags(id, tags)
+
+                if (media) {
+                    await this.processTags(id, tags)
+                    await this.reconcileMediaAssets(id, media.type, filePath)
+                }
 
                 logger.info("Processed watched media", { mediaId: id, path: relativePath })
             }
