@@ -1,25 +1,64 @@
 import {
     MediaItem,
-    ProcessingProfile,
-    AssetType,
     EffectivePolicyResult,
     EffectiveAccessResult,
+    ProcessingProfile,
 } from "@/types/types"
 import { db } from "./db"
+import prisma from "@/lib/prisma"
+import { AssetStatus, AssetType, MediaType } from "@/prisma/generated/enums"
+import { sep } from "node:path"
+import { processingProfile as processingProfileDefault } from "@/constants/models"
 
 /**
  * Resolves the deterministic effective processing policy for a media item.
  * Precedence: Media -> User -> Collection -> Root Collection -> System default.
  */
-export async function resolveEffectiveProcessingPolicy(media: MediaItem): Promise<EffectivePolicyResult> {
-    const user = await db.findMediaUserById(media.userId)
-    const collection = await db.findCollectionById(media.collectionId)
-    const rootCollection = await db.findRootCollectionById(media.rootCollectionId)
+export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise<EffectivePolicyResult | null> {
 
-    let chosenProfileId: string | null | undefined = null
+    const media = await prisma.mediaItem.findUnique({
+        where: {id: mediaId},
+        select: {
+            type: true,
+            id: true,
+            path: true,
+            processingProfileId: true,
+            assets: true,
+            user: {
+                select: {
+                    id: true,
+                    path: true,
+                    processingProfileId: true,
+                    collection: {
+                        select: {
+                            id: true,
+                            path: true,
+                            processingProfileId: true,
+                            rootCollection: {
+                                select: {
+                                    id: true,
+                                    path: true,
+                                    processingProfileId: true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    })
+
+    if (!media) return null
+
+    const user = media.user
+    const collection = user.collection
+    const rootCollection = collection.rootCollection
+
+    let chosenProfileId: string = ""
+    
     let inheritedFrom: EffectivePolicyResult["inheritedFrom"] = {
         level: "SYSTEM_DEFAULT",
-        name: "System Default (" + (media.type === "VIDEO" ? "Video Feed" : "Image Feed") + ")",
+        name: "System Default (" + (media.type === MediaType.VIDEO ? "Video" : "Image") + ")",
     }
 
     // 1. Check Media level
@@ -27,7 +66,7 @@ export async function resolveEffectiveProcessingPolicy(media: MediaItem): Promis
         chosenProfileId = media.processingProfileId
         inheritedFrom = {
             level: "MEDIA",
-            name: `Direct Media Override (${media.name})`,
+            name: `Direct Media Override (${media.path.split(sep).pop()})`,
             id: media.id,
         }
     }
@@ -36,7 +75,7 @@ export async function resolveEffectiveProcessingPolicy(media: MediaItem): Promis
         chosenProfileId = user.processingProfileId
         inheritedFrom = {
             level: "USER",
-            name: `User → @${user.username}`,
+            name: `User → @${user.path.split(sep).pop()}`,
             id: user.id,
         }
     }
@@ -45,7 +84,7 @@ export async function resolveEffectiveProcessingPolicy(media: MediaItem): Promis
         chosenProfileId = collection.processingProfileId
         inheritedFrom = {
             level: "COLLECTION",
-            name: `Collection → ${collection.name}`,
+            name: `Collection → ${collection.path.split(sep).pop()}`,
             id: collection.id,
         }
     }
@@ -54,35 +93,32 @@ export async function resolveEffectiveProcessingPolicy(media: MediaItem): Promis
         chosenProfileId = rootCollection.processingProfileId
         inheritedFrom = {
             level: "ROOT_COLLECTION",
-            name: `Root Collection → ${rootCollection.name}`,
+            name: `Root Collection → ${rootCollection.path.split(sep).pop()}`,
             id: rootCollection.id,
         }
     }
 
-    // Find profile object
-    let profile = db.profiles.find((p) => p.id === chosenProfileId)
-    if (!profile) {
-        // System default fallback
-        const defaultProfileId =
-            media.type === "VIDEO" ? "profile-video-feed" : "profile-image-feed"
-        profile = db.profiles.find((p) => p.id === defaultProfileId) || db.profiles[0]
-    }
+    let processingProfile: ProcessingProfile = processingProfileDefault
+
+    if (chosenProfileId) {
+        const processingProfileDB = await prisma.processingProfile.findUnique({where: {id: chosenProfileId}})
+
+        if (processingProfileDB) processingProfile = processingProfileDB
+    } 
 
     // Calculate required assets based on profile
-    const requiredAssets: AssetType[] = ["THUMBNAIL"] // Mandatory for ALL media items!
-    if (profile.requiredRenditions.feedImage && media.type === "IMAGE") {
-        requiredAssets.push("FEED_IMAGE")
+    const requiredAssets: AssetType[] = [AssetType.THUMBNAIL] // Mandatory for ALL media items!
+
+    if (processingProfile.reqFeedImage && media.type === MediaType.IMAGE) {
+        requiredAssets.push(AssetType.FEED_IMAGE)
     }
-    if (profile.requiredRenditions.hls && media.type === "VIDEO") {
-        requiredAssets.push("HLS")
-    }
-    if (profile.requiredRenditions.lowQuality && media.type === "VIDEO") {
-        requiredAssets.push("LOW_QUALITY")
+    if (processingProfile.reqHls && media.type === MediaType.VIDEO) {
+        requiredAssets.push(AssetType.HLS)
     }
 
     // Calculate existing assets that are READY
-    const existingAssets: AssetType[] = (media.assets || [])
-        .filter((a) => a.status === "READY")
+    const existingAssets: AssetType[] = media.assets
+        .filter((a) => a.status === AssetStatus.READY)
         .map((a) => a.type)
 
     // Missing assets = required - existing
@@ -91,7 +127,7 @@ export async function resolveEffectiveProcessingPolicy(media: MediaItem): Promis
     const needsProcessing = missingAssets.length > 0
 
     return {
-        profile,
+        profile: processingProfile,
         inheritedFrom,
         requiredAssets,
         existingAssets,

@@ -54,9 +54,11 @@ export class VideoProcessor {
         }
     }
 
-    async process(): Promise<void> {
+    async process(): Promise<string> {
 
         const masterPlaylistPath = `videos/${this.id}/hls/master.m3u8`
+
+        if (await this.storage.exists(masterPlaylistPath)) return masterPlaylistPath
 
         const hlsDirectory = `videos/${this.id}/hls/1080`
 
@@ -75,17 +77,18 @@ export class VideoProcessor {
          * Generates all .ts segments and
          * the complete index.m3u8.
          */
-        await this.generateHls()
+        const indexPlaylist = await this.generateHls()
 
+        if (!indexPlaylist) return ""
         /*
          * Generate master playlist.
          */
-        if (!(await this.storage.exists(masterPlaylistPath))) {
-            await this.storage.saveFile(
-                masterPlaylistPath,
-                Buffer.from(this.renderMasterPlaylist())
-            )
-        }
+        await this.storage.saveFile(
+            masterPlaylistPath,
+            Buffer.from(this.renderMasterPlaylist())
+        )
+
+        return masterPlaylistPath
     }
 
     private normalizeDimensions(videoStream: {
@@ -173,10 +176,12 @@ export class VideoProcessor {
         }
     }
 
-    private async generateHls(): Promise<void> {
+    private async generateHls(): Promise<string> {
         const outputDir = `videos/${this.id}/hls/1080`
 
         const playlistPath = `${outputDir}/index.m3u8`
+        
+        if (await this.storage.exists(playlistPath)) return playlistPath
 
         const segmentPattern = `${outputDir}/segment%03d.ts`
 
@@ -266,6 +271,8 @@ export class VideoProcessor {
         })
 
         console.log(`[VideoProcessor] Complete HLS generated for ${this.id}`)
+
+        return playlistPath
     }
     private renderMasterPlaylist(): string {
         return [

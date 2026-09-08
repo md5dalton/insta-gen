@@ -122,7 +122,7 @@ model ProcessingProfile {
 
     // Rendition requirements (Thumbnail is always mandatory)
     reqThumbnail  Boolean @default(true)
-    reqFeedImage  Boolean @default(true)
+    reqFeedImage  Boolean @default(false)
     reqHls        Boolean @default(false)
     reqLowQuality Boolean @default(false)
 

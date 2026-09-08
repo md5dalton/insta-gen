@@ -27,13 +27,12 @@ export interface ProcessingProfile {
     id: string
     name: string
     description: string
-    isSystem?: boolean
-    requiredRenditions: {
-        thumbnail: true // Always mandatory
-        feedImage: boolean
-        hls: boolean
-        lowQuality: boolean
-    }
+    isSystem: boolean
+
+    reqThumbnail: boolean,
+    reqFeedImage: boolean,
+    reqHls: boolean,
+    reqLowQuality: boolean
 }
 
 export interface MediaAsset {

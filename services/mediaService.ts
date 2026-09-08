@@ -1,5 +1,5 @@
 import { extname, join, sep } from "node:path"
-import { AssetType, PrismaClient } from "@/prisma/generated/client"
+import { AssetType, MediaType, PrismaClient, ProcessingStatus } from "@/prisma/generated/client"
 import { generateId } from "@/lib/path"
 import { Storage } from "@/lib/storage"
 import { ImageProcessor } from "@/lib/imageProcessor"
@@ -42,49 +42,58 @@ export class MediaService {
         }
     }
 
-    private async reconcileMediaAssets(mediaId: string, mediaType: "IMAGE" | "VIDEO", sourcePath: string) {
-        const media = await this.prisma.mediaItem.findUnique({ where: { id: mediaId }, include: { assets: true } })
+    private async reconcileMediaAssets(mediaId: string, mediaType: MediaType, sourcePath: string) {
+        
+        const media = await exists(mediaId)
+
         if (!media) return
 
         await this.prisma.mediaItem.update({
             where: { id: mediaId },
-            data: { processingStatus: "PROCESSING" },
+            data: { processingStatus: ProcessingStatus.PROCESSING },
         })
 
-        const policy = await resolveEffectiveProcessingPolicy(media as any)
+        const policy = await resolveEffectiveProcessingPolicy(mediaId)
+
+        if (!policy) return
+
+        const assets = new Map<AssetType, string>()
 
         for (const assetType of policy.missingAssets) {
             try {
-                if (assetType === "THUMBNAIL") {
-                    if (mediaType === "VIDEO") {
+                if (assetType === AssetType.THUMBNAIL) {
+                    if (mediaType === MediaType.VIDEO) {
                         const video = new VideoProcessor(this.storage, sourcePath, mediaId)
                         const poster = await video.generatePoster()
-                        if (poster) await updateMediaAsset(mediaId, poster, AssetType.THUMBNAIL)
-                    } else {
+                        if (poster) {
+                            const saved = await updateMediaAsset(mediaId, poster, AssetType.THUMBNAIL)
+                            if (saved) assets.set(AssetType.THUMBNAIL, poster)
+                        }
+                    } else if (mediaType === MediaType.IMAGE) {
                         const image = new ImageProcessor(this.storage, sourcePath)
                         const thumb = await image.generateThumb()
-                        if (thumb) await updateMediaAsset(mediaId, thumb, AssetType.THUMBNAIL)
+                        if (thumb) {
+                            const saved = await updateMediaAsset(mediaId, thumb, AssetType.THUMBNAIL)
+                            if (saved) assets.set(AssetType.THUMBNAIL, thumb)
+                        }
                     }
-                } else if (assetType === "FEED_IMAGE") {
-                    if (mediaType === "IMAGE") {
+                } else if (assetType === AssetType.FEED_IMAGE) {
+                    if (mediaType === MediaType.IMAGE) {
                         const image = new ImageProcessor(this.storage, sourcePath)
-                        await image.generateFeed()
-                        const feedPath = `images/${mediaId}/feed.webp`
-                        await updateMediaAsset(mediaId, feedPath, AssetType.FEED_IMAGE)
+                        const feed = await image.generateFeed()
+                        if (feed) {
+                            const saved = await updateMediaAsset(mediaId, feed, AssetType.FEED_IMAGE)
+                            if (saved) assets.set(AssetType.FEED_IMAGE, feed)
+                        }
                     }
-                } else if (assetType === "HLS") {
-                    if (mediaType === "VIDEO") {
+                } else if (assetType === AssetType.HLS) {
+                    if (mediaType === MediaType.VIDEO) {
                         const video = new VideoProcessor(this.storage, sourcePath, mediaId)
-                        await video.process()
-                        const master = `videos/${mediaId}/hls/master.m3u8`
-                        await updateMediaAsset(mediaId, master, AssetType.HLS)
-                    }
-                } else if (assetType === "LOW_QUALITY") {
-                    if (mediaType === "VIDEO") {
-                        const video = new VideoProcessor(this.storage, sourcePath, mediaId)
-                        await video.process()
-                        const lowPath = `videos/${mediaId}/hls/master.m3u8`
-                        await updateMediaAsset(mediaId, lowPath, AssetType.LOW_QUALITY)
+                        const hls = await video.process()
+                        if (hls) {
+                            const saved = await updateMediaAsset(mediaId, hls, AssetType.HLS)
+                            if (saved) assets.set(AssetType.HLS, hls)
+                        }
                     }
                 }
             } catch (err) {
@@ -96,13 +105,13 @@ export class MediaService {
             }
         }
 
-        const refreshed = await this.prisma.mediaItem.findUnique({ where: { id: mediaId }, include: { assets: true } })
-        const nextPolicy = refreshed ? await resolveEffectiveProcessingPolicy(refreshed as any) : policy
-        const nextStatus = nextPolicy.needsProcessing ? "NEEDS_PROCESSING" : "READY"
+        const status = policy.missingAssets.some((asset) => !assets.has(asset))
+            ? ProcessingStatus.NEEDS_PROCESSING
+            : ProcessingStatus.READY
 
         await this.prisma.mediaItem.update({
             where: { id: mediaId },
-            data: { processingStatus: nextStatus },
+            data: { processingStatus: status },
         })
     }
     
@@ -129,10 +138,6 @@ export class MediaService {
                 const video = new VideoProcessor(this.storage, filePath, id)
                 const result = await video.probe()
 
-                const poster = await video.generatePoster()
-
-                if (poster) await updateMediaAsset(id, poster, AssetType.THUMBNAIL)
-
                 metadata = {
                     width: result.width,
                     height: result.height,
@@ -141,10 +146,6 @@ export class MediaService {
             } else {
                 const image = new ImageProcessor(this.storage, filePath)
                 const result = await image.probe()
-
-                const thumb = await image.generateThumb()
-
-                if (thumb) await updateMediaAsset(id, thumb, AssetType.THUMBNAIL)
 
                 metadata = {
                     width: result.width,
