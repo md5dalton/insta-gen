@@ -66,7 +66,7 @@ export default class Watcher {
     // ─────────────────────────────────────────────
 
     async initialize(
-        ignoreInitial: boolean = true,
+        ignoreInitial: boolean = false,
     ): Promise<void> {
 
         console.log("🔄 Initializing media watcher...")

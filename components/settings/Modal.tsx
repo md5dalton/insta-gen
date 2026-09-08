@@ -132,23 +132,6 @@ export default ({
                                     className="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
                                 />
                             </label>
-
-                            <label className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between cursor-pointer">
-                                <div>
-                                    <span className="font-semibold text-slate-200 block">
-                                        Low Quality (720p / 480p fallback)
-                                    </span>
-                                    <span className="text-slate-400 text-[11px] block">
-                                        Low-bandwidth fallback
-                                    </span>
-                                </div>
-                                <input
-                                    type="checkbox"
-                                    checked={lowQuality}
-                                    onChange={(e) => onLowQualityChange(e.target.checked)}
-                                    className="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
-                                />
-                            </label>
                         </div>
                     </div>
 

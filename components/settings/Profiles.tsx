@@ -167,13 +167,10 @@ export default () => {
             {/* Profiles Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {profiles.map((p) => {
-                    const isSystemDefault = p.id === "prof-default" || p.isSystem ? true : false
-
                     return (
                         <Profile
                             key={p.id}
                             profile={p}
-                            isSystemDefault={isSystemDefault}
                             editHandler={() => openEditProfile(p)}
                         />
                     )

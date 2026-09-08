@@ -3,11 +3,10 @@ import { Edit2 } from "lucide-react"
 
 type Props = {
     profile: ProcessingProfile
-    isSystemDefault: boolean
     editHandler: () => void
 }
 
-export default ({ isSystemDefault, profile, editHandler }: Props) => {
+export default ({ profile, editHandler }: Props) => {
 
     return (
         <div
@@ -18,7 +17,7 @@ export default ({ isSystemDefault, profile, editHandler }: Props) => {
                     <span className="font-bold text-white text-sm">
                         {profile.name}
                     </span>
-                    {isSystemDefault ? (
+                    {profile.id === "default-profile" ? (
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
                             System Default
                         </span>

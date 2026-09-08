@@ -685,20 +685,6 @@ export class DatabaseStore {
         }
     }
 
-    async createProcessingProfile(payload: Partial<ProcessingProfile>) {
-        const nextRenditions = Array.isArray(payload.renditions)
-            ? payload.renditions.filter((value) => value === "THUMBNAIL" || value === "FEED_IMAGE" || value === "HLS")
-            : ["THUMBNAIL"]
-
-        const created = await prisma.processingProfile.create({ data: ({
-            name: payload.name || "",
-            description: payload.description || "",
-            isSystem: payload.isSystem || false,
-            renditions: nextRenditions,
-        } as any) })
-        return { id: created.id, name: created.name, description: created.description, isSystem: created.isSystem, renditions: created.renditions ?? ["THUMBNAIL"] }
-    }
-
     async logActivity(entry: { type: string; title: string; description: string; metadata?: any }) {
         try {
             const created = await prisma.activityLog.create({ data: { type: entry.type as any, title: entry.title, description: entry.description, metadata: entry.metadata ? entry.metadata : undefined } })
