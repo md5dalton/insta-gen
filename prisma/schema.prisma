@@ -94,20 +94,20 @@ model AdminUser {
 
 /// End-users who can view/download media based on permissions
 model ProfileUser {
-    id         String         @id @default(cuid())
-    name       String
-    email      String         @unique
-    role       UserRole       @default(USER)
-    capability UserCapability @default(VIEW)
-    picture    String?
-    createdAt  DateTime       @default(now())
-    updatedAt  DateTime       @updatedAt
+    id                      String         @id @default(cuid())
+    name                    String
+    email                   String         @unique
+    role                    UserRole       @default(USER)
+    capability              UserCapability @default(VIEW)
+    picture                 String?
+    createdAt               DateTime       @default(now())
+    updatedAt               DateTime       @updatedAt
 
     // Allowed access relations across hierarchy levels
-    allowedRootCollections RootCollectionAllowedUser[]
-    allowedCollections     CollectionAllowedUser[]
-    allowedMediaUsers      MediaUserAllowedUser[]
-    allowedMediaItems      MediaItemAllowedUser[]
+    allowedRootCollections  RootCollectionAllowedUser[]
+    allowedCollections      CollectionAllowedUser[]
+    allowedMediaUsers       MediaUserAllowedUser[]
+    allowedMediaItems       MediaItemAllowedUser[]
 
     @@map("profile_users")
 }

@@ -3,67 +3,62 @@ import {
     EffectivePolicyResult,
     EffectiveAccessResult,
     ProcessingProfile,
+    ProfileUser,
 } from "@/types/types"
 import { db } from "./db"
 import prisma from "@/lib/prisma"
-import { AssetStatus, AssetType, MediaType } from "@/prisma/generated/enums"
+import { AssetStatus, AssetType, MediaType, UserRole, VisibilityType } from "@/prisma/generated/enums"
 import { sep } from "node:path"
 import { processingProfile as processingProfileDefault } from "@/constants/models"
+import { MediaAsset, ProcessingProfile as ProcessingProfilePrisma } from "@/prisma/generated/client"
 
 /**
  * Resolves the deterministic effective processing policy for a media item.
  * Precedence: Media -> User -> Collection -> Root Collection -> System default.
  */
-export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise<EffectivePolicyResult | null> {
 
-    const media = await prisma.mediaItem.findUnique({
-        where: {id: mediaId},
-        select: {
-            type: true,
-            id: true,
-            path: true,
-            processingProfileId: true,
-            assets: true,
-            user: {
-                select: {
-                    id: true,
-                    path: true,
-                    processingProfileId: true,
-                    collection: {
-                        select: {
-                            id: true,
-                            path: true,
-                            processingProfileId: true,
-                            rootCollection: {
-                                select: {
-                                    id: true,
-                                    path: true,
-                                    processingProfileId: true
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    })
+interface EffectiveItem {
+    id: string,
+    path: string,
+    processingProfile: ProcessingProfile | null,
+    visibility: VisibilityType
+    deletedAt: Date | null
+    allowedUsers: { 
+        id: string
+        name: string
+        role: UserRole
+    }[]
+}
 
-    if (!media) return null
+interface EffectiveRootCollection extends EffectiveItem {}
+interface EffectiveCollection extends EffectiveItem {
+    rootCollection: EffectiveRootCollection
+}
+interface EffectiveUser extends EffectiveItem {
+    collection: EffectiveCollection
+}
+export interface EffectiveMedia extends EffectiveItem {
+    user: EffectiveUser
+    type: MediaType,
+    assets: MediaAsset[],
+}
+
+export function resolveEffectiveProcessingPolicy(media: EffectiveMedia): EffectivePolicyResult {
 
     const user = media.user
     const collection = user.collection
     const rootCollection = collection.rootCollection
 
-    let chosenProfileId: string = ""
-    
+    let chosenProfile: ProcessingProfile = processingProfileDefault
+     
     let inheritedFrom: EffectivePolicyResult["inheritedFrom"] = {
         level: "SYSTEM_DEFAULT",
         name: "System Default (" + (media.type === MediaType.VIDEO ? "Video" : "Image") + ")",
     }
 
     // 1. Check Media level
-    if (media.processingProfileId) {
-        chosenProfileId = media.processingProfileId
+    if (media.processingProfile) {
+        chosenProfile = media.processingProfile
         inheritedFrom = {
             level: "MEDIA",
             name: `Direct Media Override (${media.path.split(sep).pop()})`,
@@ -71,8 +66,8 @@ export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise
         }
     }
     // 2. Check User level
-    else if (user?.processingProfileId) {
-        chosenProfileId = user.processingProfileId
+    else if (user.processingProfile) {
+        chosenProfile = user.processingProfile
         inheritedFrom = {
             level: "USER",
             name: `User → @${user.path.split(sep).pop()}`,
@@ -80,8 +75,8 @@ export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise
         }
     }
     // 3. Check Collection level
-    else if (collection?.processingProfileId) {
-        chosenProfileId = collection.processingProfileId
+    else if (collection.processingProfile) {
+        chosenProfile = collection.processingProfile
         inheritedFrom = {
             level: "COLLECTION",
             name: `Collection → ${collection.path.split(sep).pop()}`,
@@ -89,8 +84,8 @@ export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise
         }
     }
     // 4. Check Root Collection level
-    else if (rootCollection?.processingProfileId) {
-        chosenProfileId = rootCollection.processingProfileId
+    else if (rootCollection.processingProfile) {
+        chosenProfile = rootCollection.processingProfile
         inheritedFrom = {
             level: "ROOT_COLLECTION",
             name: `Root Collection → ${rootCollection.path.split(sep).pop()}`,
@@ -98,35 +93,26 @@ export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise
         }
     }
 
-    let processingProfile: ProcessingProfile = processingProfileDefault
-
-    if (chosenProfileId) {
-        const processingProfileDB = await prisma.processingProfile.findUnique({
-            where: {id: chosenProfileId},
-        })
-
-        if (processingProfileDB) processingProfile = processingProfileDB
-    } 
-
     // Calculate existing assets that are READY
     const existingAssets: AssetType[] = media.assets
         .filter((a) => a.status === AssetStatus.READY)
         .map((a) => a.type)
 
     // Missing assets = required - existing
-    const missingAssets = processingProfile.renditions.filter((rendition) => !existingAssets.includes(rendition))
+    const missingAssets = chosenProfile.renditions.filter((rendition) => !existingAssets.includes(rendition))
 
     const needsProcessing = missingAssets.length > 0
 
     return {
-        profile: processingProfile,
+        profile: chosenProfile,
         inheritedFrom,
-        requiredAssets: processingProfile.renditions,
+        requiredAssets: chosenProfile.renditions,
         existingAssets,
         missingAssets,
         needsProcessing,
     }
 }
+
 
 /**
  * Resolves deterministic access inheritance and parent restriction intersection.
@@ -134,10 +120,11 @@ export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise
  * Rule: Child can restrict further, but cannot bypass a parent restriction.
  * Effective access = parent access ∩ child access.
  */
-export async function resolveEffectiveAccess(media: MediaItem): Promise<EffectiveAccessResult> {
-    const user = await db.findMediaUserById(media.userId)
-    const collection = await db.findCollectionById(media.collectionId)
-    const rootCollection = await db.findRootCollectionById(media.rootCollectionId)
+export function resolveEffectiveAccess(media: EffectiveMedia, profileUsers: ProfileUser[]): EffectiveAccessResult {
+    
+    const user = media.user
+    const collection = user.collection
+    const rootCollection = collection.rootCollection
 
     // 1. Resolve visibility precedence
     let effectiveVisibility: "ALL_USERS" | "RESTRICTED" | "PRIVATE" = "ALL_USERS"
@@ -146,27 +133,27 @@ export async function resolveEffectiveAccess(media: MediaItem): Promise<Effectiv
     const chain = [
         {
             level: "ROOT_COLLECTION" as const,
-            name: rootCollection?.name || "Root Collection",
-            vis: rootCollection?.visibility,
-            allowed: rootCollection?.allowedUserIds,
+            name: rootCollection.path.split(sep).pop(),
+            vis: rootCollection.visibility,
+            allowed: rootCollection.allowedUsers.map(({ id }) => id),
         },
         {
             level: "COLLECTION" as const,
-            name: collection?.name || "Collection",
-            vis: collection?.visibility,
-            allowed: collection?.allowedUserIds,
+            name: collection.path.split(sep).pop(),
+            vis: collection.visibility,
+            allowed: collection.allowedUsers.map(({ id }) => id),
         },
         {
             level: "USER" as const,
-            name: user?.displayName || "User",
-            vis: user?.visibility,
-            allowed: user?.allowedUserIds,
+            name: user.path.split(sep).pop(),
+            vis: user.visibility,
+            allowed: user.allowedUsers.map(({ id }) => id),
         },
         {
             level: "MEDIA" as const,
-            name: media.name,
+            name: media.path.split(sep).pop(),
             vis: media.visibility,
-            allowed: media.allowedUserIds,
+            allowed: media.allowedUsers.map(({ id }) => id),
         },
     ]
 
@@ -217,8 +204,6 @@ export async function resolveEffectiveAccess(media: MediaItem): Promise<Effectiv
         // If INHERIT or ALL_USERS, leaves existing restriction in place
     }
 
-    // 3. Build effective user list for all profile users
-    const profileUsers = await db.listProfileUsers()
     const effectiveUsers = profileUsers.map((pUser) => {
         if (pUser.role === "ADMIN") {
             return {
@@ -254,19 +239,19 @@ export async function resolveEffectiveAccess(media: MediaItem): Promise<Effectiv
             // Check which parent blocked them
             if (
                 rootCollection?.visibility === "RESTRICTED" &&
-                !rootCollection.allowedUserIds?.includes(pUser.id)
+                !rootCollection.allowedUsers.map(({ id }) => id).includes(pUser.id)
             ) {
                 blockedByParent = true
-                parentBlockReason = `Parent Root Collection '${rootCollection.name}' does not permit access for ${pUser.name}.`
+                parentBlockReason = `Parent Root Collection '${rootCollection.path.split(sep).pop()}' does not permit access for ${pUser.name}.`
             } else if (
                 collection?.visibility === "RESTRICTED" &&
-                !collection.allowedUserIds?.includes(pUser.id)
+                !collection.allowedUsers.map(({ id }) => id).includes(pUser.id)
             ) {
                 blockedByParent = true
-                parentBlockReason = `Parent Collection '${collection.name}' does not permit access for ${pUser.name}.`
+                parentBlockReason = `Parent Collection '${collection.path.split(sep).pop()}' does not permit access for ${pUser.name}.`
             } else if (
                 media.visibility === "RESTRICTED" &&
-                !media.allowedUserIds?.includes(pUser.id)
+                !media.allowedUsers.map(({ id }) => id).includes(pUser.id)
             ) {
                 blockedByParent = false
                 parentBlockReason = `Media access list does not include ${pUser.name}.`
@@ -292,35 +277,6 @@ export async function resolveEffectiveAccess(media: MediaItem): Promise<Effectiv
  * Resolves effective deletion state by checking item and all parent levels.
  */
 
-/**
- * Enriches a raw MediaItem with dynamic backend calculations.
- */
-export async function enrichMediaItem(media: MediaItem): Promise<MediaItem> {
-    const policyResult = resolveEffectiveProcessingPolicyForMedia(media)
-    const accessResult = await resolveEffectiveAccess(media)
-    const deletionResult = resolveEffectiveDeletion({ media })
-
-    // Recalculate processing status if needed
-    let status = media.processingStatus
-    if (status !== "PROCESSING" && status !== "FAILED") {
-        if (media.thumbnailUrl === "" || media.assets.length === 0) {
-            status = "NEW"
-        } else if (policyResult.needsProcessing) {
-            status = "NEEDS_PROCESSING"
-        } else {
-            status = "READY"
-        }
-    }
-
-    return {
-        ...media,
-        processingStatus: status,
-        effectivePolicy: policyResult,
-        effectiveAccess: accessResult,
-        isEffectivelyDeleted: deletionResult.isEffectivelyDeleted,
-        effectiveDeletionSource: deletionResult.deletionSource,
-    }
-}
 
 // --- Convenience helpers expected by API routes ---
 
@@ -432,53 +388,41 @@ export async function resolveEffectiveAllowedUsers(params: {
     return currentAllowed ? Array.from(currentAllowed) : (await db.listProfileUsers()).map((p) => p.id)
 }
 
-export function resolveEffectiveDeletion(params: {
-    media?: MediaItem
-    mediaId?: string
-    userId?: string
-    collectionId?: string
-    rootCollectionId?: string
-}): { isEffectivelyDeleted: boolean; deletionSource?: string; deletedAt?: string | null } {
-    const { media, mediaId, userId, collectionId, rootCollectionId } = params
-    const m = media || (mediaId ? db.media.find((item) => item.id === mediaId) : null)
+export function resolveEffectiveDeletion(media: EffectiveMedia): { isEffectivelyDeleted: boolean; deletionSource?: string; deletedAt?: string | null } {
 
-    if (m?.deletedAt) {
+    const user = media.user
+    const collection = user.collection
+    const rootCollection = collection.rootCollection
+
+    if (media?.deletedAt) {
         return {
             isEffectivelyDeleted: true,
             deletionSource: "Marked deleted directly",
-            deletedAt: m.deletedAt,
+            deletedAt: media.deletedAt.toISOString()
         }
     }
 
-    const targetUserId = userId || m?.userId
-    const user = targetUserId ? db.mediaUsers.find((u) => u.id === targetUserId) : null
     if (user?.deletedAt) {
         return {
             isEffectivelyDeleted: true,
-            deletionSource: `Inherited from User '@${user.displayName || user.id}' (Marked deleted)`,
-            deletedAt: user.deletedAt,
+            deletionSource: `Inherited from User '@${user.path.split(sep).pop()}' (Marked deleted)`,
+            deletedAt: user.deletedAt.toISOString()
         }
     }
 
-    const targetColId = collectionId || user?.collectionId || m?.collectionId
-    const collection = targetColId ? db.collections.find((c) => c.id === targetColId) : null
     if (collection?.deletedAt) {
         return {
             isEffectivelyDeleted: true,
-            deletionSource: `Inherited from Collection '${collection.name}' (Marked deleted)`,
-            deletedAt: collection.deletedAt,
+            deletionSource: `Inherited from Collection '${collection.path.split(sep).pop()}' (Marked deleted)`,
+            deletedAt: collection.deletedAt.toISOString()
         }
     }
 
-    const targetRootId = rootCollectionId || collection?.rootCollectionId || m?.rootCollectionId
-    const rootCollection = targetRootId
-        ? db.rootCollections.find((r) => r.id === targetRootId)
-        : null
     if (rootCollection?.deletedAt) {
         return {
             isEffectivelyDeleted: true,
-            deletionSource: `Inherited from Root Collection '${rootCollection.name}' (Marked deleted)`,
-            deletedAt: rootCollection.deletedAt,
+            deletionSource: `Inherited from Root Collection '${rootCollection.path.split(sep).pop()}' (Marked deleted)`,
+            deletedAt: rootCollection.deletedAt.toISOString()
         }
     }
 

@@ -1,29 +1,18 @@
 import { NextResponse } from "next/server"
 import { db } from "@/server/db"
 import { getMedia } from "@/lib/db/admin/media"
-import { enrichMediaItem } from "@/server/policy"
 import { authenticateRequest } from "@/server/auth"
+import { listMedia } from "@/lib/db/admin/effectiveProcessingMedia"
 
 export async function GET(request: Request) {
     const url = new URL(request.url)
     const q = Object.fromEntries(url.searchParams.entries())
 
     // Use DB helper to fetch paginated, filtered media
-    const result = await getMedia(q as any)
-
-    // Enrich each media item with policy/access info
-    const items = await Promise.all(
-        (result.items || []).map((m: any) =>
-            enrichMediaItem({
-                ...m,
-                mktime: String(m.mktime),
-                size: String(m.size),
-            })
-        )
-    )
+    const result = await listMedia(q as any)
 
     return NextResponse.json({
-        items,
+        items: result.items,
         total: result.total,
         page: result.page,
         limit: result.limit,

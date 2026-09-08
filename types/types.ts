@@ -46,7 +46,6 @@ export interface ProfileUser {
     role: "ADMIN" | "USER"
     capability: UserCapability // VIEW automatically includes view+like+save DOWNLOAD adds original download
     createdAt: string
-    avatarUrl?: string
 }
 
 export interface RootCollection {
