@@ -101,20 +101,12 @@ export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise
     let processingProfile: ProcessingProfile = processingProfileDefault
 
     if (chosenProfileId) {
-        const processingProfileDB = await prisma.processingProfile.findUnique({where: {id: chosenProfileId}})
+        const processingProfileDB = await prisma.processingProfile.findUnique({
+            where: {id: chosenProfileId},
+        })
 
         if (processingProfileDB) processingProfile = processingProfileDB
     } 
-
-    // Calculate required assets based on profile
-    const requiredAssets: AssetType[] = [AssetType.THUMBNAIL] // Mandatory for ALL media items!
-
-    if (processingProfile.reqFeedImage && media.type === MediaType.IMAGE) {
-        requiredAssets.push(AssetType.FEED_IMAGE)
-    }
-    if (processingProfile.reqHls && media.type === MediaType.VIDEO) {
-        requiredAssets.push(AssetType.HLS)
-    }
 
     // Calculate existing assets that are READY
     const existingAssets: AssetType[] = media.assets
@@ -122,14 +114,14 @@ export async function resolveEffectiveProcessingPolicy(mediaId: string): Promise
         .map((a) => a.type)
 
     // Missing assets = required - existing
-    const missingAssets = requiredAssets.filter((req) => !existingAssets.includes(req))
+    const missingAssets = processingProfile.renditions.filter((rendition) => !existingAssets.includes(rendition))
 
     const needsProcessing = missingAssets.length > 0
 
     return {
         profile: processingProfile,
         inheritedFrom,
-        requiredAssets,
+        requiredAssets: processingProfile.renditions,
         existingAssets,
         missingAssets,
         needsProcessing,
@@ -208,7 +200,7 @@ export async function resolveEffectiveAccess(media: MediaItem): Promise<Effectiv
             currentAllowedSet = new Set() // No regular users allowed
             break
         } else if (node.vis === "RESTRICTED") {
-            const nodeAllowed = new Set(node.allowed || [])
+            const nodeAllowed = new Set<string>(node.allowed || [])
             if (currentAllowedSet === null) {
                 currentAllowedSet = nodeAllowed
             } else {
@@ -304,7 +296,7 @@ export async function resolveEffectiveAccess(media: MediaItem): Promise<Effectiv
  * Enriches a raw MediaItem with dynamic backend calculations.
  */
 export async function enrichMediaItem(media: MediaItem): Promise<MediaItem> {
-    const policyResult = await resolveEffectiveProcessingPolicy(media)
+    const policyResult = resolveEffectiveProcessingPolicyForMedia(media)
     const accessResult = await resolveEffectiveAccess(media)
     const deletionResult = resolveEffectiveDeletion({ media })
 
@@ -463,7 +455,7 @@ export function resolveEffectiveDeletion(params: {
     if (user?.deletedAt) {
         return {
             isEffectivelyDeleted: true,
-            deletionSource: `Inherited from User '@${user.username}' (Marked deleted)`,
+            deletionSource: `Inherited from User '@${user.displayName || user.id}' (Marked deleted)`,
             deletedAt: user.deletedAt,
         }
     }
@@ -495,8 +487,8 @@ export function resolveEffectiveDeletion(params: {
 
 export async function processMediaItemSync(media: MediaItem): Promise<MediaItem> {
     // Simple implementation: fill missing assets based on processing policy
-    const policy = await resolveEffectiveProcessingPolicy(media)
-    policy.missingAssets.forEach((assetType) => {
+    const policy: EffectivePolicyResult = resolveEffectiveProcessingPolicyForMedia(media)
+    policy.missingAssets.forEach((assetType: AssetType) => {
         const assetId = `asset-${media.id}-${assetType.toLowerCase()}`
         const existingIdx = media.assets.findIndex((a) => a.type === assetType)
         const newAsset: any = {

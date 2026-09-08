@@ -30,7 +30,6 @@ enum AssetType {
     THUMBNAIL
     FEED_IMAGE
     HLS
-    LOW_QUALITY
 }
 
 enum AssetStatus {
@@ -115,19 +114,15 @@ model ProfileUser {
 
 /// Deterministic transcoding profile defining required renditions
 model ProcessingProfile {
-    id          String  @id @default(cuid())
-    name        String  @unique
-    description String
-    isSystem    Boolean @default(false)
+    id              String  @id @default(cuid())
+    name            String  @unique
+    description     String
 
-    // Rendition requirements (Thumbnail is always mandatory)
-    reqThumbnail  Boolean @default(true)
-    reqFeedImage  Boolean @default(false)
-    reqHls        Boolean @default(false)
-    reqLowQuality Boolean @default(false)
+    // Required rendition list. Thumbnail is always included for the default profile.
+    renditions      AssetType[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 
     // Hierarchy relations using this profile as default / override
     rootCollections RootCollection[]

@@ -43,12 +43,7 @@ export class DatabaseStore {
             description:
                 "Standard storage with required thumbnail. No additional transcode renditions.",
             isSystem: true,
-            requiredRenditions: {
-                thumbnail: true,
-                feedImage: false,
-                hls: false,
-                lowQuality: false,
-            },
+            renditions: ["THUMBNAIL"],
         },
         {
             id: "profile-image-feed",
@@ -56,12 +51,7 @@ export class DatabaseStore {
             description:
                 "Optimized for social image feeds. Generates thumbnail + web-optimized feed image.",
             isSystem: true,
-            requiredRenditions: {
-                thumbnail: true,
-                feedImage: true,
-                hls: false,
-                lowQuality: false,
-            },
+            renditions: ["THUMBNAIL", "FEED_IMAGE"],
         },
         {
             id: "profile-video-feed",
@@ -69,25 +59,7 @@ export class DatabaseStore {
             description:
                 "Optimized for video streaming and reels. Generates thumbnail + adaptive HLS streams.",
             isSystem: true,
-            requiredRenditions: {
-                thumbnail: true,
-                feedImage: false,
-                hls: true,
-                lowQuality: false,
-            },
-        },
-        {
-            id: "profile-video-hq-lq",
-            name: "Video Feed + Low Quality",
-            description:
-                "Comprehensive video profile with thumbnail + HLS + 720p/480p low-quality fallback.",
-            isSystem: true,
-            requiredRenditions: {
-                thumbnail: true,
-                feedImage: false,
-                hls: true,
-                lowQuality: true,
-            },
+            renditions: ["THUMBNAIL", "HLS"],
         },
     ]
 
@@ -149,7 +121,7 @@ export class DatabaseStore {
             id: "root-3",
             name: "Raw Video Production",
             path: "video-production",
-            processingProfileId: "profile-video-hq-lq",
+            processingProfileId: "profile-video-feed",
             visibility: "PRIVATE",
             allowedUserIds: [],
             deletedAt: null,
@@ -225,7 +197,7 @@ export class DatabaseStore {
             collectionId: "col-2",
             username: "jordan_reels",
             displayName: "Jordan Miller",
-            processingProfileId: "profile-video-hq-lq", // override
+            processingProfileId: "profile-video-feed", // override
             visibility: "INHERIT",
             allowedUserIds: [],
             deletedAt: null,
@@ -706,7 +678,7 @@ export class DatabaseStore {
                 name: r.name,
                 description: r.description,
                 isSystem: r.isSystem,
-                requiredRenditions: { thumbnail: r.reqThumbnail, feedImage: r.reqFeedImage, hls: r.reqHls, lowQuality: r.reqLowQuality },
+                renditions: Array.isArray(r.renditions) ? r.renditions : ["THUMBNAIL"],
             }))
         } catch (e) {
             return this.profiles
@@ -714,16 +686,17 @@ export class DatabaseStore {
     }
 
     async createProcessingProfile(payload: Partial<ProcessingProfile>) {
+        const nextRenditions = Array.isArray(payload.renditions)
+            ? payload.renditions.filter((value) => value === "THUMBNAIL" || value === "FEED_IMAGE" || value === "HLS")
+            : ["THUMBNAIL"]
+
         const created = await prisma.processingProfile.create({ data: ({
             name: payload.name || "",
             description: payload.description || "",
             isSystem: payload.isSystem || false,
-            reqThumbnail: payload.requiredRenditions?.thumbnail ?? true,
-            reqFeedImage: payload.requiredRenditions?.feedImage ?? false,
-            reqHls: payload.requiredRenditions?.hls ?? false,
-            reqLowQuality: payload.requiredRenditions?.lowQuality ?? false,
+            renditions: nextRenditions,
         } as any) })
-        return { id: created.id, name: created.name, description: created.description, isSystem: created.isSystem, requiredRenditions: { thumbnail: created.reqThumbnail, feedImage: created.reqFeedImage, hls: created.reqHls, lowQuality: created.reqLowQuality } }
+        return { id: created.id, name: created.name, description: created.description, isSystem: created.isSystem, renditions: created.renditions ?? ["THUMBNAIL"] }
     }
 
     async logActivity(entry: { type: string; title: string; description: string; metadata?: any }) {

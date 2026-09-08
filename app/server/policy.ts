@@ -133,7 +133,7 @@ export function resolveEffectiveAllowedUsers(params: {
  * Resolves the deterministic effective processing policy for a media item.
  * Precedence: Media -> User -> Collection -> Root Collection -> System default.
  */
-export function resolveEffectiveProcessingPolicy(media: MediaItem): EffectivePolicyResult {
+export function resolveEffectiveProcessingPolicyForMedia(media: MediaItem): EffectivePolicyResult {
     const user = db.mediaUsers.find((u) => u.id === media.userId)
     const collection = db.collections.find((c) => c.id === media.collectionId)
     const rootCollection = db.rootCollections.find((r) => r.id === media.rootCollectionId)
@@ -158,7 +158,7 @@ export function resolveEffectiveProcessingPolicy(media: MediaItem): EffectivePol
         chosenProfileId = user.processingProfileId
         inheritedFrom = {
             level: "USER",
-            name: `User → @${user.username}`,
+            name: `User → @${user.displayName || user.id}`,
             id: user.id,
         }
     }
@@ -189,17 +189,11 @@ export function resolveEffectiveProcessingPolicy(media: MediaItem): EffectivePol
         profile = db.profiles.find((p) => p.id === defaultProfileId) || db.profiles[0]
     }
 
-    // Calculate required assets based on profile
-    const requiredAssets: AssetType[] = ["THUMBNAIL"] // Mandatory for ALL media items!
-    if (profile.requiredRenditions.feedImage && media.type === "IMAGE") {
-        requiredAssets.push("FEED_IMAGE")
-    }
-    if (profile.requiredRenditions.hls && media.type === "VIDEO") {
-        requiredAssets.push("HLS")
-    }
-    if (profile.requiredRenditions.lowQuality && media.type === "VIDEO") {
-        requiredAssets.push("LOW_QUALITY")
-    }
+    const renditionSet = new Set(profile.renditions ?? ["THUMBNAIL"])
+    const requiredAssets: AssetType[] = []
+    if (renditionSet.has("THUMBNAIL")) requiredAssets.push("THUMBNAIL")
+    if (renditionSet.has("FEED_IMAGE") && media.type === "IMAGE") requiredAssets.push("FEED_IMAGE")
+    if (renditionSet.has("HLS") && media.type === "VIDEO") requiredAssets.push("HLS")
 
     // Calculate existing assets that are READY
     const existingAssets: AssetType[] = (media.assets || [])
@@ -392,7 +386,7 @@ export function resolveEffectiveDeletion(params: {
     if (user?.deletedAt) {
         return {
             isEffectivelyDeleted: true,
-            deletionSource: `Inherited from User '@${user.username}' (Marked deleted)`,
+            deletionSource: `Inherited from User '@${user.displayName || user.id}' (Marked deleted)`,
             deletedAt: user.deletedAt,
         }
     }
@@ -429,7 +423,7 @@ export function resolveEffectiveDeletion(params: {
  * Synchronously processes a media item by generating missing assets.
  */
 export function processMediaItemSync(media: MediaItem): MediaItem {
-    const policy = resolveEffectiveProcessingPolicy(media)
+    const policy = resolveEffectiveProcessingPolicyForMedia(media)
 
     // Generate missing assets
     policy.missingAssets.forEach((assetType) => {
@@ -486,7 +480,7 @@ export function retryFailedAssetsSync(media: MediaItem): MediaItem {
  * Enriches a raw MediaItem with dynamic backend calculations.
  */
 export function enrichMediaItem(media: MediaItem): MediaItem {
-    const policyResult = resolveEffectiveProcessingPolicy(media)
+    const policyResult = resolveEffectiveProcessingPolicyForMedia(media)
     const accessResult = resolveEffectiveAccess(media)
     const deletionResult = resolveEffectiveDeletion({ media })
 

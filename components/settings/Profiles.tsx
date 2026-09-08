@@ -49,9 +49,9 @@ export default () => {
         setEditingProfile(p)
         setProfName(p.name)
         setProfDesc(p.description)
-        setFeedImage(Boolean(p.requiredRenditions.feedImage))
-        setHls(Boolean(p.requiredRenditions.hls))
-        setLowQuality(Boolean(p.requiredRenditions.lowQuality))
+        setFeedImage((p.renditions ?? ["THUMBNAIL"]).includes("FEED_IMAGE"))
+        setHls((p.renditions ?? ["THUMBNAIL"]).includes("HLS"))
+        setLowQuality(false)
         setProfileModalOpen(true)
     }
 
@@ -76,28 +76,22 @@ export default () => {
         e.preventDefault()
         setProfSaving(true)
         try {
+            const nextRenditions: ProcessingProfile["renditions"] = ["THUMBNAIL"]
+            if (feedImage) nextRenditions.push("FEED_IMAGE")
+            if (hls) nextRenditions.push("HLS")
+
             if (editingProfile) {
                 await api.updateProfile(editingProfile.id, {
                     name: profName,
                     description: profDesc,
-                    requiredRenditions: {
-                        thumbnail: true,
-                        feedImage,
-                        hls,
-                        lowQuality,
-                    },
+                    renditions: nextRenditions,
                 })
                 showFeedback(`Profile "${profName}" updated.`)
             } else {
                 await api.createProfile({
                     name: profName,
                     description: profDesc,
-                    requiredRenditions: {
-                        thumbnail: true,
-                        feedImage,
-                        hls,
-                        lowQuality,
-                    },
+                    renditions: nextRenditions,
                 })
                 showFeedback(`Profile "${profName}" created.`)
             }

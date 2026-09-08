@@ -5,9 +5,5 @@ export const processingProfile: ProcessingProfile = {
     name: "Default",
     description: "Standard storage with required thumbnail. No additional transcode renditions.",
     isSystem: true,
-
-    reqThumbnail: true,
-    reqFeedImage: false,
-    reqHls: false,
-    reqLowQuality: false
+    renditions: ["THUMBNAIL"],
 }

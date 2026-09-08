@@ -40,19 +40,14 @@ export default ({ isSystemDefault, profile, editHandler }: Props) => {
                     <span className="text-[11px] px-2 py-0.5 rounded font-medium bg-emerald-950 text-emerald-300 border border-emerald-800">
                         ✓ Thumbnail (Locked)
                     </span>
-                    {profile.requiredRenditions.feedImage && (
+                    {profile.renditions.includes("FEED_IMAGE") && (
                         <span className="text-[11px] px-2 py-0.5 rounded font-medium bg-slate-800 text-slate-300">
                             Feed Image
                         </span>
                     )}
-                    {profile.requiredRenditions.hls && (
+                    {profile.renditions.includes("HLS") && (
                         <span className="text-[11px] px-2 py-0.5 rounded font-medium bg-slate-800 text-slate-300">
                             HLS Stream
-                        </span>
-                    )}
-                    {profile.requiredRenditions.lowQuality && (
-                        <span className="text-[11px] px-2 py-0.5 rounded font-medium bg-slate-800 text-slate-300">
-                            Low Quality (720p)
                         </span>
                     )}
                 </div>

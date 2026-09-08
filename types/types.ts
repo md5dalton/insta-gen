@@ -1,6 +1,6 @@
 export type ProcessingStatus = "NEW" | "NEEDS_PROCESSING" | "PROCESSING" | "READY" | "FAILED"
 
-export type AssetType = "THUMBNAIL" | "FEED_IMAGE" | "HLS" | "LOW_QUALITY"
+export type AssetType = "THUMBNAIL" | "FEED_IMAGE" | "HLS"
 
 export type AssetStatus = "READY" | "MISSING" | "PROCESSING" | "FAILED"
 
@@ -27,12 +27,7 @@ export interface ProcessingProfile {
     id: string
     name: string
     description: string
-    isSystem: boolean
-
-    reqThumbnail: boolean,
-    reqFeedImage: boolean,
-    reqHls: boolean,
-    reqLowQuality: boolean
+    renditions: AssetType[]
 }
 
 export interface MediaAsset {

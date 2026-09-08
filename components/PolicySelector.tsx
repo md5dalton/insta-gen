@@ -66,6 +66,7 @@ export const PolicySelector: React.FC<PolicySelectorProps> = ({
 
                 {profiles.map((profile) => {
                     const isSelected = value === profile.id
+                    const renditionSet = new Set(profile.renditions)
                     return (
                         <button
                             key={profile.id}
@@ -79,15 +80,8 @@ export const PolicySelector: React.FC<PolicySelectorProps> = ({
                             }`}
                         >
                             <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-slate-900">
-                                        {profile.name}
-                                    </span>
-                                    {profile.isSystem && (
-                                        <span className="text-[10px] uppercase font-bold text-slate-400 border border-slate-200 px-1.5 py-0.2 rounded">
-                                            System
-                                        </span>
-                                    )}
+                                <div className="text-sm font-semibold text-slate-900">
+                                    {profile.name}
                                 </div>
                                 <p className="text-xs text-slate-500 mt-0.5">
                                     {profile.description}
@@ -96,19 +90,14 @@ export const PolicySelector: React.FC<PolicySelectorProps> = ({
                                     <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                                         ✓ Thumbnail (Required)
                                     </span>
-                                    {profile.requiredRenditions.feedImage && (
+                                    {renditionSet.has("FEED_IMAGE") && (
                                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                                             Feed Image
                                         </span>
                                     )}
-                                    {profile.requiredRenditions.hls && (
+                                    {renditionSet.has("HLS") && (
                                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
                                             HLS Video
-                                        </span>
-                                    )}
-                                    {profile.requiredRenditions.lowQuality && (
-                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                                            Low Quality (720p/480p)
                                         </span>
                                     )}
                                 </div>
