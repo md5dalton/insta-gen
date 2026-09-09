@@ -6,7 +6,7 @@ import { AssetStatus, AssetType, MediaType } from "@/prisma/generated/enums"
 import { sep } from "node:path"
 import { processingProfile as processingProfileDefault } from "@/constants/models"
 import { MediaAsset } from "@/prisma/generated/client"
-import { Effective, EffectiveMedia } from "./EffectiveMedia"
+import { Effective } from "./EffectiveMedia"
 
 interface EffectiveProcessingItem extends Effective {
     processingProfile: ProcessingProfile | null,
@@ -25,7 +25,7 @@ export interface EffectiveProcessingMedia extends EffectiveProcessingItem {
     assets: MediaAsset[],
 }
 
-export function resolveEffectiveProcessingPolicy(media: EffectiveProcessingMedia | EffectiveMedia): EffectivePolicyResult {
+export function resolveEffectiveProcessingPolicy(media: EffectiveProcessingMedia): EffectivePolicyResult {
 
     const user = media.user
     const collection = user.collection
