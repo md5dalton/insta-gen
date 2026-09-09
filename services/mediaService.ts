@@ -8,9 +8,9 @@ import { MediaConfig } from "@/lib/config"
 import { logger } from "@/lib/logger"
 import { DBcache } from "@/lib/DBcache"
 import { updateMediaAsset } from "@/lib/db/admin/mediaAsset"
-import { exists } from "@/lib/db/admin/media"
 import { resolveEffectiveProcessingPolicy } from "@/lib/policy/EffectiveProcessing"
 import { getProcessingMedia } from "@/lib/db/admin/effectiveMedia"
+import { exists } from "@/lib/db/admin/mediaItem"
 
 const CONFIG = MediaConfig
 
