@@ -1,6 +1,7 @@
+import { resolveEffectiveAccess } from "@/lib/policy/EffectiveAccess"
+import { resolveEffectiveDeletion } from "@/lib/policy/EffectiveDeletion"
 import { EffectiveProcessingMedia, resolveEffectiveProcessingPolicy } from "@/lib/policy/EffectiveProcessing"
 import prisma from "@/lib/prisma"
-import { resolveEffectiveAccess, resolveEffectiveDeletion } from "@/server/policy"
 import { MediaFilterParams, PaginatedResponse } from "@/types/types"
 
 export const listMedia = async (params: MediaFilterParams = {}): Promise<PaginatedResponse<any>> => {
