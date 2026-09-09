@@ -9,7 +9,8 @@ import { logger } from "@/lib/logger"
 import { DBcache } from "@/lib/DBcache"
 import { updateMediaAsset } from "@/lib/db/admin/mediaAsset"
 import { exists } from "@/lib/db/admin/media"
-import { resolveEffectiveProcessingPolicy } from "@/server/policy"
+import { resolveEffectiveProcessingPolicy } from "@/lib/policy/EffectiveProcessing"
+import { getProcessingMedia } from "@/lib/db/admin/effectiveMedia"
 
 const CONFIG = MediaConfig
 
@@ -26,34 +27,18 @@ export class MediaService {
         this.mediaRoot = CONFIG.MEDIA_ROOT
     }
 
-    async handleUpdate(fileId: string) {
-        const media = await this.prisma.mediaItem.findUnique({ where: { id: fileId }, include: { assets: true } })
-        if (!media) return
-
-        const absPath = join(this.mediaRoot, media.path)
-
-        try {
-            await this.reconcileMediaAssets(fileId, media.type, absPath)
-        } catch (error) {
-            logger.error("Failed handling media update", { mediaId: fileId, error: error instanceof Error ? error.message : String(error) })
-            try {
-                await this.prisma.mediaItem.update({ where: { id: fileId }, data: { processingStatus: "FAILED" } as any })
-            } catch {}
-        }
-    }
-
-    private async reconcileMediaAssets(mediaId: string, mediaType: MediaType, sourcePath: string) {
-        
-        const media = await exists(mediaId)
-
-        if (!media) return
+    private async reconcileMediaAssets(mediaId: string) {
 
         await this.prisma.mediaItem.update({
             where: { id: mediaId },
             data: { processingStatus: ProcessingStatus.PROCESSING },
-        })
+        })        
+        
+        const media = await getProcessingMedia(mediaId)
+        
+        if (!media) return
 
-        const policy = await resolveEffectiveProcessingPolicy(mediaId)
+        const policy = resolveEffectiveProcessingPolicy(media)
 
         if (!policy) return
 
@@ -62,15 +47,15 @@ export class MediaService {
         for (const assetType of policy.missingAssets) {
             try {
                 if (assetType === AssetType.THUMBNAIL) {
-                    if (mediaType === MediaType.VIDEO) {
-                        const video = new VideoProcessor(this.storage, sourcePath, mediaId)
+                    if (media.type === MediaType.VIDEO) {
+                        const video = new VideoProcessor(this.storage, media.path, mediaId)
                         const poster = await video.generatePoster()
                         if (poster) {
                             const saved = await updateMediaAsset(mediaId, poster, AssetType.THUMBNAIL)
                             if (saved) assets.set(AssetType.THUMBNAIL, poster)
                         }
-                    } else if (mediaType === MediaType.IMAGE) {
-                        const image = new ImageProcessor(this.storage, sourcePath)
+                    } else if (media.type === MediaType.IMAGE) {
+                        const image = new ImageProcessor(this.storage, media.path)
                         const thumb = await image.generateThumb()
                         if (thumb) {
                             const saved = await updateMediaAsset(mediaId, thumb, AssetType.THUMBNAIL)
@@ -78,8 +63,8 @@ export class MediaService {
                         }
                     }
                 } else if (assetType === AssetType.FEED_IMAGE) {
-                    if (mediaType === MediaType.IMAGE) {
-                        const image = new ImageProcessor(this.storage, sourcePath)
+                    if (media.type === MediaType.IMAGE) {
+                        const image = new ImageProcessor(this.storage, media.path)
                         const feed = await image.generateFeed()
                         if (feed) {
                             const saved = await updateMediaAsset(mediaId, feed, AssetType.FEED_IMAGE)
@@ -87,8 +72,8 @@ export class MediaService {
                         }
                     }
                 } else if (assetType === AssetType.HLS) {
-                    if (mediaType === MediaType.VIDEO) {
-                        const video = new VideoProcessor(this.storage, sourcePath, mediaId)
+                    if (media.type === MediaType.VIDEO) {
+                        const video = new VideoProcessor(this.storage, media.path, mediaId)
                         const hls = await video.process()
                         if (hls) {
                             const saved = await updateMediaAsset(mediaId, hls, AssetType.HLS)
@@ -115,6 +100,17 @@ export class MediaService {
         })
     }
     
+    async handleUpdate(fileId: string) {
+        try {
+            await this.reconcileMediaAssets(fileId)
+        } catch (error) {
+            logger.error("Failed handling media update", { mediaId: fileId, error: error instanceof Error ? error.message : String(error) })
+            try {
+                await this.prisma.mediaItem.update({ where: { id: fileId }, data: { processingStatus: "FAILED" } as any })
+            } catch {}
+        }
+    }
+
     async handleAdd(filePath: string) {
 
         const id = generateId(filePath)
@@ -170,7 +166,7 @@ export class MediaService {
 
                 if (media) {
                     await this.processTags(id, tags)
-                    await this.reconcileMediaAssets(id, media.type, filePath)
+                    await this.reconcileMediaAssets(id)
                 }
 
                 logger.info("Processed watched media", { mediaId: id, path: relativePath })

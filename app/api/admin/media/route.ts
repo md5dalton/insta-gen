@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
-import { db } from "@/server/db"
-import { getMedia } from "@/lib/db/admin/media"
 import { authenticateRequest } from "@/server/auth"
-import { listMedia } from "@/lib/db/admin/effectiveProcessingMedia"
+import { listMedia } from "@/lib/db/admin/effectiveMedia"
 
 export async function GET(request: Request) {
     const auth = request.headers.get("authorization") || undefined

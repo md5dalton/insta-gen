@@ -1,8 +1,9 @@
-
+import { EffectiveProcessingMedia, resolveEffectiveProcessingPolicy } from "@/lib/policy/EffectiveProcessing"
 import prisma from "@/lib/prisma"
+import { resolveEffectiveAccess, resolveEffectiveDeletion } from "@/server/policy"
 import { MediaFilterParams, PaginatedResponse } from "@/types/types"
 
-export const getMedia = async (params: MediaFilterParams = {}): Promise<PaginatedResponse<any>> => {
+export const listMedia = async (params: MediaFilterParams = {}): Promise<PaginatedResponse<any>> => {
     const q: any = { ...params }
 
     const pageNum = parseInt((q.page as any) || "1", 10) || 1
@@ -43,22 +44,76 @@ export const getMedia = async (params: MediaFilterParams = {}): Promise<Paginate
 
     const total = await prisma.mediaItem.count({ where })
 
+    const processingProfile = {
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            renditions: true
+        }
+    }
+
+    const item = {
+        id: true,
+        path: true,
+        visibility: true,
+        deletedAt: true,
+        processingProfile,
+        allowedUsers: {
+            select: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        role: true
+                    } 
+                }
+            }
+        },
+    }
+    const rootCollection = {
+        select: item
+    }
+    const collection = {
+        select: {
+            ...item,
+            rootCollection 
+        }
+    }
+    const user = {
+        select: {
+            ...item,
+            collection
+        }
+    }
+    const media = {
+        ...item,
+        type: true,
+        assets: true,
+        tags: { include: { tag: true } },
+        user
+    }
+
     const recs: any[] = await prisma.mediaItem.findMany({
         where,
         orderBy,
         skip,
         take: limitNum,
-        include: {
-            user: { include: { collection: { include: { rootCollection: true } } } },
-            assets: true,
-            allowedUsers: { select: { userId: true } },
-            // mediaTag relation contains tag
-            tags: { include: { tag: true } },
-        },
+        select: media
     })
-
+    
+    const profileUsers = await prisma.profileUser.findMany({
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            capability: true, // VIEW automatically includes view+like+save DOWNLOAD adds original download
+            createdAt: true,
+        }
+    })
     // map to expected shape
-    const items = recs.map((r: any) => {
+    const items = recs.map((r) => {
         let processingError = null
         try {
             if (r.processingError) processingError = JSON.parse(r.processingError)
@@ -66,9 +121,11 @@ export const getMedia = async (params: MediaFilterParams = {}): Promise<Paginate
             processingError = { stage: "unknown", message: String(r.processingError) }
         }
 
+        const deletionResult = resolveEffectiveDeletion(r)
+
         return {
             id: r.id,
-            name: r.path?.split("/").pop() || r.id,
+            name: r.path.split("/").pop(),
             type: r.type,
             path: r.path,
             size: Number(r.size ?? 0n),
@@ -97,6 +154,13 @@ export const getMedia = async (params: MediaFilterParams = {}): Promise<Paginate
             assets: (r.assets || []).map((a: any) => ({ ...a, generatedAt: a.generatedAt ? a.generatedAt.toISOString() : undefined })),
             processingStatus: r.processingStatus,
             processingError,
+
+            effectivePolicy: resolveEffectiveProcessingPolicy(r),
+            effectiveAccess: resolveEffectiveAccess(r, profileUsers.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))),
+
+            isEffectivelyDeleted: deletionResult.isEffectivelyDeleted,
+            effectiveDeletionSource: deletionResult.deletionSource,
+
         }
     })
 
@@ -111,8 +175,47 @@ export const getMedia = async (params: MediaFilterParams = {}): Promise<Paginate
     }
 }
 
-export const exists = async (id: string): Promise<boolean> => {
-    const count = await prisma.mediaItem.count({ where: { id } })
+export const getProcessingMedia = async (id: string): Promise<EffectiveProcessingMedia | null> => {
 
-    return count ? true : false
+    const processingProfile = {
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            renditions: true
+        }
+    }
+
+    const item = {
+        id: true,
+        path: true,
+        processingProfile,
+    }
+    const rootCollection = {
+        select: item
+    }
+    const collection = {
+        select: {
+            ...item,
+            rootCollection 
+        }
+    }
+    const user = {
+        select: {
+            ...item,
+            collection
+        }
+    }
+    const media = {
+        ...item,
+        type: true,
+        assets: true,
+        tags: { include: { tag: true } },
+        user
+    }
+
+    return await prisma.mediaItem.findUnique({
+        where: { id },
+        select: media
+    })
 }
