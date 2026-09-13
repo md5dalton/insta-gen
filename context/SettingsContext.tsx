@@ -12,16 +12,13 @@ import {
 } from "react"
 import { api } from "@/lib/api"
 import type { SystemSettings } from "@/types/types"
-import { useRouter, usePathname } from "next/navigation"
-import { useAuth } from "@/context/AuthContext"
 
 const DEFAULT_SETTINGS: SystemSettings = {
-    mediaRoot: "",
-    mediaRootStatus: {
+    mediaRoot: {
         exists: false,
         readable: false,
         writable: false,
-        path: "",
+        path: "not configured",
     },
     databaseStatus: {
         connected: false,
@@ -38,7 +35,6 @@ interface SettingsContextType {
     settings: SystemSettings
     loading: boolean
     refreshSettings: () => Promise<SystemSettings>
-    updateMediaRoot: (path: string) => Promise<SystemSettings>
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
@@ -46,9 +42,6 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [settings, setSettings] = useState<SystemSettings>(DEFAULT_SETTINGS)
     const [loading, setLoading] = useState(true)
-    const router = useRouter()
-    const pathname = usePathname()
-    const { user } = useAuth()
 
     const refreshSettings = useCallback(async () => {
         try {
@@ -68,44 +61,32 @@ export const SettingsProvider: FC<{ children: ReactNode }> = ({ children }) => {
         }
     }, [])
 
-    const updateMediaRoot = useCallback(
-        async (path: string) => {
-            const res = await api.updateMediaRoot(path)
-            setSettings(res.settings)
-            return res.settings
-        },
-        []
-    )
-
     useEffect(() => {
-        void refreshSettings()
-    }, [refreshSettings])
-
-    useEffect(() => {
-        if (loading) return
-        if (!user) return
-
-        if (!settings.mediaRoot) {
-            if (!pathname?.startsWith("/settings-setup")) {
-                router.replace("/settings-setup")
+        const loadSettings = async () => {
+            try {
+                const nextSettings = await api.getSettings()
+                setSettings(nextSettings)
+            } catch (error: any) {
+                if (error?.data?.code === "MEDIA_ROOT_NOT_CONFIGURED") {
+                    setSettings(DEFAULT_SETTINGS)
+                } else {
+                    console.error("Failed to load settings", error)
+                }
+            } finally {
+                setLoading(false)
             }
-            return
         }
 
-        // If settings ready and we're on settings-setup, go to dashboard
-        if (settings.mediaRoot && pathname?.startsWith("/settings-setup")) {
-            router.replace("/dashboard")
-        }
-    }, [loading, user, settings.mediaRoot, pathname, router])
+        void loadSettings()
+    }, [])
 
     const value = useMemo<SettingsContextType>(
         () => ({
             settings,
             loading,
             refreshSettings,
-            updateMediaRoot,
         }),
-        [settings, loading, refreshSettings, updateMediaRoot]
+        [settings, loading, refreshSettings]
     )
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>

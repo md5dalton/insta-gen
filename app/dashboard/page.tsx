@@ -47,7 +47,7 @@ export default () => {
                             </span>
                             <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-base font-mono font-bold text-white">
-                                    {settings.mediaRoot || "/mnt/media/library"}
+                                    {settings.mediaRoot.path}
                                 </span>
                                 <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2.5 py-0.5 rounded-full">
                                     <CheckCircle2 className="w-3.5 h-3.5" />

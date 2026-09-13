@@ -1,9 +1,9 @@
 import { access, stat } from "node:fs/promises"
 import { constants } from "node:fs"
 import { NextResponse } from "next/server"
-import prisma from "@/lib/prisma"
 import { authenticateRequest } from "@/server/auth"
 import type { SystemSettings } from "@/types/types"
+import { MediaConfig } from "@/lib/config"
 
 async function getMediaRootStatus(path: string) {
     try {
@@ -42,30 +42,29 @@ async function getMediaRootStatus(path: string) {
 }
 
 export async function getSettingsRecord(): Promise<SystemSettings> {
-    const setting = await prisma.systemSetting.findFirst({
-        where: { id: "singleton" },
-    })
 
-    const mediaRoot = setting?.mediaRoot || ""
+    const mediaRoot = MediaConfig.MEDIA_ROOT
 
     const syncState = (globalThis as any).syncState || {}
 
+    const status = mediaRoot ? await getMediaRootStatus(mediaRoot) : {
+        exists: false,
+        readable: false,
+        writable: false,
+    }
     return {
-        mediaRoot,
-        mediaRootStatus: mediaRoot ? await getMediaRootStatus(mediaRoot) : {
-            exists: false,
-            readable: false,
-            writable: false,
+        mediaRoot: {
             path: mediaRoot,
+            ...status
         },
         databaseStatus: {
             connected: true,
             latencyMs: 4,
         },
         mediaProcessorStatus: {
-            running: Boolean(syncState.isProcessing !== undefined ? !syncState.isProcessing : true),
-            activeWorkers: Number(syncState.stats?.processed || 0),
-            queuedJobs: Number(syncState.stats?.queued || 0),
+            running: false,
+            activeWorkers: 0,
+            queuedJobs: 0,
         },
     }
 }

@@ -17,7 +17,7 @@ export default ({
     return (
         <header className="h-14 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
             {children}
-            <MediaRoot name={settings.mediaRoot} />
+            <MediaRoot name={settings.mediaRoot.path} />
             <Profile
                 logoutHandler={() => logout()}
                 name={user?.name || "NONE"}

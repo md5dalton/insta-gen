@@ -1,26 +1,27 @@
-import prisma from "@/lib/prisma"
 import Watcher from "../lib/Watcher"
 import { MediaConfig } from "@/lib/config"
 
 let watcher: Watcher | null = null
 
+const mediaRoot = MediaConfig.MEDIA_ROOT
+
 export async function startMediaWatcher() {
     if (watcher) return
 
-    const setting = await prisma.systemSetting.findFirst({
-        where: { id: "singleton" },
-    })
+    if (!mediaRoot) {
+        console.log(`Media watcher not started MEDIA_ROOT not set in .env`)
+        
+        return
+    }
 
-    if (!setting?.mediaRoot) return
-
-    watcher = new Watcher(setting.mediaRoot, [
+    watcher = new Watcher(mediaRoot, [
         ...MediaConfig.IMAGE_EXTENSIONS,
         ...MediaConfig.VIDEO_EXTENSIONS
     ])
 
     await watcher.initialize()
 
-    console.log(`👀 Media watcher started at ${setting.mediaRoot}`)
+    console.log(`👀 Media watcher started at ${mediaRoot}`)
 }
 
 // graceful shutdown

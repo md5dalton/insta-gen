@@ -1,5 +1,4 @@
 "use client"
-
 import { createContext, useContext, useState, useEffect, FC, ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { api, setAuthToken, clearAuthToken, getAuthToken } from "@/lib/api"
@@ -71,25 +70,6 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
                     router.replace("/auth/login")
                 }
                 return
-            }
-
-            // Authenticated and configured: ensure settings/media root is present or route accordingly
-            try {
-                const settings = await api.getSettings()
-                if (!settings?.mediaRoot) {
-                    if (!pathname?.startsWith("/settings-setup")) router.replace("/settings-setup")
-                    return
-                }
-
-                // If on a public/auth page, move to dashboard
-                if (pathname === "/" || pathname?.startsWith("/auth") || pathname?.startsWith("/settings-setup")) {
-                    router.replace("/dashboard")
-                }
-            } catch (err: any) {
-                if (err?.data?.code === "MEDIA_ROOT_NOT_CONFIGURED") {
-                    if (!pathname?.startsWith("/settings-setup")) router.replace("/settings-setup")
-                    return
-                }
             }
         })()
     }, [loading, isConfigured, user, pathname, router])

@@ -231,8 +231,7 @@ export interface LibraryStats {
 }
 
 export interface SystemSettings {
-    mediaRoot: string
-    mediaRootStatus: {
+    mediaRoot: {
         exists: boolean
         readable: boolean
         writable: boolean

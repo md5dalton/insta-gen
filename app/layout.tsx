@@ -1,5 +1,4 @@
 import { AuthProvider } from "@/context/AuthContext"
-import { SettingsProvider } from "@/context/SettingsContext"
 import { ReactNode } from "react"
 
 import "./globals.css"
