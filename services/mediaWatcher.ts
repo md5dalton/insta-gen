@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma"
-import Watcher from "./Watcher"
+import Watcher from "../lib/Watcher"
 import { MediaConfig } from "@/lib/config"
 
 let watcher: Watcher | null = null

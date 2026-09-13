@@ -1,9 +1,9 @@
 import { Job } from "@/prisma/generated/client"
-import { markDone, markFailed } from "@/services/jobLifecycle"
-import { MediaService } from "@/services/mediaService"
+import { MediaProcessor } from "@/lib/mediaProcessor"
 import prisma from "../prisma"
+import { markDone, markFailed } from "../job"
 
-const mediaService = new MediaService(prisma)
+const mediaService = new MediaProcessor(prisma)
 
 export const process = async (job: Job) => {
 

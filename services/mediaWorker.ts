@@ -1,5 +1,4 @@
-import { fetchAndLockJob } from "./fetchAndLockJob"
-import { markDone, markFailed } from "./jobLifecycle"
+import { fetchAndLockJob, markFailed } from "@/lib/job"
 import { process as processMedia } from "@/lib/worker/media"
 import { process as processParent} from "@/lib/worker/mediaParent"
 

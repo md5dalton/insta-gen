@@ -3,7 +3,7 @@ import { authenticateRequest } from "@/server/auth"
 import prisma from "@/lib/prisma"
 import { dirname, extname, sep, join } from "path"
 import { generateId } from "@/lib/path"
-import { MediaService } from "@/services/mediaService"
+import { MediaService } from "@/lib/mediaProcessor"
 import { MediaConfig } from "@/lib/config"
 
 const CONFIG = MediaConfig

@@ -14,7 +14,7 @@ import { exists } from "@/lib/db/admin/mediaItem"
 
 const CONFIG = MediaConfig
 
-export class MediaService {
+export class MediaProcessor {
     private DBcache: DBcache
     private readonly storage: Storage
 
