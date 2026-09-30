@@ -3,6 +3,7 @@ import { db } from "@/server/db"
 import prisma from "@/lib/prisma"
 import { authenticateRequest } from "@/server/auth"
 import { JobEvent, JobType } from "@/prisma/generated/enums"
+import { sep } from "node:path"
 
 export async function PUT(request: any, context: any) {
     const params =
@@ -36,7 +37,7 @@ export async function PUT(request: any, context: any) {
             try {
                 const jobType = type === "root" ? JobType.ROOT_COLLECTION : type === "collection" ? JobType.COLLECTION : JobType.USER
                 const dedupeKey = `profile-update:${jobType}:${id}`
-                await prisma.job.create({ data: { type: jobType, event: JobEvent.ADD, payload: { id }, dedupeKey } })
+                await prisma.job.create({ data: { type: jobType, event: JobEvent.UPDATE, payload: { id }, dedupeKey } })
             } catch (e) {
                 // ignore duplicate job errors
             }
@@ -56,8 +57,13 @@ export async function PUT(request: any, context: any) {
             else if (type === "collection") await db.updateCollection(id, { deletedAt: deleted ? new Date().toISOString() : null } as any)
             else if (type === "user") await db.updateMediaUser(id, { deletedAt: deleted ? new Date().toISOString() : null } as any)
         }
-        await db.logActivity({ type: "POLICY_CHANGE", title: `${entityType} policy modified`, description: `Updated configuration for "${target.name || target.username}"` })
-        return NextResponse.json({ success: true })
+        await db.logActivity({ type: "POLICY_CHANGE", title: `${entityType} policy modified`, description: `Updated configuration for "${target.name || target.username || target.path.split(sep).pop()}"` })
+        return NextResponse.json({
+            success: true,
+            data: {
+                name: target.name || target.username || target.path.split(sep).pop()
+            }
+        })
     } catch (e: any) {
         return NextResponse.json({ error: e?.message || String(e) }, { status: 400 })
     }
