@@ -2,8 +2,6 @@ import sharp from "sharp"
 import { mediaEngineConfig } from "./config"
 import { Storage } from "./storage"
 import { generateId } from "./path"
-import { updateMediaAsset } from "@/lib/db/admin/mediaAsset"
-import { AssetType } from "@/prisma/generated/client"
 
 export interface ImageAssetMetadata {
     width: number
