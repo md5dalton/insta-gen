@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { resolveUserFromRequest } from "@/lib/auth"
-
-type User = {
-    id: string
-}
+import { AuthUser, resolveUserFromRequest } from "@/lib/auth"
 
 type ParamsHandler<TParams extends Record<string, string>> = (
     req: NextRequest,
     ctx: {
-        user: User
+        user: AuthUser
         params: TParams
     }
 ) => Promise<Response>
