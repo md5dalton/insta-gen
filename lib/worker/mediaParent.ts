@@ -12,7 +12,7 @@ export const process = async (job: Job) => {
         let where: any = {}
         const payload = job.payload as any
         const parentId = payload.id
-
+        
         if (type === "ROOT_COLLECTION") where = { user: { collection: { rootCollectionId: parentId } } }
         else if (type === "COLLECTION") where = { user: { collectionId: parentId } }
         else if (type === "USER") where = { userId: parentId }
