@@ -140,6 +140,7 @@ model ProcessingProfile {
 model RootCollection {
     id         String             @id
     path       String             @unique
+    name       String
     visibility RootVisibilityType @default(RESTRICTED)
     deletedAt  DateTime?
     createdAt  DateTime           @default(now())
@@ -174,6 +175,7 @@ model RootCollectionAllowedUser {
 model Collection {
     id         String         @id
     path       String
+    name       String
     visibility VisibilityType @default(INHERIT)
     deletedAt  DateTime?
     createdAt  DateTime       @default(now())
@@ -214,6 +216,7 @@ model CollectionAllowedUser {
 model MediaUser {
     id          String         @id
     path        String
+    name        String
     picture     String?
     visibility  VisibilityType @default(INHERIT)
     deletedAt   DateTime?
@@ -256,6 +259,7 @@ model MediaItem {
     id           String    @id @default(cuid())
     type         MediaType
     path         String    @unique
+    name         String
     size         BigInt // Size in bytes
     width        Int // Resolution width
     height       Int // Resolution height
