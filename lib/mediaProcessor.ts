@@ -100,6 +100,7 @@ export class MediaProcessor {
             where: { id: mediaId },
             data: { processingStatus: status },
         })
+        console.log("reconcileMediaAssets", media.path)
     }
     
     async handleUpdate(fileId: string) {
