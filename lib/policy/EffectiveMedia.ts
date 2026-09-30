@@ -10,17 +10,18 @@ export interface Effective {
     path: string,
 }
 
+interface AllowedUser {
+    id: string
+    name: string
+    role: UserRole
+}
 interface EffectiveItem {
     id: string,
     path: string,
     processingProfile: ProcessingProfile | null,
     visibility: VisibilityType
     deletedAt: Date | null
-    allowedUsers: { 
-        id: string
-        name: string
-        role: UserRole
-    }[]
+    allowedUsers: AllowedUser[]
 }
 
 interface EffectiveRootCollection extends EffectiveItem {}
