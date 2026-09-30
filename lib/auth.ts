@@ -4,6 +4,7 @@ import { UserCapability, UserRole } from "@/prisma/generated/enums"
 
 export type AuthUser = {
     id: string
+    name: string
     role: UserRole
     capability: UserCapability
 }
@@ -25,6 +26,7 @@ export async function resolveUserFromRequest(req: Request): Promise<AuthUser> {
         where: { id: decoded.userId },
         select: {
             id: true,
+            name: true,
             role: true,
             capability: true
         },
