@@ -219,7 +219,6 @@ export const getRandom = async (user: AuthUser, limit: number = 10): Promise<Pos
         take: limit,
         select,
     })
-    console.log(firstBatch)
 
     if (firstBatch.length === limit) return firstBatch.map(mapPost)
 
