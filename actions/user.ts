@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma"
 import { MediaType } from "@/prisma/generated/client"
+import { mediaWhere } from "@/actions/post"
 
 type Cursor = {
     id: string
@@ -44,9 +45,11 @@ export const getLikedPosts = async (
     cursor?: Cursor,
     take: number = 10
 ): Promise<Post[]> => {
+    const visibleMedia = await mediaWhere(userId)
     const likes = await prisma.like.findMany({
         where: {
             userId,
+            media: { is: visibleMedia },
 
             ...(cursor && {
                 OR: [
@@ -84,11 +87,7 @@ export const getLikedPosts = async (
                 select: {
                     id: true,
                     type: true,
-                    owner: {
-                        select: {
-                            id: true,
-                        },
-                    },
+                    userId: true,
                 },
             },
         },
@@ -96,7 +95,7 @@ export const getLikedPosts = async (
 
     return likes.map(({ media }) => ({
         id: media.id,
-        ownerId: media.owner.id,
+        ownerId: media.userId,
         isVideo: media.type === MediaType.VIDEO,
     }))
 }
@@ -105,9 +104,11 @@ export const getSavedPosts = async (
     cursor?: Cursor,
     take: number = 10
 ): Promise<Post[]> => {
+    const visibleMedia = await mediaWhere(userId)
     const saves = await prisma.save.findMany({
         where: {
             userId,
+            media: { is: visibleMedia },
 
             ...(cursor && {
                 OR: [
@@ -145,11 +146,7 @@ export const getSavedPosts = async (
                 select: {
                     id: true,
                     type: true,
-                    owner: {
-                        select: {
-                            id: true,
-                        },
-                    },
+                    userId: true,
                 },
             },
         },
@@ -157,7 +154,7 @@ export const getSavedPosts = async (
 
     return saves.map(({ media }) => ({
         id: media.id,
-        ownerId: media.owner.id,
+        ownerId: media.userId,
         isVideo: media.type === MediaType.VIDEO,
     }))
 }

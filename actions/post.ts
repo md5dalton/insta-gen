@@ -1,16 +1,19 @@
+import { AuthUser } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { Prisma } from "@/prisma/generated/client"
+import { MediaType, Prisma, RootVisibilityType, UserRole, VisibilityType } from "@/prisma/generated/client"
 
 type PostBase = Prisma.MediaItemGetPayload<{
     select: ReturnType<typeof postSelect>
 }>
 
-export type Post = Omit<PostBase, "tags" | "user"> & {
+export type Post = Omit<PostBase, "tags" | "user" | "likes" | "saves"> & {
     owner: {
         id: string
         name: string
         picture: string | null
     }
+    liked: boolean
+    saved: boolean
     tags: {
         id: string
         name: string
@@ -18,10 +21,12 @@ export type Post = Omit<PostBase, "tags" | "user"> & {
 }
 
 export const mapPost = (post: PostBase): Post => {
-    const { user, tags, ...rest } = post
+    const { user, tags, likes, saves, ...rest } = post
 
     return {
         ...rest,
+        liked: likes.length > 0,
+        saved: saves.length > 0,
         owner: {
             id: user.id,
             name: user.path.split(/[\\/]/).filter(Boolean).pop() || user.path,
@@ -31,98 +36,157 @@ export const mapPost = (post: PostBase): Post => {
     }
 }
 
-export const postSelect = () =>
-    ({
-        id: true,
-        type: true,
-        height: true,
-        width: true,
-        likesCount: true,
-        savesCount: true,
-        user: {
-            select: {
-                id: true,
-                path: true,
-                picture: true,
-            },
+export const postSelect = (userId: string) => ({
+    id: true,
+    type: true,
+    height: true,
+    width: true,
+    user: {
+        select: {
+            id: true,
+            path: true,
+            picture: true,
         },
+    },
 
-        tags: {
-            select: {
-                tag: {
-                    select: {
-                        id: true,
-                        name: true,
-                    },
+    tags: {
+        select: {
+            tag: {
+                select: {
+                    id: true,
+                    name: true,
                 },
             },
         },
-    }) satisfies Prisma.MediaItemSelect
+    },
+    likes: {
+        where: { userId },
+        select: { userId: true },
+    },
+    saves: {
+        where: { userId },
+        select: { userId: true },
+    },
+}) satisfies Prisma.MediaItemSelect
 
 const visibilityWhere = (userId: string) => ({
-    NOT: { visibility: "PRIVATE" as const },
     OR: [
-        { visibility: { not: "RESTRICTED" as const } },
-        { allowedUsers: { some: { userId } } },
+        { visibility: VisibilityType.ALL_USERS },
+        {
+            visibility: VisibilityType.RESTRICTED,
+            allowedUsers: { some: { userId } },
+        },
     ],
 })
 
-const mediaWhere = async (
-    userId: string,
-    ownerId?: string
-): Promise<Prisma.MediaItemWhereInput> => {
-    const profileUser = await prisma.profileUser.findUnique({
-        where: { id: userId },
-        select: { role: true },
-    })
-    const applyVisibility = profileUser?.role !== "ADMIN"
+const rootVisibilityWhere = (userId: string) => ({
+    OR: [
+        { visibility: RootVisibilityType.ALL_USERS },
+        {
+            visibility: RootVisibilityType.RESTRICTED,
+            allowedUsers: { some: { userId } },
+        },
+    ],
+})
 
-    return {
-        deletedAt: null,
+export const mediaWhere = (
+    user: AuthUser,
+    ownerId?: string,
+    type?: MediaType
+): Prisma.MediaItemWhereInput => {
+
+    const applyVisibility = user.role !== UserRole.ADMIN
+
+    const hierarchyWhere = (
+        mediaUserWhere: Prisma.MediaUserWhereInput = {},
+        collectionWhere: Prisma.CollectionWhereInput = {},
+        rootCollectionWhere: Prisma.RootCollectionWhereInput = {}
+    ) => ({
         user: {
             is: {
                 ...(ownerId && { id: ownerId }),
                 deletedAt: null,
-                ...(applyVisibility && visibilityWhere(userId)),
+                ...mediaUserWhere,
                 collection: {
                     is: {
                         deletedAt: null,
-                        ...(applyVisibility && visibilityWhere(userId)),
+                        ...collectionWhere,
                         rootCollection: {
                             is: {
                                 deletedAt: null,
-                                ...(applyVisibility && visibilityWhere(userId)),
+                                ...rootCollectionWhere,
                             },
                         },
                     },
                 },
             },
         },
-        ...(applyVisibility && visibilityWhere(userId)),
+    })
+
+    return {
+        deletedAt: null,
+        ...(type && { type }),
+        ...(applyVisibility
+            ? {
+                OR: [
+                    {
+                        AND: [
+                            visibilityWhere(user.id),
+                            hierarchyWhere(),
+                        ],
+                    },
+                    {
+                        AND: [
+                            { visibility: VisibilityType.INHERIT },
+                            hierarchyWhere(visibilityWhere(user.id)),
+                        ],
+                    },
+                    {
+                        AND: [
+                            { visibility: VisibilityType.INHERIT },
+                            hierarchyWhere(
+                                { visibility: VisibilityType.INHERIT },
+                                visibilityWhere(user.id)
+                            ),
+                        ],
+                    },
+                    {
+                        AND: [
+                            { visibility: VisibilityType.INHERIT },
+                            hierarchyWhere(
+                                { visibility: VisibilityType.INHERIT },
+                                { visibility: VisibilityType.INHERIT },
+                                rootVisibilityWhere(user.id)
+                            ),
+                        ],
+                    },
+                ],
+            }
+            : hierarchyWhere()),
     }
 }
 
-export const getPost = async (id: string, userId: string): Promise<Post | null> => {
+export const getPost = async (id: string, user: AuthUser): Promise<Post | null> => {
     const post = await prisma.mediaItem.findFirst({
         where: {
             id,
-            ...(await mediaWhere(userId)),
+            ...(mediaWhere(user)),
         },
-        select: postSelect(),
+        select: postSelect(user.id),
     })
 
     return post ? mapPost(post) : null
 }
 
 export const getUserPosts = async (
-    userId: string,
+    user: AuthUser,
     ownerId: string,
     cursorId?: string,
     take: number = 10
 ): Promise<Post[]> => {
     const posts = await prisma.mediaItem.findMany({
         where: {
-            ...(await mediaWhere(userId, ownerId)),
+            ...(mediaWhere(user, ownerId)),
         },
 
         ...(cursorId && {
@@ -136,16 +200,16 @@ export const getUserPosts = async (
             createdAt: "asc",
         },
 
-        select: postSelect(),
+        select: postSelect(user.id),
     })
 
     return posts.map(mapPost)
 }
 
-export const getRandom = async (userId: string, limit: number = 10): Promise<Post[]> => {
+export const getRandom = async (user: AuthUser, limit: number = 10): Promise<Post[]> => {
     const boundary = Math.random()
-    const select = postSelect()
-    const where = await mediaWhere(userId)
+    const select = postSelect(user.id)
+    const where = mediaWhere(user)
     const firstBatch = await prisma.mediaItem.findMany({
         where: {
             ...where,
@@ -155,6 +219,7 @@ export const getRandom = async (userId: string, limit: number = 10): Promise<Pos
         take: limit,
         select,
     })
+    console.log(firstBatch)
 
     if (firstBatch.length === limit) return firstBatch.map(mapPost)
 

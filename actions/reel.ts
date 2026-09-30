@@ -1,12 +1,17 @@
 import prisma from "@/lib/prisma"
-import { MediaType } from "@/types/type"
-import { Prisma } from "@/prisma/generated/client"
+import { mediaWhere } from "@/actions/post"
+import { MediaType, Prisma } from "@/prisma/generated/client"
 
-type ReelBase = Prisma.MediaGetPayload<{
+type ReelBase = Prisma.MediaItemGetPayload<{
     select: ReturnType<typeof reelSelect>
 }>
 
-export type Reel = Omit<ReelBase, "likes" | "saves" | "tags"> & {
+export type Reel = Omit<ReelBase, "user" | "likes" | "saves" | "tags"> & {
+    owner: {
+        id: string
+        name: string
+        picture: string | null
+    }
     tags: {
         id: string
         name: string
@@ -18,10 +23,10 @@ export type Reel = Omit<ReelBase, "likes" | "saves" | "tags"> & {
 export const reelSelect = (userId: string) =>
     ({
         id: true,
-        owner: {
+        user: {
             select: {
                 id: true,
-                name: true,
+                path: true,
                 picture: true,
             },
         },
@@ -46,13 +51,18 @@ export const reelSelect = (userId: string) =>
             where: { userId },
             select: { userId: true },
         },
-    }) satisfies Prisma.MediaSelect
+    }) satisfies Prisma.MediaItemSelect
 
 export const mapReel = (reel: ReelBase): Reel => {
-    const { likes, saves, tags, ...rest } = reel
+    const { user, likes, saves, tags, ...rest } = reel
 
     return {
         ...rest,
+        owner: {
+            id: user.id,
+            name: user.path.split(/[\\/]/).filter(Boolean).pop() || user.path,
+            picture: user.picture,
+        },
         tags: tags.map(({ tag }) => tag),
         liked: likes.length > 0,
         saved: saves.length > 0,
@@ -60,10 +70,10 @@ export const mapReel = (reel: ReelBase): Reel => {
 }
 
 export const getReel = async (id: string, userId: string): Promise<Reel | null> => {
-    const reel = await prisma.media.findFirst({
+    const reel = await prisma.mediaItem.findFirst({
         where: {
             id,
-            type: MediaType.VIDEO,
+            ...(await mediaWhere(userId, undefined, MediaType.VIDEO)),
         },
         select: reelSelect(userId),
     })
@@ -77,10 +87,9 @@ export const getUserReels = async (
     cursorId?: string,
     take: number = 10
 ): Promise<Reel[]> => {
-    const reels = await prisma.media.findMany({
+    const reels = await prisma.mediaItem.findMany({
         where: {
-            ownerId,
-            type: MediaType.VIDEO,
+            ...(await mediaWhere(userId, ownerId, MediaType.VIDEO)),
         },
         ...(cursorId && {
             cursor: { id: cursorId },
@@ -96,61 +105,24 @@ export const getUserReels = async (
     return reels.map(mapReel)
 }
 export const getRandom = async (userId: string, limit: number = 10): Promise<Reel[]> => {
-    const r = Math.random()
+    const boundary = Math.random()
+    const where = await mediaWhere(userId, undefined, MediaType.VIDEO)
+    const select = reelSelect(userId)
+    const firstBatch = await prisma.mediaItem.findMany({
+        where: { ...where, random: { gte: boundary } },
+        orderBy: { random: "asc" },
+        take: limit,
+        select,
+    })
 
-    return await prisma.$queryRaw<Reel[]>`
-        SELECT 
-            m.id,
+    if (firstBatch.length === limit) return firstBatch.map(mapReel)
 
-            json_build_object(
-                'id', u.id,
-                'name', u.name,
-                'picture', u.picture
-            ) as owner,
+    const wrappedBatch = await prisma.mediaItem.findMany({
+        where: { ...where, random: { lt: boundary } },
+        orderBy: { random: "asc" },
+        take: limit - firstBatch.length,
+        select,
+    })
 
-            COALESCE(
-                json_agg(
-                    DISTINCT jsonb_build_object(
-                        'id', t.id,
-                        'name', t.name
-                    )
-                ) FILTER (WHERE t.id IS NOT NULL),
-                '[]'
-            ) as tags,
-
-            EXISTS (
-                SELECT 1
-                FROM "Like" l
-                WHERE l."mediaId" = m.id
-                AND l."userId" = ${userId}
-            ) as liked,
-
-            EXISTS (
-                SELECT 1
-                FROM "Save" s
-                WHERE s."mediaId" = m.id
-                AND s."userId" = ${userId}
-            ) as saved
-
-        FROM "Media" m
-
-        JOIN "User" u
-            ON u.id = m."ownerId"
-
-        LEFT JOIN "MediaTag" mt
-            ON mt."mediaId" = m.id
-
-        LEFT JOIN "Tag" t
-            ON t.id = mt."tagId"
-
-        WHERE m.type = ${MediaType.VIDEO}::"MediaType"
-
-        GROUP BY m.id, u.id
-
-        ORDER BY 
-            (m.random < ${r}),
-            m.random
-
-        LIMIT ${limit}
-    `
+    return [...firstBatch, ...wrappedBatch].map(mapReel)
 }
