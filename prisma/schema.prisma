@@ -97,6 +97,7 @@ model ProfileUser {
     id                      String         @id @default(cuid())
     name                    String
     email                   String         @unique
+    passwordHash            String
     role                    UserRole       @default(USER)
     capability              UserCapability @default(VIEW)
     picture                 String?

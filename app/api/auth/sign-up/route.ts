@@ -2,13 +2,14 @@ import { NextResponse } from "next/server"
 import bcrypt from "bcrypt"
 import prisma from "@/lib/prisma"
 import jwt from "jsonwebtoken"
+import { isStrongPassword, isEmail } from "validator"
 
 export async function POST(req: Request) {
     try {
         const { email, password, name } = await req.json()
 
-        if (!email || !password || !name)
-            return NextResponse.json({ error: "Email and password required" }, { status: 400 })
+        if (!isEmail(email) || !isStrongPassword(password) || name.length < 3 )
+            return NextResponse.json({ error: "Email, name and strong password required" }, { status: 400 })
 
         const existingUser = await prisma.profileUser.findUnique({
             where: { email },
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
         const user = await prisma.profileUser.create({
             data: {
                 email,
-                password: hashedPassword,
+                passwordHash: hashedPassword,
                 name,
             },
         })
