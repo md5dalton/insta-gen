@@ -7,7 +7,6 @@ export const GET = withAuthParams(async (req: NextRequest, { user }) => {
 
     const cursor = searchParams.get("cursor")
     const ownerId = searchParams.get("user")
-
     const userId = user.id
 
     let posts: Post[] = []
