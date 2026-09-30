@@ -1,4 +1,4 @@
-import { extname, join, sep } from "node:path"
+import { basename, extname, join, sep } from "node:path"
 import { AssetType, MediaType, PrismaClient, ProcessingStatus } from "@/prisma/generated/client"
 import { generateId } from "@/lib/path"
 import { Storage } from "@/lib/storage"
@@ -158,6 +158,7 @@ export class MediaProcessor {
                         id,
                         type: isVideo ? "VIDEO" : "IMAGE",
                         path: relativePath,
+                        name: basename(filePath),
                         size: stats.size,
                         width: metadata.width,
                         height: metadata.height,
