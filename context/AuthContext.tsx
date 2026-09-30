@@ -55,7 +55,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     useEffect(() => {
         if (loading) return
 
-        ;(async () => {
+        (async () => {
             // If system not configured, ensure admin setup page
             if (!isConfigured) {
                 if (!pathname?.startsWith("/auth/setup")) {
@@ -68,6 +68,11 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
             if (!user) {
                 if (!pathname?.startsWith("/auth/login")) {
                     router.replace("/auth/login")
+                }
+                return
+            } else {
+                if (pathname?.startsWith("/auth/login")) {
+                    router.replace("/")
                 }
                 return
             }
