@@ -12,13 +12,13 @@ export const GET = withAuthParams(async (req: NextRequest, { user }) => {
     let posts: Post[] = []
 
     if (ownerId && cursor) {
-        const post = await getPost(cursor, userId)
+        const post = await getPost(cursor, user)
 
         if (!post) return new Response("Provide Post not found", { status: 400 })
 
-        posts = await getUserPosts(userId, post.owner.id, post.id)
+        posts = await getUserPosts(user, post.owner.id, post.id)
     } else {
-        posts = await getRandom(userId)
+        posts = await getRandom(user)
     }
 
     return Response.json({
