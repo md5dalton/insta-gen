@@ -1,3 +1,5 @@
+import { UserRole } from "@/prisma/generated/enums"
+
 export type ProcessingStatus = "NEW" | "NEEDS_PROCESSING" | "PROCESSING" | "READY" | "FAILED"
 
 export type AssetType = "THUMBNAIL" | "FEED_IMAGE" | "HLS"
@@ -42,10 +44,8 @@ export interface MediaAsset {
 export interface ProfileUser {
     id: string
     name: string
-    email: string
-    role: "ADMIN" | "USER"
+    role: UserRole
     capability: UserCapability // VIEW automatically includes view+like+save DOWNLOAD adds original download
-    createdAt: string
 }
 
 export interface RootCollection {
