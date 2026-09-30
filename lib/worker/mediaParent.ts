@@ -1,6 +1,6 @@
 import { Job } from "@/prisma/generated/client"
-import { markDone, markFailed } from "@/services/jobLifecycle"
 import prisma from "../prisma"
+import { markDone, markFailed } from "../job"
 
 export const process = async (job: Job) => {
 
