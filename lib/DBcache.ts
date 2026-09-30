@@ -2,7 +2,7 @@ import { PrismaClient } from "@/prisma/generated/client"
 import prisma from "./prisma"
 import { generateId } from "./path"
 import { Collection, RootCollection } from "@/prisma/generated/browser"
-import { sep } from "node:path"
+import { join, sep } from "node:path"
 
 export class DBcache {
     private prisma: PrismaClient
@@ -19,13 +19,12 @@ export class DBcache {
     private async ensureRootCollection(name: string) {
         if (this.rootCache.has(name)) return this.rootCache.get(name)
 
-        const path = `/${name}`
-        const id = generateId(path)
+        const id = generateId(name)
 
         const record = await this.prisma.rootCollection.upsert({
             where: { id },
-            update: { path },
-            create: { id, path }
+            update: { path: name, name },
+            create: { id, path: name, name }
         })
 
         this.rootCache.set(name, record)
@@ -37,13 +36,13 @@ export class DBcache {
         const key = `${root.id}:${name}`
         if (this.collectionCache.has(key)) return this.collectionCache.get(key)
 
-        const path = `${root.path}/${name}`
+        const path = join(root.path, name)
         const id = generateId(path)
 
         const record = await this.prisma.collection.upsert({
             where: { id },
             update: { path },
-            create: { id, path, rootCollectionId: root.id }
+            create: { id, path, name, rootCollectionId: root.id }
         })
 
         this.collectionCache.set(key, record)
@@ -55,13 +54,13 @@ export class DBcache {
         const key = `${collection.id}:${name}`
         if (this.userCache.has(key)) return this.userCache.get(key)
 
-        const path = `${collection.path}/${name}`
+        const path = join(collection.path, name)
         const id = generateId(path)
 
         const record = await this.prisma.mediaUser.upsert({
             where: { id },
             update: { path },
-            create: { id, path, collectionId: collection.id }
+            create: { id, path, name, collectionId: collection.id }
         })
 
         this.userCache.set(key, record)
