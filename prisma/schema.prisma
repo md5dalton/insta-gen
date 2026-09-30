@@ -109,6 +109,8 @@ model ProfileUser {
     allowedCollections      CollectionAllowedUser[]
     allowedMediaUsers       MediaUserAllowedUser[]
     allowedMediaItems       MediaItemAllowedUser[]
+    likes                   Like[]
+    saves                   Save[]
 
     @@map("profile_users")
 }
@@ -138,7 +140,7 @@ model ProcessingProfile {
 model RootCollection {
     id         String             @id
     path       String             @unique
-    visibility RootVisibilityType @default(ALL_USERS)
+    visibility RootVisibilityType @default(RESTRICTED)
     deletedAt  DateTime?
     createdAt  DateTime           @default(now())
     updatedAt  DateTime           @updatedAt
@@ -286,6 +288,8 @@ model MediaItem {
 
     // Generated child renditions / assets
     assets MediaAsset[]
+    likes  Like[]
+    saves  Save[]
 
     random      Float @default(dbgenerated("random()"))
 
@@ -307,6 +311,36 @@ model MediaItemAllowedUser {
 
     @@id([mediaItemId, userId])
     @@map("media_item_allowed_users")
+}
+
+model Like {
+    id        String   @id @default(cuid())
+    userId    String
+    mediaId   String
+    createdAt DateTime @default(now())
+
+    user  ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    media MediaItem   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, mediaId])
+    @@index([userId, createdAt])
+    @@index([mediaId])
+    @@map("likes")
+}
+
+model Save {
+    id        String   @id @default(cuid())
+    userId    String
+    mediaId   String
+    createdAt DateTime @default(now())
+
+    user  ProfileUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    media MediaItem   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, mediaId])
+    @@index([userId, createdAt])
+    @@index([mediaId])
+    @@map("saves")
 }
 
 /// Rendition assets generated for a MediaItem
