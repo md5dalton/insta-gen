@@ -44,18 +44,20 @@ export class MediaProcessor {
 
         const assets = new Map<AssetType, string>()
 
+        const mediaPath = join(this.mediaRoot, media.path)
+
         for (const assetType of policy.missingAssets) {
             try {
                 if (assetType === AssetType.THUMBNAIL) {
                     if (media.type === MediaType.VIDEO) {
-                        const video = new VideoProcessor(this.storage, media.path, mediaId)
+                        const video = new VideoProcessor(this.storage, mediaPath, mediaId)
                         const poster = await video.generatePoster()
                         if (poster) {
                             const saved = await updateMediaAsset(mediaId, poster, AssetType.THUMBNAIL)
                             if (saved) assets.set(AssetType.THUMBNAIL, poster)
                         }
                     } else if (media.type === MediaType.IMAGE) {
-                        const image = new ImageProcessor(this.storage, media.path)
+                        const image = new ImageProcessor(this.storage, mediaPath)
                         const thumb = await image.generateThumb()
                         if (thumb) {
                             const saved = await updateMediaAsset(mediaId, thumb, AssetType.THUMBNAIL)
@@ -64,7 +66,7 @@ export class MediaProcessor {
                     }
                 } else if (assetType === AssetType.FEED_IMAGE) {
                     if (media.type === MediaType.IMAGE) {
-                        const image = new ImageProcessor(this.storage, media.path)
+                        const image = new ImageProcessor(this.storage, mediaPath)
                         const feed = await image.generateFeed()
                         if (feed) {
                             const saved = await updateMediaAsset(mediaId, feed, AssetType.FEED_IMAGE)
@@ -73,7 +75,7 @@ export class MediaProcessor {
                     }
                 } else if (assetType === AssetType.HLS) {
                     if (media.type === MediaType.VIDEO) {
-                        const video = new VideoProcessor(this.storage, media.path, mediaId)
+                        const video = new VideoProcessor(this.storage, mediaPath, mediaId)
                         const hls = await video.process()
                         if (hls) {
                             const saved = await updateMediaAsset(mediaId, hls, AssetType.HLS)
