@@ -1,22 +1,37 @@
 import prisma from "@/lib/prisma"
-import type { Collection, CollectionAllowedUser } from "@/prisma/generated/client"
+import type { VisibilityType } from "@/prisma/generated/client"
 
-type CollectionRow = Omit<Collection, "deletedAt" | "allowedUsers"> & {
-    deletedAt: string | null
-    allowedUserIds: string[]
+type Collection = {
+    id: string
+    path: string
+    name: string
+    visibility: VisibilityType
+    processingProfileId: string | null,
+    rootCollectionId: string,
+    deletedAt: Date | null
+    allowedUsers: string[]
 }
 
-export const list = async (): Promise<CollectionRow[]> => {
-    const recs: Array<Collection & { allowedUsers?: CollectionAllowedUser[] }> = await prisma.collection.findMany({ include: { allowedUsers: true } })
-
-    return recs.map((r) => {
-        const { allowedUsers, deletedAt, ...rest } = r
-        return {
-            ...rest,
-            deletedAt: deletedAt ? deletedAt.toISOString() : null,
-            allowedUserIds: (allowedUsers ?? []).map((u) => u.userId),
+export const list = async (): Promise<Collection[]> => {
+    const rows = await prisma.collection.findMany({ select: {
+        id: true,
+        path: true,
+        name: true,
+        visibility: true,
+        processingProfileId: true,
+        rootCollectionId: true,
+        deletedAt: true,
+        allowedUsers: {
+            select: {
+                userId: true
+            }
         }
-    })
+    } })
+
+    return rows.map(({allowedUsers, ...row}) => ({
+        ...row,
+        allowedUsers: (allowedUsers ?? []).map((u) => u.userId),
+    }))
 }
 
 export const exists = async (id: string): Promise<boolean> => {

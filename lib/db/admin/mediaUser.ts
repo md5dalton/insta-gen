@@ -1,22 +1,37 @@
 import prisma from "@/lib/prisma"
-import type { MediaUser, MediaUserAllowedUser } from "@/prisma/generated/client"
+import type { VisibilityType } from "@/prisma/generated/client"
 
-type MediaUserRow = Omit<MediaUser, "deletedAt" | "allowedUsers"> & {
-    deletedAt: string | null
-    allowedUserIds: string[]
+type MediaUser = {
+    id: string
+    path: string
+    name: string
+    visibility: VisibilityType
+    processingProfileId: string | null,
+    collectionId: string,
+    deletedAt: Date | null
+    allowedUsers: string[]
 }
 
-export const list = async (): Promise<MediaUserRow[]> => {
-    const recs: Array<MediaUser & { allowedUsers?: MediaUserAllowedUser[] }> = await prisma.mediaUser.findMany({ include: { allowedUsers: true } })
-
-    return recs.map((r) => {
-        const { allowedUsers, deletedAt, ...rest } = r
-        return {
-            ...rest,
-            deletedAt: deletedAt ? deletedAt.toISOString() : null,
-            allowedUserIds: (allowedUsers ?? []).map((u) => u.profileUserId),
+export const list = async (): Promise<MediaUser[]> => {
+    const rows = await prisma.mediaUser.findMany({ select: {
+        id: true,
+        path: true,
+        name: true,
+        visibility: true,
+        processingProfileId: true,
+        collectionId: true,
+        deletedAt: true,
+        allowedUsers: {
+            select: {
+                userId: true
+            }
         }
-    })
+    } })
+
+    return rows.map(({allowedUsers, ...row}) => ({
+        ...row,
+        allowedUsers: (allowedUsers ?? []).map((u) => u.userId),
+    }))
 }
 
 export const exists = async (id: string): Promise<boolean> => {

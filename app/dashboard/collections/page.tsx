@@ -46,6 +46,8 @@ export default () => {
     } | null>(null)
 
     // Form edit states
+    const [selectedProfile, setSelectedProfile] = useState<ProcessingProfile | null>(null)
+
     const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
     const [selectedVisibility, setSelectedVisibility] = useState<VisibilityType | null>(null)
     const [selectedAllowedUsers, setSelectedAllowedUsers] = useState<string[]>([])
@@ -196,7 +198,7 @@ export default () => {
 
     // Derive effective values for display
     const effectiveProfileName = () => {
-        if (!selectedEntity) return "System Default"
+        if (!selectedEntity) return "None"
         if (selectedProfileId) {
             return profiles.find((p) => p.id === selectedProfileId)?.name || "Custom"
         }
