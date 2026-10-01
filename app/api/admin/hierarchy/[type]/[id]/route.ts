@@ -82,7 +82,15 @@ const setProcessingProfile = async (type: EntityType, id: string, profileId: str
     if (result && profileId !== "DEFAULT") {
         try {
             const dedupeKey = `profile-update:${type}:${id}`
-            await prisma.job.create({ data: { type, event: JobEvent.UPDATE, payload: { id }, dedupeKey } })
+            await prisma.job.upsert({
+                where: { dedupeKey },
+                update: {
+                    status: "PENDING"
+                },
+                create: {
+                    type, event: JobEvent.UPDATE, payload: { id }, dedupeKey 
+                }
+            })
         } catch (e) {
             // ignore duplicate job errors
         }
