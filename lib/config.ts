@@ -12,7 +12,7 @@ interface MediaConfig {
 }
 
 interface MediaEngineConfig {
-    feedWidth: number
+    feedHeight: number
     thumbWidth: number
     feedQuality: number
     thumbQuality: number
@@ -37,10 +37,10 @@ export const MediaConfig: MediaConfig = {
 }
 
 export const mediaEngineConfig: MediaEngineConfig = {
-    feedWidth: 1080,
+    feedHeight: 1080,
     thumbWidth: 480,
-    feedQuality: 82,
-    thumbQuality: 75,
+    feedQuality: 100,
+    thumbQuality: 100,
     segmentDuration: 6,
     startupDuration: 10,
     cleanupIntervalMs: 60 * 60 * 1000,
