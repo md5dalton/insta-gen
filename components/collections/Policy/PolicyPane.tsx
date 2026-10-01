@@ -2,13 +2,18 @@
 import { useHierarchy } from "@/context/HierarchyContext"
 import EntityHeader from "./EntityHeader"
 import PolicyEditor from "./PolicyEditor"
+import { CheckCircle2 } from "lucide-react"
+import { PolicySelector } from "@/components/PolicySelector"
+import ProcessingProfiles from "./PolicyEditor/ProcessingProfiles"
 
 export default () => {
 
     const {
         selectedEntity,
         profiles,
-        selectedProfileId
+        selectedProfileId,
+        actionLoading,
+        handleSaveConfiguration
     } = useHierarchy()
 
     const effectiveProfileName = selectedProfileId ? profiles.find((p) => p.id === selectedProfileId)?.name : "Inherit: System Default"
@@ -49,35 +54,13 @@ export default () => {
                     </div>
 
                     {/* Processing Policy Configuration */}
-                    {/* <div className="space-y-3 pt-2 border-t border-slate-800">
-                        <PolicySelector
-                            profiles={profiles}
-                            value={selectedProfileId}
-                            onChange={setSelectedProfileId}
-                            allowInherit={selectedEntity.type !== "root"}
-                            inheritedProfileName={
-                                selectedEntity.parentData?.processingProfileId
-                                    ? profiles.find(
-                                            (p) =>
-                                                p.id ===
-                                                selectedEntity.parentData.processingProfileId
-                                        )?.name
-                                    : selectedEntity.rootData?.processingProfileId
-                                        ? profiles.find(
-                                            (p) =>
-                                                p.id ===
-                                                selectedEntity.rootData.processingProfileId
-                                        )?.name
-                                        : "System Default"
-                            }
-                        />
-                    </div> */}
+                    <ProcessingProfiles />
 
                     {/* Access & Visibility Policy Configuration */}
                     <PolicyEditor />
 
                     {/* Save Button */}
-                    {/* <div className="pt-4 border-t border-slate-800 flex justify-end">
+                    <div className="pt-4 border-t border-slate-800 flex justify-end">
                         <button
                             type="button"
                             disabled={actionLoading}
@@ -87,7 +70,7 @@ export default () => {
                             <CheckCircle2 className="w-4 h-4" />
                             {actionLoading ? "Saving..." : "Save Configuration Changes"}
                         </button>
-                    </div> */}
+                    </div>
                 </>
             ) : (
                 <div className="py-20 text-center text-slate-500 text-xs">
