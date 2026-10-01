@@ -17,8 +17,8 @@ export default () => {
 
                 <div className="grid grid-cols-1 gap-2">
                     <ProfileRadio
-                        isChecked={!selectedProfileId}
-                        onChangeHandler={() => setSelectedProfileId(null)}
+                        isChecked={!selectedProfileId || selectedProfileId === "DEFAULT"}
+                        onChangeHandler={() => setSelectedProfileId("DEFAULT")}
                         profile={{
                             id: "default",
                             name: "Default profile",
