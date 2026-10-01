@@ -5,11 +5,8 @@ import UsersList from "./Users"
 
 export default () => {
     const {
-        selectedEntity,
-
+        selectedVisibility
     } = useHierarchy()
-
-    const currentVis = selectedEntity?.effectiveVisibility
 
     return (
         <div className="space-y-3 pt-2 border-t border-slate-800">
@@ -17,7 +14,7 @@ export default () => {
                 <VisibilityPolicies />
 
                 {/* User Permitted List for Restricted Visibility */}
-                {currentVis === "RESTRICTED" && (
+                {selectedVisibility === "RESTRICTED" && (
                     <div className="rounded-lg border border-slate-800 bg-slate-900 p-3.5 space-y-3">
                         <div className="flex items-center justify-between">
                             <div>
