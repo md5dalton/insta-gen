@@ -1,19 +1,22 @@
-import { MediaUser } from "@/types/types"
+"use client"
+import { Collection, useHierarchy, User as UserType } from "@/context/HierarchyContext"
 import { User } from "lucide-react"
-import { sep } from "node:path"
 
-type Props = {
-    user: MediaUser
-    isSelected: boolean
-    isDeleted: boolean
-    selectHandler: () => void
-}
-export default ({ user, isDeleted, isSelected, selectHandler }: Props) => {
+export default ({ user, parent }: { user: UserType, parent: Collection }) => {
     
+    const {
+        selectedEntity,
+
+        selectEntity,
+    } = useHierarchy()
+        
+    const isDeleted = user.isEffectivelyDeleted || parent.isEffectivelyDeleted
+    const isSelected = selectedEntity?.id === user.id
+        
     return (
         <div
             key={user.id}
-            onClick={selectHandler}
+            onClick={() => selectEntity(user)}
             className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
                 isSelected
                     ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-900/40"
@@ -25,7 +28,7 @@ export default ({ user, isDeleted, isSelected, selectHandler }: Props) => {
             <div className="flex items-center gap-2 truncate">
                 <User className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
                 <span className="truncate">
-                    @{user.path.split(sep).pop()}
+                    @{user.name}
                 </span>
             </div>
 
