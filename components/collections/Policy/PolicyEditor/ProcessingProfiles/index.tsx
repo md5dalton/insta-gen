@@ -3,7 +3,6 @@ import ProfileRadio from "./ProfileRadio"
 
 export default () => {
     const {
-        selectedEntity,
         profiles,
         selectedProfileId,
         setSelectedProfileId
@@ -17,20 +16,18 @@ export default () => {
                 </label>
 
                 <div className="grid grid-cols-1 gap-2">
-                    {(selectedEntity?.type !== "ROOT_COLLECTION") && (
-                        <ProfileRadio
-                            isChecked={!selectedProfileId}
-                            onChangeHandler={() => setSelectedProfileId(null)}
-                            profile={{
-                                id: "default",
-                                name: "Inherit from parent: System default",
-                                description: "Automatically uses the processing profile assigned to the parent hierarchy level.",
-                                renditions: [
-                                    "THUMBNAIL"
-                                ]
-                            }}
-                        />
-                    )}
+                    <ProfileRadio
+                        isChecked={!selectedProfileId}
+                        onChangeHandler={() => setSelectedProfileId(null)}
+                        profile={{
+                            id: "default",
+                            name: "Default profile",
+                            description: "This will remove the assigned processing profile, which will adopt the inherited from the parent hierarchy level.",
+                            renditions: [
+                                "THUMBNAIL"
+                            ]
+                        }}
+                    />
 
                     {profiles.map((profile) => (
                         <ProfileRadio
