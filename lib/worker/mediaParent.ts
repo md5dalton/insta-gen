@@ -22,7 +22,13 @@ export const process = async (job: Job) => {
         for (const m of medias) {
             try {
                 const dedupeKey = `update:${m.id}`
-                await prisma.job.create({ data: { type: "MEDIA", event: "UPDATE", payload: { id: m.id }, dedupeKey } })
+                await prisma.job.upsert({ 
+                    where: { dedupeKey },
+                    update: {
+                        status: "PENDING"
+                    },
+                    create: { type: "MEDIA", event: "UPDATE", payload: { id: m.id }, dedupeKey } 
+                })
             } catch (e) {
                 // ignore duplicates
             }
