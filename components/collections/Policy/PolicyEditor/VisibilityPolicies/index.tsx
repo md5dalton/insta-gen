@@ -2,7 +2,7 @@ import { ReactNode } from "react"
 import { Users, Lock, ShieldAlert } from "lucide-react"
 import { VisibilityType } from "@/prisma/generated/enums"
 import { useHierarchy } from "@/context/HierarchyContext"
-import Radio from "../../AccessPolicy/Radio"
+import Radio from "./VisibilityPolicyRadio"
 
 interface Policy {
     type: VisibilityType
