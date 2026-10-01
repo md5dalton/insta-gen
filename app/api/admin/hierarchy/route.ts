@@ -30,6 +30,7 @@ export async function GET(request: Request) {
                 const active = activeMap.get(user.id) || 0
                 return {
                     ...user,
+                    type: "USER",
                     effectiveProfile: processingProfileId,
                     effectiveVisibility: visibility,
                     effectiveAllowedUserIds: allowedUsers,
@@ -42,6 +43,7 @@ export async function GET(request: Request) {
             const activeCount = users.reduce((s, u) => s + (u.activeMediaCount || 0), 0)
             return {
                 ...col,
+                type: "COLLECTION",
                 effectiveProfile: processingProfileId,
                 effectiveVisibility: visibility,
                 effectiveAllowedUserIds: allowedUsers,
@@ -56,6 +58,7 @@ export async function GET(request: Request) {
 
         return {
             ...root,
+            type: "ROOT_COLLECTION",
             effectiveProfile: processingProfileId,
             effectiveVisibility: visibility,
             effectiveAllowedUserIds: allowedUsers,
