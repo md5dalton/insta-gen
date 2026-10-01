@@ -35,11 +35,10 @@ const policies: Policy[] = [
 export default ({ disabled = false }: { disabled?: boolean }) => {
     const {
         selectedEntity,
-        setSelectedVisibility
+        selectedVisibility,
 
+        setSelectedVisibility,
     } = useHierarchy()
-
-    const currentVis = selectedEntity?.effectiveVisibility
 
     return (
         <div>
@@ -55,7 +54,7 @@ export default ({ disabled = false }: { disabled?: boolean }) => {
                         title="Inherit"
                         disabled={disabled}
                         icon={<Users className="w-4 h-4" />}
-                        isChecked={currentVis === "INHERIT"}
+                        isChecked={!selectedVisibility}
                     />
                 )}
                 {policies.map((policy) => (
@@ -66,7 +65,7 @@ export default ({ disabled = false }: { disabled?: boolean }) => {
                         title={policy.title}
                         disabled={disabled}
                         icon={policy.icon}
-                        isChecked={currentVis === policy.type}
+                        isChecked={selectedVisibility === policy.type}
                     />
                 ))}
             </div>
