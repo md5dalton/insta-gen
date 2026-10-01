@@ -6,6 +6,7 @@
 import React from "react"
 import { ProcessingProfile } from "@/types/types"
 import { Layers, Sparkles, Check } from "lucide-react"
+import { useHierarchy } from "@/context/HierarchyContext"
 
 interface PolicySelectorProps {
     profiles: ProcessingProfile[]
@@ -16,15 +17,24 @@ interface PolicySelectorProps {
     disabled?: boolean
 }
 
-export const PolicySelector: React.FC<PolicySelectorProps> = ({
-    profiles,
-    value,
-    onChange,
-    allowInherit = true,
-    inheritedProfileName = "System Default",
+export const PolicySelector = ({
+    // profiles,
+    // value,
+    // onChange,
+    // allowInherit = true,
+    // inheritedProfileName = "System Default",
     disabled = false,
 }) => {
-    const selectedProfile = profiles.find((p) => p.id === value)
+    // const selectedProfile = profiles.find((p) => p.id === value)
+
+    const {
+        selectedEntity,
+        profiles,
+        selectedProfileId,
+        actionLoading,
+        handleSaveConfiguration,
+        setSelectedProfileId
+    } = useHierarchy()
 
     return (
         <div className="space-y-2">
@@ -33,13 +43,13 @@ export const PolicySelector: React.FC<PolicySelectorProps> = ({
             </label>
 
             <div className="grid grid-cols-1 gap-2">
-                {allowInherit && (
+                {(selectedEntity?.type !== "ROOT_COLLECTION") && (
                     <button
                         type="button"
                         disabled={disabled}
-                        onClick={() => onChange(null)}
+                        onClick={() => setSelectedProfileId(null)}
                         className={`flex items-start justify-between p-3 rounded-lg border text-left transition-all ${
-                            value === null || value === undefined
+                            !selectedProfileId
                                 ? "border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600"
                                 : "border-slate-200 bg-white hover:border-slate-300"
                         }`}
@@ -50,7 +60,7 @@ export const PolicySelector: React.FC<PolicySelectorProps> = ({
                                     Inherit from parent
                                 </span>
                                 <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                    Effective: {inheritedProfileName}
+                                    Effective: System default
                                 </span>
                             </div>
                             <p className="text-xs text-slate-500 mt-0.5">
@@ -58,52 +68,52 @@ export const PolicySelector: React.FC<PolicySelectorProps> = ({
                                 hierarchy level.
                             </p>
                         </div>
-                        {(value === null || value === undefined) && (
+                        {(!selectedProfileId) && (
                             <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                         )}
                     </button>
                 )}
 
                 {profiles.map((profile) => {
-                    const isSelected = value === profile.id
+                    const isSelected = selectedProfileId === profile.id
                     const renditionSet = new Set(profile.renditions)
                     return (
                         <button
                             key={profile.id}
                             type="button"
                             disabled={disabled}
-                            onClick={() => onChange(profile.id)}
-                            className={`flex items-start justify-between p-3 rounded-lg border text-left transition-all ${
+                            onClick={() => setSelectedProfileId(profile.id)}
+                            className={`flex items-start justify-between p-3 rounded-lg border bg-slate-900 text-left transition-all ${
                                 isSelected
-                                    ? "border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600"
-                                    : "border-slate-200 bg-white hover:border-slate-300"
+                                    ? "border-emerald-600"
+                                    : "border-slate-800"
                             }`}
                         >
                             <div>
-                                <div className="text-sm font-semibold text-slate-900">
+                                <div className="text-sm font-semibold text-slate-400">
                                     {profile.name}
                                 </div>
                                 <p className="text-xs text-slate-500 mt-0.5">
                                     {profile.description}
                                 </p>
                                 <div className="flex flex-wrap gap-1.5 mt-2">
-                                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span className="text-[10px] font-medium px-1.5 py-1 rounded bg-slate-800 text-slate-400">
                                         ✓ Thumbnail (Required)
                                     </span>
                                     {renditionSet.has("FEED_IMAGE") && (
-                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                    <span className="text-[10px] font-medium px-1.5 py-1 rounded bg-slate-800 text-slate-400">
                                             Feed Image
                                         </span>
                                     )}
                                     {renditionSet.has("HLS") && (
-                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                                    <span className="text-[10px] font-medium px-1.5 py-1 rounded bg-slate-800 text-slate-400">
                                             HLS Video
                                         </span>
                                     )}
                                 </div>
                             </div>
                             {isSelected && (
-                                <Check className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                                <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                             )}
                         </button>
                     )
