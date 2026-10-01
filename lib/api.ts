@@ -1,3 +1,4 @@
+import { EntityType, RootCollection as RootCollectionHierarchy } from "@/context/HierarchyContext"
 import {
     AdminUser,
     LibraryStats,
@@ -147,7 +148,7 @@ export const api = {
     },
 
     // Hierarchy
-    async getHierarchy(): Promise<RootCollection[]> {
+    async getHierarchy(): Promise<RootCollectionHierarchy[]> {
         return fetchApi("/api/admin/hierarchy")
     },
 
@@ -193,7 +194,7 @@ export const api = {
     },
 
     async updateHierarchyEntity(
-        type: "root" | "collection" | "user",
+        type: EntityType,
         id: string,
         data: {
             processingProfileId?: string | null
