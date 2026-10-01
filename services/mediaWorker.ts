@@ -10,7 +10,6 @@ export async function workerLoop() {
             await new Promise(r => setTimeout(r, 1000))
             continue
         }
-
         try {
             switch (job.type) {
                 case "MEDIA":
@@ -35,7 +34,7 @@ export async function workerLoop() {
 }
 
 
-const WORKER_CONCURRENCY = 1
+const WORKER_CONCURRENCY = 3
 
 // 🔥 run multiple workers in same process
 for (let i = 0; i < WORKER_CONCURRENCY; i++) {
