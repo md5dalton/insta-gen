@@ -34,12 +34,11 @@ const policies: Policy[] = [
 
 export default ({ disabled = false }: { disabled?: boolean }) => {
     const {
-        selectedEntity,
         selectedVisibility,
 
         setSelectedVisibility,
     } = useHierarchy()
-
+    
     return (
         <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
@@ -47,16 +46,14 @@ export default ({ disabled = false }: { disabled?: boolean }) => {
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {(selectedEntity?.type !== "ROOT_COLLECTION") && (
-                    <Radio
-                        changeHandler={() => setSelectedVisibility(null)}
-                        description={`Inherited: ${"inheritedVisibility"}`}
-                        title="Inherit"
-                        disabled={disabled}
-                        icon={<Users className="w-4 h-4" />}
-                        isChecked={!selectedVisibility}
-                    />
-                )}
+                <Radio
+                    changeHandler={() => setSelectedVisibility(null)}
+                    title="Default visibility"
+                    description={`This will set default visibilty`}
+                    disabled={disabled}
+                    icon={<Users className="w-4 h-4" />}
+                    isChecked={!selectedVisibility || selectedVisibility === "INHERIT"}
+                />
                 {policies.map((policy) => (
                     <Radio
                         key={policy.type}
