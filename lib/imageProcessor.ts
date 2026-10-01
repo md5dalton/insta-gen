@@ -30,12 +30,22 @@ export class ImageProcessor {
         await sharp(this.imagePath)
             .rotate()
             .resize({
-                width: mediaEngineConfig.feedWidth,
-                height: mediaEngineConfig.feedWidth,
+                height: 1600,
+                width: 1600,
                 fit: "inside",
                 withoutEnlargement: true,
             })
-            .webp({ quality: mediaEngineConfig.feedQuality })
+            // .webp({
+            //     quality: mediaEngineConfig.feedQuality,
+            //     effort: 6,
+            //     smartSubsample: true
+            // })
+            .avif({
+                // quality: 1,
+                // effort: 9,
+                // chromaDeltaQ: true
+                // chromaSubsampling: 
+            })
             .toFile(this.storage.resolve(feedPath))
 
         return feedPath
