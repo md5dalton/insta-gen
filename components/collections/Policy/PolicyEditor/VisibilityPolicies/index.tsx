@@ -47,9 +47,9 @@ export default ({ disabled = false }: { disabled?: boolean }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <Radio
-                    changeHandler={() => setSelectedVisibility(null)}
-                    title="Default visibility"
-                    description={`This will set default visibilty`}
+                    changeHandler={() => setSelectedVisibility("INHERIT")}
+                    title="Default: INHERIT"
+                    description={`This will set default visibilty: INHERIT`}
                     disabled={disabled}
                     icon={<Users className="w-4 h-4" />}
                     isChecked={!selectedVisibility || selectedVisibility === "INHERIT"}
