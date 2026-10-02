@@ -2,7 +2,7 @@ import { fetchAndLockJob, markFailed } from "@/lib/job"
 import { process as processMedia } from "@/lib/worker/media"
 import { process as processParent} from "@/lib/worker/mediaParent"
 
-export async function workerLoop() {
+export async function workerLoop(worker: number) {
     while (true) {
         const job = await fetchAndLockJob()
 
@@ -34,11 +34,11 @@ export async function workerLoop() {
 }
 
 
-const WORKER_CONCURRENCY = 3
+const WORKER_CONCURRENCY = 5
 
 // 🔥 run multiple workers in same process
 for (let i = 0; i < WORKER_CONCURRENCY; i++) {
-    workerLoop()
+    workerLoop(i)
 }
 
 
