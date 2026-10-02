@@ -30,8 +30,8 @@ export class ImageProcessor {
         await sharp(this.imagePath)
             .rotate()
             .resize({
-                height: 1600,
-                width: 1600,
+                height: 2560,
+                width: 2560,
                 fit: "inside",
                 withoutEnlargement: true,
             })
